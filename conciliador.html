@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conciliador Bancario</title>
+    
+    <!-- XLSX Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    
+    <!-- Preline UI -->
+    <script src="https://preline.co/assets/js/hs-ui-bundle.js"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#64748b',
+                        success: '#10b981',
+                        warning: '#f59e0b',
+                        danger: '#ef4444'
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Estilos CSS aislados para WordPress -->
+    <style>
+        .conciliador-container {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #374151;
+        }
+        
+        .conciliador-container * {
+            box-sizing: border-box;
+        }
+        
+        .conciliador-container .drag-over {
+            border-color: #3b82f6 !important;
+            background-color: #eff6ff !important;
+        }
+        
+        .conciliador-container .file-item {
+            transition: all 0.2s ease;
+        }
+        
+        .conciliador-container .file-item:hover {
+            background-color: #f9fafb;
+        }
+        
+        .conciliador-container .spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .conciliador-container .result-table {
+            font-size: 14px;
+        }
+        
+        .conciliador-container .result-table th,
+        .conciliador-container .result-table td {
+            padding: 8px 12px;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .conciliador-container .result-table th {
+            background-color: #f9fafb;
+            font-weight: 600;
+        }
+        
+        .conciliador-container .status-conciliado {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+        
+        .conciliador-container .status-pendiente {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        
+        .conciliador-container .status-diferencia {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        
+        /* Estilos para pestañas */
+        .conciliador-container .tab-button {
+            padding: 8px 16px;
+            border: 1px solid #d1d5db;
+            background-color: #f9fafb;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .conciliador-container .tab-button.active {
+            background-color: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+        
+        .conciliador-container .tab-button:hover:not(.active) {
+            background-color: #e5e7eb;
+        }
+        
+        .conciliador-container .tab-content {
+            display: none;
+        }
+        
+        .conciliador-container .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+<div class="conciliador-container" x-data="bancarioConciliador()">
+    <div class="max-w-7xl mx-auto p-6 bg-white">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">
+                <i class="fas fa-balance-scale text-blue-600 mr-3"></i>
+                Conciliador Bancario
+            </h1>
+            <p class="text-gray-600">Sube tus archivos de mayor, extracto y saldo para realizar la conciliación automática</p>
+        </div>
+
+        <!-- Área de carga de archivos -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <!-- Mayor -->
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors"
+                 :class="{ 'drag-over': isDragOver }"
+                 @dragover.prevent="isDragOver = true"
+                 @dragleave.prevent="isDragOver = false"
+                 @drop.prevent="handleFileDrop($event, 'mayor')">
+                <i class="fas fa-book text-4xl text-gray-400 mb-4"></i>
+                <h3 class="text-lg font-semibold mb-2">Mayor</h3>
+                <p class="text-sm text-gray-500 mb-4">Arrastra o selecciona el archivo del mayor</p>
+                <input type="file" 
+                       accept=".xlsx,.xls,.csv" 
+                       @change="handleFileSelect($event, 'mayor')"
+                       class="hidden" 
+                       id="mayor-file">
+                <label for="mayor-file" class="bg-blue-600 text-white px-4 py-2 rounded cursor-pointer hover:bg-blue-700 transition-colors">
+                    Seleccionar archivo
+                </label>
+            </div>
+
+            <!-- Extracto -->
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors"
+                 :class="{ 'drag-over': isDragOver }"
+                 @dragover.prevent="isDragOver = true"
+                 @dragleave.prevent="isDragOver = false"
+                 @drop.prevent="handleFileDrop($event, 'extracto')">
+                <i class="fas fa-file-invoice text-4xl text-gray-400 mb-4"></i>
+                <h3 class="text-lg font-semibold mb-2">Extracto</h3>
+                <p class="text-sm text-gray-500 mb-4">Arrastra o selecciona el archivo del extracto</p>
+                <input type="file" 
+                       accept=".xlsx,.xls,.csv" 
+                       @change="handleFileSelect($event, 'extracto')"
+                       class="hidden" 
+                       id="extracto-file">
+                <label for="extracto-file" class="bg-blue-600 text-white px-4 py-2 rounded cursor-pointer hover:bg-blue-700 transition-colors">
+                    Seleccionar archivo
+                </label>
+            </div>
+
+            <!-- Saldo -->
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors"
+                 :class="{ 'drag-over': isDragOver }"
+                 @dragover.prevent="isDragOver = true"
+                 @dragleave.prevent="isDragOver = false"
+                 @drop.prevent="handleFileDrop($event, 'saldo')">
+                <i class="fas fa-calculator text-4xl text-gray-400 mb-4"></i>
+                <h3 class="text-lg font-semibold mb-2">Saldo</h3>
+                <p class="text-sm text-gray-500 mb-4">Arrastra o selecciona el archivo del saldo</p>
+                <input type="file" 
+                       accept=".xlsx,.xls,.csv" 
+                       @change="handleFileSelect($event, 'saldo')"
+                       class="hidden" 
+                       id="saldo-file">
+                <label for="saldo-file" class="bg-blue-600 text-white px-4 py-2 rounded cursor-pointer hover:bg-blue-700 transition-colors">
+                    Seleccionar archivo
+                </label>
+            </div>
+        </div>
+
+        <!-- Archivos cargados -->
+        <div x-show="sortedFiles.length > 0" class="mb-8">
+            <h2 class="text-xl font-semibold mb-4">
+                <i class="fas fa-files text-green-600 mr-2"></i>
+                Archivos cargados
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <template x-for="file in sortedFiles" :key="file.type">
+                    <div class="file-item bg-gray-50 p-4 rounded-lg border">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-medium capitalize" x-text="file.type"></span>
+                            <button @click="removeFile(file.type)" 
+                                    class="text-red-500 hover:text-red-700">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <p class="text-sm text-gray-600 truncate" x-text="file.name"></p>
+                        <p class="text-xs text-gray-500 mt-1" x-text="formatFileSize(file.size)"></p>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Spinner de carga -->
+        <div x-show="isLoading" class="text-center py-8">
+            <div class="spinner mx-auto mb-4"></div>
+            <p class="text-gray-600">Procesando archivos...</p>
+        </div>
+
+        <!-- Mensajes de estado -->
+        <div x-show="statusMessage" class="mb-6">
+            <div class="p-4 rounded-lg" 
+                 :class="statusMessage.includes('Error') ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'">
+                <p x-text="statusMessage"></p>
+            </div>
+        </div>
+
+        <!-- Botones de acción -->
+        <div class="flex flex-wrap gap-4 mb-8">
+            <button @click="procesarConciliacion()" 
+                    :disabled="!canProcessConciliation" 
+                    :class="canProcessConciliation ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed'"
+                    class="text-white px-6 py-3 rounded-lg font-semibold transition-colors">
+                <i class="fas fa-play mr-2"></i>
+                Procesar Conciliación
+            </button>
+            
+            <button @click="limpiarTodo()" 
+                    class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors">
+                <i class="fas fa-trash mr-2"></i>
+                Limpiar Todo
+            </button>
+            
+            <button x-show="conciliationResult" 
+                    @click="descargarResultados()" 
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors">
+                <i class="fas fa-download mr-2"></i>
+                Descargar Resultados
+            </button>
+        </div>
+
+        <!-- Mensaje de archivos faltantes -->
+        <div x-show="!canProcessConciliation && sortedFiles.length > 0" class="mb-6">
+            <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
+                <p x-text="getMissingFilesMessage()"></p>
+            </div>
+        </div>
+
+        <!-- Resultados -->
+        <div x-show="conciliationResult" class="space-y-6">
+            <!-- Pestañas -->
+            <div class="border-b border-gray-200">
+                <nav class="-mb-px flex space-x-8">
+                    <button @click="activeTab = 'mayor'" 
+                            :class="activeTab === 'mayor' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                        Mayor
+                    </button>
+                    <button @click="activeTab = 'extracto'" 
+                            :class="activeTab === 'extracto' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                        Extracto
+                    </button>
+                    <button @click="activeTab = 'saldo'" 
+                            :class="activeTab === 'saldo' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                        Saldo
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Contenido de pestañas -->
+            <div x-show="activeTab === 'mayor'" class="tab-content">
+                <h3 class="text-lg font-semibold mb-4">Resultados del Mayor</h3>
+                <div class="overflow-x-auto">
+                    <table class="result-table w-full border-collapse">
+                        <thead>
+                            <tr>
+                                <template x-for="header in conciliationResult?.headers?.mayor || []">
+                                    <th x-text="header"></th>
+                                </template>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="(row, index) in conciliationResult?.data?.mayor || []" :key="index">
+                                <tr>
+                                    <template x-for="(cell, cellIndex) in row" :key="cellIndex">
+                                        <td x-text="cell"></td>
+                                    </template>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div x-show="activeTab === 'extracto'" class="tab-content">
+                <h3 class="text-lg font-semibold mb-4">Resultados del Extracto</h3>
+                <div class="overflow-x-auto">
+                    <table class="result-table w-full border-collapse">
+                        <thead>
+                            <tr>
+                                <template x-for="header in conciliationResult?.headers?.extracto || []">
+                                    <th x-text="header"></th>
+                                </template>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="(row, index) in conciliationResult?.data?.extracto || []" :key="index">
+                                <tr>
+                                    <template x-for="(cell, cellIndex) in row" :key="cellIndex">
+                                        <td x-text="cell"></td>
+                                    </template>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div x-show="activeTab === 'saldo'" class="tab-content">
+                <h3 class="text-lg font-semibold mb-4">Resultados del Saldo</h3>
+                <div class="overflow-x-auto">
+                    <table class="result-table w-full border-collapse">
+                        <thead>
+                            <tr>
+                                <template x-for="header in conciliationResult?.headers?.saldo || []">
+                                    <th x-text="header"></th>
+                                </template>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="(row, index) in conciliationResult?.data?.saldo || []" :key="index">
+                                <tr>
+                                    <template x-for="(cell, cellIndex) in row" :key="cellIndex">
+                                        <td x-text="cell"></td>
+                                    </template>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function bancarioConciliador() {
+        return {
+            files: {},
+            isDragOver: false,
+            isLoading: false,
+            statusMessage: '',
+            conciliationResult: null,
+            activeTab: 'mayor',
+            requiredFileTypes: ['mayor', 'extracto', 'saldo'],
+            filePrefixes: {
+                mayor: ['mayor', 'may'],
+                extracto: ['extracto', 'ext', 'bcp'],
+                saldo: ['saldo', 'sal']
+            },
+            extractoAccountMap: {
+                'bcp.01': 'BCP.01',
+                'bcp.02': 'BCP.02',
+                'bcp01': 'BCP.01',
+                'bcp02': 'BCP.02'
+            },
+
+            init() {
+                this.loadStoredFiles();
+            },
+
+            loadStoredFiles() {
+                try {
+                    const stored = localStorage.getItem('conciliador_files');
+                    if (stored) {
+                        this.files = JSON.parse(stored);
+                    }
+                } catch (error) {
+                    console.error('Error cargando archivos almacenados:', error);
+                }
+            },
+
+            saveFilesToStorage() {
+                try {
+                    localStorage.setItem('conciliador_files', JSON.stringify(this.files));
+                } catch (error) {
+                    console.error('Error guardando archivos:', error);
+                }
+            },
+
+            get sortedFiles() {
+                return Object.values(this.files).sort((a, b) => {
+                    const order = { mayor: 0, extracto: 1, saldo: 2 };
+                    return order[a.type] - order[b.type];
+                });
+            },
+
+            get canProcessConciliation() {
+                return this.requiredFileTypes.every(type => this.files[type]);
+            },
+
+            getMissingFilesMessage() {
+                const missing = this.requiredFileTypes.filter(type => !this.files[type]);
+                if (missing.length === 0) return '';
+                return `Faltan archivos: ${missing.join(', ')}`;
+            },
+
+            detectFileType(fileName) {
+                const name = fileName.toLowerCase();
+                
+                for (const [type, prefixes] of Object.entries(this.filePrefixes)) {
+                    if (prefixes.some(prefix => name.includes(prefix))) {
+                        return type;
+                    }
+                }
+                
+                return null;
+            },
+
+            handleFileDrop(event, suggestedType = null) {
+                this.isDragOver = false;
+                const droppedFiles = Array.from(event.dataTransfer.files);
+                
+                droppedFiles.forEach(file => {
+                    const detectedType = this.detectFileType(file.name) || suggestedType;
+                    if (detectedType && this.requiredFileTypes.includes(detectedType)) {
+                        this.addFile(file, detectedType);
+                    }
+                });
+            },
+
+            handleFileSelect(event, type) {
+                const file = event.target.files[0];
+                if (file) {
+                    this.addFile(file, type);
+                }
+                event.target.value = '';
+            },
+
+            addFile(file, type) {
+                this.files[type] = {
+                    file: file,
+                    name: file.name,
+                    size: file.size,
+                    type: type
+                };
+                this.saveFilesToStorage();
+                this.statusMessage = `Archivo ${type} cargado: ${file.name}`;
+                setTimeout(() => this.statusMessage = '', 3000);
+            },
+
+            removeFile(type) {
+                delete this.files[type];
+                this.saveFilesToStorage();
+                this.statusMessage = `Archivo ${type} eliminado`;
+                setTimeout(() => this.statusMessage = '', 3000);
+            },
+
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            },
+
+            limpiarTodo() {
+                this.files = {};
+                this.conciliationResult = null;
+                this.statusMessage = '';
+                this.activeTab = 'mayor';
+                localStorage.removeItem('conciliador_files');
+                this.statusMessage = 'Todos los archivos han sido eliminados';
+                setTimeout(() => this.statusMessage = '', 3000);
+            },
+
+            async procesarConciliacion() {
+                if (!this.canProcessConciliation) {
+                    this.statusMessage = 'Error: Faltan archivos requeridos';
+                    return;
+                }
+
+                this.isLoading = true;
+                this.statusMessage = 'Procesando conciliación...';
+
+                try {
+                    // Leer archivos
+                    const mayorData = await this.readExcelFile(this.files.mayor.file);
+                    const extractoData = await this.readExcelFile(this.files.extracto.file);
+                    const saldoData = await this.readExcelFile(this.files.saldo.file);
+
+                    // Procesar datos
+                    const mayorProcesado = this.procesarMayor(mayorData);
+                    const extractoProcesado = this.procesarExtracto(extractoData);
+                    const saldoProcesado = this.procesarSaldo(saldoData);
+
+                    // Realizar conciliación
+                    const resultadoConciliacion = this.realizarConciliacion(
+                        mayorProcesado, 
+                        extractoProcesado, 
+                        saldoProcesado
+                    );
+
+                    this.conciliationResult = resultadoConciliacion;
+                    this.statusMessage = 'Conciliación completada exitosamente';
+                    this.activeTab = 'mayor';
+
+                } catch (error) {
+                    console.error('Error en procesamiento:', error);
+                    this.statusMessage = `Error: ${error.message}`;
+                } finally {
+                    this.isLoading = false;
+                }
+            },
+
+            async readExcelFile(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const data = new Uint8Array(e.target.result);
+                            const workbook = XLSX.read(data, { type: 'array' });
+                            const firstSheetName = workbook.SheetNames[0];
+                            const worksheet = workbook.Sheets[firstSheetName];
+                            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                            resolve(jsonData);
+                        } catch (error) {
+                            reject(new Error(`Error leyendo archivo: ${error.message}`));
+                        }
+                    };
+                    reader.onerror = () => reject(new Error('Error leyendo archivo'));
+                    reader.readAsArrayBuffer(file);
+                });
+            },
+
+            procesarMayor(data) {
+                if (!data || data.length === 0) {
+                    throw new Error('El archivo de mayor está vacío');
+                }
+
+                const headers = data[0];
+                const rows = data.slice(1);
+
+                // Buscar índices de columnas importantes
+                const indices = this.buscarIndicesColumnas(headers, {
+                    cuenta: ['CUENTA', 'CTA', 'ACCOUNT'],
+                    fecha: ['FECHA', 'DATE', 'FEC'],
+                    debe: ['DEBE', 'DEBIT', 'DEB'],
+                    haber: ['HABER', 'CREDIT', 'HAB', 'CRE'],
+                    descripcion: ['DESCRIPCION', 'DESC', 'DESCRIPTION', 'CONCEPTO'],
+                    documento: ['DOCUMENTO', 'DOC', 'NUMDOC', 'NUM_DOC', 'NUMERO']
+                });
+
+                // Agregar columnas de estado y referencia
+                const headersConEstado = [...headers, 'ESTADO_CONC', 'REF_CONC'];
+                const rowsConEstado = rows.map(row => [...row, '', '']);
+
+                return {
+                    headers: headersConEstado,
+                    data: rowsConEstado,
+                    indices: indices,
+                    original: { headers, data: rows }
+                };
+            },
+
+            procesarExtracto(data) {
+                if (!data || data.length === 0) {
+                    throw new Error('El archivo de extracto está vacío');
+                }
+
+                const headers = data[0];
+                const rows = data.slice(1);
+
+                // Buscar índices de columnas importantes
+                const indices = this.buscarIndicesColumnas(headers, {
+                    fecha: ['FECHA', 'DATE', 'FEC'],
+                    descripcion: ['DESCRIPCION', 'DESC', 'DESCRIPTION', 'CONCEPTO', 'DETALLE'],
+                    debe: ['DEBE', 'DEBIT', 'DEB', 'CARGO'],
+                    haber: ['HABER', 'CREDIT', 'HAB', 'CRE', 'ABONO'],
+                    documento: ['DOCUMENTO', 'DOC', 'NUMDOC', 'NUM_DOC', 'NUMERO', 'REFERENCIA', 'REF']
+                });
+
+                // Detectar cuenta del extracto basándose en el nombre del archivo
+                const fileName = this.files.extracto.name.toLowerCase();
+                let cuentaExtracto = 'EXTRACTO';
+                
+                for (const [key, value] of Object.entries(this.extractoAccountMap)) {
+                    if (fileName.includes(key)) {
+                        cuentaExtracto = value;
+                        break;
+                    }
+                }
+
+                // Agregar columnas de estado y referencia
+                const headersConEstado = [...headers, 'ESTADO_CONC', 'REF_CONC'];
+                const rowsConEstado = rows.map(row => [...row, '', '']);
+
+                return {
+                    headers: headersConEstado,
+                    data: rowsConEstado,
+                    indices: indices,
+                    cuenta: cuentaExtracto,
+                    original: { headers, data: rows }
+                };
+            },
+
+            procesarSaldo(data) {
+                if (!data || data.length === 0) {
+                    throw new Error('El archivo de saldo está vacío');
+                }
+
+                const headers = data[0];
+                const rows = data.slice(1);
+
+                return {
+                    headers: headers,
+                    data: rows,
+                    original: { headers, data: rows }
+                };
+            },
+
+            realizarConciliacion(mayor, extracto, saldo) {
+                console.log('🔄 INICIANDO CONCILIACIÓN BANCARIA');
+                console.log('📊 Datos recibidos:', {
+                    mayor: mayor.data.length + ' filas',
+                    extracto: extracto.data.length + ' filas',
+                    saldo: saldo.data.length + ' filas'
+                });
+
+                // Filtrar mayor por cuenta del extracto
+                const mayorFiltrado = this.filtrarMayorPorCuenta(mayor, extracto.cuenta);
+                console.log(`🔍 Mayor filtrado para cuenta ${extracto.cuenta}: ${mayorFiltrado.data.length} filas`);
+
+                // Aplicar lógica de conciliación
+                const mayorConciliado = this.aplicarLogicaConciliacion(mayorFiltrado, extracto);
+                const extractoConciliado = this.aplicarLogicaConciliacion(extracto, mayorFiltrado);
+
+                // Aplicar estados a extractos por cuenta
+                const extractoProcesable = {
+                    ...extractoConciliado,
+                    cuenta: extracto.cuenta
+                };
+                
+                this.aplicarEstadosAExtractosPorCuenta(mayorConciliado, extractoProcesable);
+
+                console.log('✅ CONCILIACIÓN COMPLETADA');
+
+                return {
+                    headers: {
+                        mayor: mayorConciliado.headers,
+                        extracto: extractoConciliado.headers,
+                        saldo: saldo.headers
+                    },
+                    data: {
+                        mayor: mayorConciliado.data,
+                        extracto: extractoConciliado.data,
+                        saldo: saldo.data
+                    },
+                    extractoProcesable: extractoProcesable
+                };
+            },
+
+            filtrarMayorPorCuenta(mayor, cuentaExtracto) {
+                const cuentaIndex = mayor.indices.cuenta;
+                if (cuentaIndex === -1) {
+                    console.warn('⚠️ No se encontró columna de cuenta en el mayor');
+                    return mayor;
+                }
+
+                const filasFiltradas = mayor.data.filter(row => {
+                    const cuenta = (row[cuentaIndex] || '').toString().toUpperCase().trim();
+                    return cuenta.includes(cuentaExtracto.replace('.', ''));
+                });
+
+                return {
+                    ...mayor,
+                    data: filasFiltradas
+                };
+            },
+
+            aplicarLogicaConciliacion(datos1, datos2) {
+                // Crear una copia de los datos para no modificar los originales
+                const datosCopia = {
+                    ...datos1,
+                    data: datos1.data.map(row => [...row])
+                };
+
+                // Aplicar lógica de conciliación aquí
+                // Por ahora, solo retornamos los datos sin modificar
+                // En una implementación real, aquí iría la lógica de matching
+
+                return datosCopia;
+            },
+
+            aplicarEstadosAExtractosPorCuenta(mayorConciliado, extractoProcesable) {
+                console.log('🔄 APLICANDO ESTADOS A EXTRACTOS POR CUENTA');
+                console.log('📋 Datos recibidos:', {
+                    mayorFilas: mayorConciliado.data.length,
+                    extractoFilas: extractoProcesable.data.length,
+                    cuentaExtracto: extractoProcesable.cuenta
+                });
+
+                // Obtener índices de columnas
+                const mayorIndices = mayorConciliado.indices;
+                const extractoIndices = extractoProcesable.indices;
+
+                // Índices de estado y referencia (últimas dos columnas)
+                const mayorEstadoIdx = mayorConciliado.headers.length - 2;
+                const mayorRefIdx = mayorConciliado.headers.length - 1;
+                const extractoEstadoIdx = extractoProcesable.headers.length - 2;
+                const extractoRefIdx = extractoProcesable.headers.length - 1;
+
+                console.log('📍 Índices de columnas:', {
+                    mayor: mayorIndices,
+                    extracto: extractoIndices,
+                    estadoColumnas: { mayorEstado: mayorEstadoIdx, extractoEstado: extractoEstadoIdx }
+                });
+
+                // Procesar cada fila del mayor
+                mayorConciliado.data.forEach((mayorFila, mayorIdx) => {
+                    const mayorDoc = this.normalizarTexto(mayorFila[mayorIndices.documento] || '');
+                    const mayorMonto = this.normalizarMonto(mayorFila[mayorIndices.debe] || mayorFila[mayorIndices.haber] || 0);
+                    
+                    if (!mayorDoc) return;
+
+                    console.log(`🔍 Procesando Mayor fila ${mayorIdx + 1}: DOC=${mayorDoc}, MONTO=${mayorMonto}`);
+
+                    // Buscar coincidencias en extracto
+                    const coincidencias = [];
+                    extractoProcesable.data.forEach((extractoFila, extractoIdx) => {
+                        const extractoDoc = this.normalizarTexto(extractoFila[extractoIndices.documento] || '');
+                        const extractoMonto = this.normalizarMonto(extractoFila[extractoIndices.debe] || extractoFila[extractoIndices.haber] || 0);
+                        
+                        if (extractoDoc && mayorDoc === extractoDoc) {
+                            const diferencia = Math.abs(mayorMonto - extractoMonto);
+                            coincidencias.push({
+                                idx: extractoIdx,
+                                fila: extractoFila,
+                                monto: extractoMonto,
+                                diferencia: diferencia,
+                                coincide: diferencia < 0.01
+                            });
+                        }
+                    });
+
+                    if (coincidencias.length > 0) {
+                        console.log(`   ✅ Encontradas ${coincidencias.length} coincidencias para DOC=${mayorDoc}`);
+                        
+                        // Buscar coincidencia exacta de monto
+                        const coincidenciaExacta = coincidencias.find(c => c.coincide);
+                        
+                        if (coincidenciaExacta) {
+                            // Marcar como conciliado
+                            mayorFila[mayorEstadoIdx] = 'P1 - Conciliada';
+                            mayorFila[mayorRefIdx] = `Conciliada con extracto fila ${coincidenciaExacta.idx + 1}`;
+                            
+                            extractoProcesable.data[coincidenciaExacta.idx][extractoEstadoIdx] = 'P1 - Conciliada';
+                            extractoProcesable.data[coincidenciaExacta.idx][extractoRefIdx] = `Conciliada con mayor fila ${mayorIdx + 1}`;
+                            
+                            console.log(`   🎯 Conciliación exacta: Mayor[${mayorIdx + 1}] ↔ Extracto[${coincidenciaExacta.idx + 1}]`);
+                        } else {
+                            // Marcar como diferencia
+                            const mejorCoincidencia = coincidencias.reduce((a, b) => a.diferencia < b.diferencia ? a : b);
+                            
+                            mayorFila[mayorEstadoIdx] = 'P2 - Diferencia';
+                            mayorFila[mayorRefIdx] = `Diferencia con extracto fila ${mejorCoincidencia.idx + 1} (diff: ${mejorCoincidencia.diferencia.toFixed(2)})`;
+                            
+                            extractoProcesable.data[mejorCoincidencia.idx][extractoEstadoIdx] = 'P2 - Diferencia';
+                            extractoProcesable.data[mejorCoincidencia.idx][extractoRefIdx] = `Diferencia con mayor fila ${mayorIdx + 1} (diff: ${mejorCoincidencia.diferencia.toFixed(2)})`;
+                            
+                            console.log(`   ⚠️ Diferencia de monto: Mayor[${mayorIdx + 1}] ↔ Extracto[${mejorCoincidencia.idx + 1}] (diff: ${mejorCoincidencia.diferencia.toFixed(2)})`);
+                        }
+                    } else {
+                        // Sin coincidencias
+                        mayorFila[mayorEstadoIdx] = 'P0 - Pendiente';
+                        mayorFila[mayorRefIdx] = 'Sin coincidencia en extracto';
+                        console.log(`   ❌ Sin coincidencias para DOC=${mayorDoc}`);
+                    }
+                });
+
+                // Marcar filas del extracto sin procesar como pendientes
+                extractoProcesable.data.forEach((extractoFila, extractoIdx) => {
+                    if (!extractoFila[extractoEstadoIdx]) {
+                        extractoFila[extractoEstadoIdx] = 'P0 - Pendiente';
+                        extractoFila[extractoRefIdx] = 'Sin coincidencia en mayor';
+                    }
+                });
+
+                console.log('✅ Estados aplicados correctamente a extractos por cuenta');
+            },
+
+            async descargarResultados() {
+                if (!this.conciliationResult) return;
+
+                try {
+                    const datosCompletos = {
+                        datosMayor: [this.conciliationResult.headers.mayor, ...this.conciliationResult.data.mayor],
+                        datosExtracto: [this.conciliationResult.headers.extracto, ...this.conciliationResult.data.extracto],
+                        datosSaldo: [this.conciliationResult.headers.saldo, ...this.conciliationResult.data.saldo],
+                        extractoProcesable: this.conciliationResult.extractoProcesable
+                    };
+
+                    const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '');
+                    const fileName = `conciliacion_${timestamp}.xlsx`;
+
+                    this.generateExcelFile(datosCompletos, fileName);
+                    this.statusMessage = 'Descarga iniciada';
+                    setTimeout(() => this.statusMessage = '', 3000);
+
+                } catch (error) {
+                    console.error('Error en descarga:', error);
+                    this.statusMessage = `Error en descarga: ${error.message}`;
+                }
+            },
+
+            compararFilasExtractoProcesable(filaExtracto, filaMayor, indicesExtracto, indicesMayor) {
+                const docExtracto = this.normalizarTexto(filaExtracto[indicesExtracto.documento] || '');
+                const docMayor = this.normalizarTexto(filaMayor[indicesMayor.documento] || '');
+                
+                if (!docExtracto || !docMayor || docExtracto !== docMayor) {
+                    return { coincide: false, diferencia: Infinity };
+                }
+                
+                const montoExtracto = this.normalizarMonto(filaExtracto[indicesExtracto.debe] || filaExtracto[indicesExtracto.haber] || 0);
+                const montoMayor = this.normalizarMonto(filaMayor[indicesMayor.debe] || filaMayor[indicesMayor.haber] || 0);
+                
+                const diferencia = Math.abs(montoExtracto - montoMayor);
+                const coincide = diferencia < 0.01;
+                
+                return { coincide, diferencia, montoExtracto, montoMayor };
+            },
+
+            procesarAnulacionPorNumdoc(numdoc, extractoProcesable, indicesExtracto) {
+                console.log(`🔄 PASO 3 - Procesando anulación para NUMDOC: ${numdoc}`);
+                
+                const candidatos = [];
+                let candidatosEncontrados = 0;
+                const candidatosDetalle = [];
+                
+                // Buscar todas las filas con el mismo NUMDOC
+                extractoProcesable.data.forEach((fila, idx) => {
+                    const filaNumdoc = this.normalizarTexto(fila[indicesExtracto.documento] || '');
+                    if (filaNumdoc === numdoc) {
+                        candidatosEncontrados++;
+                        const debe = this.normalizarMonto(fila[indicesExtracto.debe] || 0);
+                        const haber = this.normalizarMonto(fila[indicesExtracto.haber] || 0);
+                        const diferencia = Math.abs(debe - haber);
+                        const coincide = diferencia < 0.01;
+                        
+                        candidatos.push({ fila: idx, debe, haber, diferencia, coincide });
+                        candidatosDetalle.push({ fila: idx + 1, debe, haber, diferencia, coincide });
+                    }
+                });
+                
+                console.log(`   📊 ETAPA 3a - Candidatos encontrados: ${candidatosEncontrados}`);
+                
+                // Si hay exactamente 2 candidatos y se anulan entre sí
+                if (candidatos.length === 2) {
+                    const [cand1, cand2] = candidatos;
+                    const sumaTotal = Math.abs((cand1.debe + cand1.haber) + (cand2.debe + cand2.haber));
+                    
+                    console.log(`   📊 ETAPA 3b - Verificando anulación: suma total = ${sumaTotal.toFixed(4)}`);
+                    
+                    if (sumaTotal < 0.01) {
+                        console.log(`   ✅ PASO 3 - Anulación detectada: NUMDOC=${numdoc}`);
+                        
+                        // Determinar cuál es el comprobante original
+                        let comprob = '';
+                        if (cand1.debe > 0 && cand1.haber === 0) {
+                            comprob = `Fila ${cand1.fila + 1}`;
+                        } else if (cand2.debe > 0 && cand2.haber === 0) {
+                            comprob = `Fila ${cand2.fila + 1}`;
+                        } else {
+                            comprob = `Filas ${cand1.fila + 1} y ${cand2.fila + 1}`;
+                        }
+                        
+                        return {
+                            estado: 'P3 - Conciliada',
+                            ref: `Anula a ${comprob}`,
+                            etapa: 3,
+                            indiceParejaEncontrada: cand2.fila,
+                            estadoPareja: 'P3 - Conciliada',
+                            refPareja: `Anula a ${comprob}`
+                        };
+                    }
+                }
+                
+                // Si llegamos aquí, mostrar resumen
+                console.log(`   📊 ETAPA 3c - Resumen: ${candidatosEncontrados} candidatos con mismo NUMDOC`);
+                if (candidatosDetalle.length > 0) {
+                    console.log(`   📋 Candidatos encontrados:`);
+                    candidatosDetalle.forEach((cand, idx) => {
+                        console.log(`      ${idx + 1}. Fila ${cand.fila}: DEBE=${cand.debe}, HABER=${cand.haber}, diff=${cand.diferencia.toFixed(4)} ${cand.coincide ? '✅' : '❌'}`);
+                    });
+                }
+                
+                // Si llegamos aquí, no se pudo procesar la anulación
+                console.log(`❌ PASO 3 - No procesado: NUMDOC=${numdoc} (${candidatosEncontrados} candidatos internos encontrados)`);
+                return { 
+                    estado: '', 
+                    ref: '', 
+                    etapa: 0,
+                    indiceParejaEncontrada: -1,
+                    estadoPareja: '',
+                    refPareja: ''
+                };
+            },
+     
+            buscarIndicesColumnas(headers, mapeo) {
+         const indices = {};
+         for (const [clave, posiblesNombres] of Object.entries(mapeo)) {
+            let encontrado = false;
+             for (let i = 0; i < headers.length; i++) {
+                 const header = (headers[i] || '').toString().toUpperCase().trim();
+                if (posiblesNombres.some(nombre => header.includes(nombre.toUpperCase()))) {
+                         indices[clave] = i;
+                    encontrado = true;
+                         break;
+                     }
+                 }
+            if (!encontrado) indices[clave] = -1;
+         }
+         return indices;
+            },
+     
+            // Función para normalizar texto (eliminar espacios, convertir a mayúsculas)
+            normalizarTexto(texto) {
+                if (!texto) return '';
+                let normalizado = texto.toString().trim().toUpperCase().replace(/\s+/g, '');
+                
+                // Si es un número puro, eliminar ceros a la izquierda pero mantener al menos un dígito
+                if (/^\d+$/.test(normalizado)) {
+                    normalizado = normalizado.replace(/^0+/, '') || '0';
+                }
+                
+                return normalizado;
+            },
+            
+            // Función para normalizar y parsear montos
+            normalizarMonto(montoRaw) {
+                if (!montoRaw) return 0;
+                
+                // Convertir a string y limpiar espacios
+                let montoStr = montoRaw.toString().trim().replace(/\s+/g, '');
+                
+                // Si está vacío después de limpiar, retornar 0
+                if (!montoStr) return 0;
+                
+                // Detectar diferentes formatos de números
+                let montoLimpio;
+                let tipoFormato = '';
+                
+                // NUEVO: Manejar números negativos
+                const esNegativo = montoStr.startsWith('-');
+                if (esNegativo) {
+                    montoStr = montoStr.substring(1);
+                }
+                
+                // Formato 1: Solo números con coma decimal (18956,26)
+                if (/^\d+,\d+$/.test(montoStr)) {
+                    montoLimpio = montoStr.replace(',', '.');
+                    tipoFormato = 'europeo simple';
+                }
+                // Formato 2: Formato europeo con separador de miles punto y decimal coma (46.744,48)
+                else if (/^\d{1,3}(\.\d{3})+,\d{2,}$/.test(montoStr)) {
+                    montoLimpio = montoStr.replace(/\./g, '').replace(',', '.');
+                    tipoFormato = 'europeo con separador miles';
+                }
+                // Formato 3: Formato americano con separador de miles coma y decimal punto (46,744.48)
+                else if (/^\d{1,3}(,\d{3})+\.\d{2,}$/.test(montoStr)) {
+                    montoLimpio = montoStr.replace(/,/g, '');
+                    tipoFormato = 'americano con separador miles';
+                }
+                // Formato 4: Solo punto decimal (18956.26)
+                else if (/^\d+\.\d+$/.test(montoStr)) {
+                    montoLimpio = montoStr;
+                    tipoFormato = 'decimal punto';
+                }
+                // Formato 5: Solo números enteros (18956)
+                else if (/^\d+$/.test(montoStr)) {
+                    montoLimpio = montoStr;
+                    tipoFormato = 'entero';
+                }
+                // MEJORADO: Formato mixto problemático - detectar contexto
+                else if (montoStr.includes(',') && montoStr.includes('.')) {
+                    // Si hay más puntos que comas, probablemente sea europeo (46.744,48)
+                    const puntos = (montoStr.match(/\./g) || []).length;
+                    const comas = (montoStr.match(/,/g) || []).length;
+                    
+                    if (puntos > comas) {
+                        // Europeo: punto separador miles, coma decimal
+                        montoLimpio = montoStr.replace(/\./g, '').replace(',', '.');
+                        tipoFormato = 'mixto - europeo detectado';
+                    } else {
+                        // Americano: coma separador miles, punto decimal
+                        montoLimpio = montoStr.replace(/,/g, '');
+                        tipoFormato = 'mixto - americano detectado';
+                    }
+                }
+                // Por defecto: eliminar todo excepto números y punto
+                else {
+                    montoLimpio = montoStr.replace(/[^0-9.]/g, '');
+                    tipoFormato = 'limpieza general';
+                }
+                
+                let monto = parseFloat(montoLimpio);
+                if (isNaN(monto)) monto = 0;
+                
+                // Aplicar signo negativo si corresponde
+                if (esNegativo) monto = -monto;
+                
+                const resultado = monto;
+                
+                return resultado;
+            },
+     
+            generateExcelFile(datosCompletos, fileName) {
+        try {
+            console.log(`📁 Generando archivo Excel: ${fileName}`);
+            
+            // Crear workbook
+            const wb = XLSX.utils.book_new();
+            
+            // HOJA 1: MAYOR
+            if (datosCompletos.datosMayor && datosCompletos.datosMayor.length > 0) {
+                const wsMayor = XLSX.utils.aoa_to_sheet(datosCompletos.datosMayor);
+                XLSX.utils.book_append_sheet(wb, wsMayor, "mayor");
+                console.log(`   📋 Hoja 'mayor': ${datosCompletos.datosMayor.length} filas`);
+            }
+            
+            // HOJA 2: EXTRACTO
+            if (datosCompletos.datosExtracto && datosCompletos.datosExtracto.length > 0) {
+                const wsExtracto = XLSX.utils.aoa_to_sheet(datosCompletos.datosExtracto);
+                XLSX.utils.book_append_sheet(wb, wsExtracto, "extracto");
+                console.log(`   📋 Hoja 'extracto': ${datosCompletos.datosExtracto.length} filas`);
+            }
+            
+            // HOJA 3: SALDO
+            if (datosCompletos.datosSaldo && datosCompletos.datosSaldo.length > 0) {
+                const wsSaldo = XLSX.utils.aoa_to_sheet(datosCompletos.datosSaldo);
+                XLSX.utils.book_append_sheet(wb, wsSaldo, "saldo");
+                console.log(`   📋 Hoja 'saldo': ${datosCompletos.datosSaldo.length} filas`);
+            }
+            
+            // HOJAS POR CUENTA: Generar hojas individuales para cada cuenta del extracto
+            if (datosCompletos.extractoProcesable && datosCompletos.extractoProcesable.cuenta) {
+                console.log(`🏦 Generando hoja individual para cuenta: ${datosCompletos.extractoProcesable.cuenta}`);
+                
+                // Crear datos para la hoja de cuenta específica
+                const datosHojaCuenta = [
+                    datosCompletos.extractoProcesable.headers, // Encabezados
+                    ...datosCompletos.extractoProcesable.data  // Datos del extracto con estados aplicados
+                ];
+                
+                // Crear hoja para la cuenta
+                const wsHojaCuenta = XLSX.utils.aoa_to_sheet(datosHojaCuenta);
+                XLSX.utils.book_append_sheet(wb, wsHojaCuenta, datosCompletos.extractoProcesable.cuenta);
+                console.log(`   📋 Hoja '${datosCompletos.extractoProcesable.cuenta}': ${datosCompletos.extractoProcesable.data.length} filas`);
+            }
+            
+            // Generar archivo
+            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+            
+            const blob = new Blob([wbout], { type: 'application/octet-stream' });
+            const url = window.URL.createObjectURL(blob);
+            
+            // Crear enlace de descarga automática
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            console.log(`💾 Descarga iniciada: ${fileName} con 3 hojas`);
+            return url;
+        } catch (error) {
+            console.error("❌ Error generando Excel:", error);
+            throw error;
+        }
+    }
+        }
+    }
+</script>
+
+<!-- Alpine.js -->
+<script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+</div>
+</body>
+</html>
