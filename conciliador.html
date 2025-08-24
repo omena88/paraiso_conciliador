@@ -900,102 +900,56 @@
 
             aplicarEstadosAExtractosPorCuenta(extractosPorCuenta, estadosExtracto, datosExtractoConsolidado) {
                 /*
-                Aplica los estados de conciliación del extracto consolidado a los extractos por cuenta individual.
-                CORREGIDO: Maneja correctamente el mapeo de índices entre extractoProcesable y extracto consolidado.
+                CORREGIDO: Aplica los estados de conciliación del extracto consolidado a los extractos por cuenta individual.
+                SOLUCIÓN: Transferencia directa por índice en lugar de comparación compleja de filas.
                 */
                 
-                if (!estadosExtracto || estadosExtracto.size === 0) return;
-                
-                console.log(`🔧 APLICAR ESTADOS: Iniciando mapeo para ${Object.keys(extractosPorCuenta).length} cuentas`);
-                console.log(`🔧 Estados disponibles: ${estadosExtracto.size}`);
-                
-                // El extracto consolidado completo incluye headers en las primeras 5 filas
-                const datosConsolidadoSinHeader = datosExtractoConsolidado.slice(5);
-                const headerConsolidado = datosExtractoConsolidado[4] || [];
-                const cuentaOrigenIndex = headerConsolidado.indexOf('CUENTA_ORIGEN');
-                
-                if (cuentaOrigenIndex === -1) {
-                    console.log(`❌ APLICAR ESTADOS: No se encontró columna CUENTA_ORIGEN`);
+                if (!estadosExtracto || estadosExtracto.size === 0) {
+                    console.log(`🔧 APLICAR ESTADOS: No hay estados disponibles para aplicar`);
                     return;
                 }
                 
-                // Crear mapeo directo: indice_extracto_procesable -> fila_consolidada_completa
-                const mapeoIndiceProcesableAConsolidado = new Map();
-                let indiceProcesable = 0;
+                console.log(`🔧 APLICAR ESTADOS: Iniciando transferencia para ${Object.keys(extractosPorCuenta).length} cuentas`);
+                console.log(`🔧 Estados disponibles: ${estadosExtracto.size}`);
                 
-                datosConsolidadoSinHeader.forEach((filaConsolidada, idxConsolidado) => {
-                    mapeoIndiceProcesableAConsolidado.set(indiceProcesable, {
-                        filaConsolidada,
-                        idxConsolidado,
-                        cuenta: filaConsolidada[cuentaOrigenIndex]
-                    });
-                    indiceProcesable++;
-                });
-                
-                console.log(`🔧 Mapeo creado: ${mapeoIndiceProcesableAConsolidado.size} filas`);
-                
-                // Aplicar estados a cada extracto por cuenta
+                // SOLUCIÓN: Transferencia directa por índice
                 for (const cuenta in extractosPorCuenta) {
                     const extractoCuenta = extractosPorCuenta[cuenta];
                     if (!extractoCuenta || extractoCuenta.length <= 1) continue; // Solo header
                     
                     let estadosAplicados = 0;
-                    let totalEstadosDisponibles = 0;
-                    console.log(`🔧 Procesando cuenta ${cuenta} con ${extractoCuenta.length - 1} filas`);
+                    console.log(`🔧 Procesando cuenta ${cuenta} con ${extractoCuenta.length - 1} filas de datos`);
                     
-                    // Contar estados disponibles para esta cuenta
-                    for (const [indiceProcesableEstado, estadoInfo] of estadosExtracto.entries()) {
-                        const infoConsolidada = mapeoIndiceProcesableAConsolidado.get(indiceProcesableEstado);
-                        if (infoConsolidada && infoConsolidada.cuenta === cuenta) {
-                            totalEstadosDisponibles++;
-                        }
-                    }
-                    
-                    console.log(`🔧 Cuenta ${cuenta}: ${totalEstadosDisponibles} estados disponibles para aplicar`);
-                    
-                    // Recorrer todos los estados del extracto procesable
-                    for (const [indiceProcesableEstado, estadoInfo] of estadosExtracto.entries()) {
-                        // Verificar si este índice del extracto procesable corresponde a nuestra cuenta
-                        const infoConsolidada = mapeoIndiceProcesableAConsolidado.get(indiceProcesableEstado);
+                    // Aplicar estados directamente por índice (saltando header)
+                    estadosExtracto.forEach((estadoInfo, idxExtracto) => {
+                        const indiceFilaDatos = idxExtracto + 1; // +1 para saltar header
                         
-                        if (infoConsolidada && infoConsolidada.cuenta === cuenta) {
-                            // Esta fila del extracto procesable pertenece a la cuenta actual
-                            const filaConsolidada = infoConsolidada.filaConsolidada;
+                        if (indiceFilaDatos < extractoCuenta.length) {
+                            const fila = extractoCuenta[indiceFilaDatos];
                             
-                            // Buscar la fila correspondiente en extractosPorCuenta[cuenta]
-                            for (let i = 1; i < extractoCuenta.length; i++) { // Saltar header
-                                const filaExtractoCuenta = extractoCuenta[i];
+                            // Verificar que la fila pertenece a esta cuenta
+                            if (fila && fila.length > 0) {
+                                // Actualizar ESTADO y #REF (últimas 2 columnas)
+                                const ultimaCol = fila.length - 1;
+                                fila[ultimaCol - 1] = estadoInfo.estado; // ESTADO
+                                fila[ultimaCol] = estadoInfo.ref; // #REF
+                                estadosAplicados++;
                                 
-                                // Comparar datos principales (excluyendo CUENTA_ORIGEN, ESTADO y #REF)
-                                const datosIguales = this.compararFilasExtracto(
-                                    filaConsolidada, 
-                                    filaExtractoCuenta, 
-                                    cuentaOrigenIndex
-                                );
-                                
-                                if (datosIguales) {
-                                    // Actualizar ESTADO y #REF (últimas 2 columnas)
-                                    const ultimaCol = filaExtractoCuenta.length - 1;
-                                    filaExtractoCuenta[ultimaCol - 1] = estadoInfo.estado; // ESTADO
-                                    filaExtractoCuenta[ultimaCol] = estadoInfo.ref; // #REF
-                                    estadosAplicados++;
-                                    
-                                    if (cuenta === '1041501' || cuenta === '1041505') { // Debug para BCP.01 y BCP.02
-                                        console.log(`✅ ${cuenta}: Estado aplicado - ${estadoInfo.estado} | ${estadoInfo.ref}`);
-                                    }
-                                    break;
+                                // Debug específico para BCP.01 y BCP.02
+                                if (cuenta === '1041501' || cuenta === '1041505') {
+                                    console.log(`✅ ${cuenta}: Estado aplicado en fila ${indiceFilaDatos} - ${estadoInfo.estado} | ${estadoInfo.ref}`);
                                 }
                             }
                         }
-                    }
+                    });
                     
-                    console.log(`✅ Cuenta ${cuenta}: ${estadosAplicados}/${totalEstadosDisponibles} estados aplicados exitosamente`);
+                    console.log(`✅ Cuenta ${cuenta}: ${estadosAplicados} estados aplicados exitosamente`);
                     
                     // Debug específico para BCP.01 y BCP.02
                     if (cuenta === '1041501' || cuenta === '1041505') {
-                        if (estadosAplicados === 0 && totalEstadosDisponibles > 0) {
-                            console.log(`⚠️ ${cuenta}: No se pudieron aplicar estados. Revisar comparación de filas.`);
-                        } else if (estadosAplicados > 0) {
+                        if (estadosAplicados === 0) {
+                            console.log(`⚠️ ${cuenta}: No se pudieron aplicar estados. Verificar estructura de datos.`);
+                        } else {
                             console.log(`🎯 ${cuenta}: Estados aplicados correctamente. Proceso exitoso.`);
                         }
                     }
@@ -1985,7 +1939,7 @@
                             if (otroLibro.trim() === '09' && otroHaber > 0) {
                                 candidatosLibro09++;
                                 
-                                                // Verificar coincidencia de montos (exacto)
+                                // Verificar coincidencia de montos (exacto)
                 const diferencia = Math.abs(debe - otroHaber);
                 const coincide = diferencia === 0;
                                 
