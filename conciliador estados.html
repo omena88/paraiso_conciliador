@@ -1086,7 +1086,7 @@
                 let totalOriginal = 0;
                 let duplicadosEliminados = 0;
 
-                console.log(`\n🔧 === CONSOLIDACIÓN MAYOR MULTI-CUENTA ===`);
+                // console.log(`\n🔧 === CONSOLIDACIÓN MAYOR MULTI-CUENTA ===`);
 
                 // Recorrer cada cuenta y consolidar sus datos del mayor
                 resultadosPorCuenta.forEach((cuentaInfo, codigoCuenta) => {
@@ -1095,7 +1095,7 @@
                         const registrosCuenta = datosMayorCuenta.length - 1; // Sin header
                         totalOriginal += registrosCuenta;
                         
-                        console.log(`📊 Cuenta ${codigoCuenta}: ${registrosCuenta} registros`);
+                        // console.log(`📊 Cuenta ${codigoCuenta}: ${registrosCuenta} registros`);
                         
                         // Tomar el header del primer resultado (todos deberían ser iguales)
                         if (!headerMayor && datosMayorCuenta.length > 0) {
@@ -1117,7 +1117,7 @@
                                 duplicadosEliminados++;
                                 // Debug para SANT
                                 if (codigoCuenta === '1041401' && duplicadosEliminados <= 3) {
-                                    console.log(`🔍 DUPLICADO eliminado ${duplicadosEliminados}: NUMDOC="${registro[1]}", FDOC="${registro[2]}", GLOSA="${registro[11]}"`);
+                                    // console.log(`🔍 DUPLICADO eliminado ${duplicadosEliminados}: NUMDOC="${registro[1]}", FDOC="${registro[2]}", GLOSA="${registro[11]}"`);
                                 }
                             }
                         }
@@ -1126,11 +1126,11 @@
                     }
                 });
 
-                console.log(`📊 CONSOLIDACIÓN RESUMEN:`);
-                console.log(`   📋 Total registros originales: ${totalOriginal}`);
-                console.log(`   ❌ Duplicados eliminados: ${duplicadosEliminados}`);
-                console.log(`   ✅ Registros finales: ${registrosConsolidados.length}`);
-                console.log(`=========================================`);
+                // console.log(`📊 CONSOLIDACIÓN RESUMEN:`);
+                // console.log(`   📋 Total registros originales: ${totalOriginal}`);
+                // console.log(`   ❌ Duplicados eliminados: ${duplicadosEliminados}`);
+                // console.log(`   ✅ Registros finales: ${registrosConsolidados.length}`);
+                // console.log(`=========================================`);
 
                 // Construir resultado final con header + todos los registros
                 const resultado = headerMayor ? [headerMayor, ...registrosConsolidados] : registrosConsolidados;
@@ -1249,16 +1249,16 @@
                 
                 // 🔍 DEBUG PASO 1 - FILTRO CUENTA SANT
                 if (codigoCuentaEspecifica === '1041401') {
-                    console.log(`\n🔍 === DEBUG PASO 1 - FILTRO CUENTA SANT ===`);
-                    console.log(`📊 Total filas antes del filtro: ${countInicial}`);
-                    console.log(`🎯 Buscando cuenta: "${codigoCuentaEspecifica}"`);
+                    // console.log(`\n🔍 === DEBUG PASO 1 - FILTRO CUENTA SANT ===`);
+                    // console.log(`📊 Total filas antes del filtro: ${countInicial}`);
+                    // console.log(`🎯 Buscando cuenta: "${codigoCuentaEspecifica}"`);
                     
                     // Mostrar ejemplos de cuentas en las primeras 10 filas
-                    console.log(`📋 Muestra de cuentas en primeras 10 filas:`);
+                    // console.log(`📋 Muestra de cuentas en primeras 10 filas:`);
                     for (let i = 0; i < Math.min(10, filasFiltradasMayor.length); i++) {
                         const cuentaEjemplo = (filasFiltradasMayor[i][indicesMayor.cuenta] || '').toString();
                         const coincide = cuentaEjemplo === codigoCuentaEspecifica;
-                        console.log(`   Fila ${i}: "${cuentaEjemplo}" ${coincide ? '✅' : '❌'}`);
+                        // console.log(`   Fila ${i}: "${cuentaEjemplo}" ${coincide ? '✅' : '❌'}`);
                     }
                 }
                 
@@ -1269,9 +1269,9 @@
                 
                 // 🔍 DEBUG PASO 1 - RESULTADO FILTRO SANT
                 if (codigoCuentaEspecifica === '1041401') {
-                    console.log(`📊 Total filas después del filtro: ${filasFiltradasMayor.length}`);
-                    console.log(`🎯 Deberían ser 44 registros para SANT`);
-                    console.log(`===============================================`);
+                    // console.log(`📊 Total filas después del filtro: ${filasFiltradasMayor.length}`);
+                    // console.log(`🎯 Deberían ser 44 registros para SANT`);
+                    // console.log(`===============================================`);
                 }
                 
                 // // console.log(`🔧 PASO 1 - Filtro Cuenta Específica: ${countInicial} → CUENTA=${codigoCuentaEspecifica} (${cuentaConfig.alias}) → ${filasFiltradasMayor.length} filas`);
@@ -1455,14 +1455,14 @@
         // // console.log(`   📋 Extracto procesable: ${extractoProcesable.length} filas disponibles`);
         const estadosExtracto = new Map(); // Para rastrear estados del extracto
         
-        const resultadosPaso4 = this.procesarPaso4(filasFiltradasMayor, extractoProcesable, indicesMayor, indicesExtracto, estadosFilas, estadosExtracto);
+        const resultadosPaso4 = this.procesarPaso4(filasFiltradasMayor, extractoProcesable, indicesMayor, indicesExtracto, estadosFilas, estadosExtracto, cuentaConfig);
         // // console.log(`📊 PASO 4 COMPLETADO: ${resultadosPaso4.conciliados} conciliaciones BNA procesadas`);
         
         // PASO 5: Operaciones PROT y DEV (Agrupación por totales diarios)
         // // console.log(`\n📈 INICIANDO PASO 5: Operaciones PROT y DEV`);
         // // console.log(`   📋 Extracto procesable: ${extractoProcesable.length} filas disponibles`);
         
-        const resultadosPaso5 = this.procesarPaso5(filasFiltradasMayor, extractoProcesable, indicesMayor, indicesExtracto, estadosFilas, estadosExtracto);
+        const resultadosPaso5 = this.procesarPaso5(filasFiltradasMayor, extractoProcesable, indicesMayor, indicesExtracto, estadosFilas, estadosExtracto, cuentaConfig);
         // // console.log(`📊 PASO 5 COMPLETADO: ${resultadosPaso5.conciliados} conciliaciones PROT/DEV procesadas`);
         
         // // console.log(`\n🏦 INICIANDO PASO 6: Depósitos Bancarios`);
@@ -1502,11 +1502,11 @@
         // // console.log(`📊 PASO 11 COMPLETADO: ${resultadosPaso11.conciliados} conciliaciones ITF procesadas`);
         
         // === PASO 12 - AGRUPACIÓN SANTANDER (DESPUÉS DE ITF) ===
-        console.log(`\n🔗 INICIANDO PASO 12: Agrupación Santander (después de ITF) - CUENTA: ${cuentaConfig.alias}`);
-        console.log(`   📋 Extracto procesable: ${extractoProcesable.length} filas disponibles`);
+        // console.log(`\n🔗 INICIANDO PASO 12: Agrupación Santander (después de ITF) - CUENTA: ${cuentaConfig.alias}`);
+        // console.log(`   📋 Extracto procesable: ${extractoProcesable.length} filas disponibles`);
         
         const resultadosPaso12 = this.procesarPaso12Santander(filasFiltradasMayor, extractoProcesable, indicesMayor, indicesExtracto, estadosFilas, estadosExtracto, cuentaConfig);
-        console.log(`📊 PASO 12 COMPLETADO: ${resultadosPaso12.conciliados} conciliaciones SANTANDER AGRUPADAS procesadas`);
+        // console.log(`📊 PASO 12 COMPLETADO: ${resultadosPaso12.conciliados} conciliaciones SANTANDER AGRUPADAS procesadas`);
         
         // Crear resultados finales con estados asignados
         for (let i = 0; i < filasFiltradasMayor.length; i++) {
@@ -1828,37 +1828,46 @@
         };
             },
 
-            procesarPaso4(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto) {
+            procesarPaso4(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto, cuentaConfig = null) {
                 /*
-                PASO 4 - OPERACIONES BNA (BANCO DE LA NACIÓN):
+                PASO 4 - OPERACIONES ESPECÍFICAS POR BANCO:
                 
+                BCP (GENERAL) - OPERACIONES BNA (BANCO DE LA NACIÓN):
                 ETAPA 4A - MAPEO CON EXTRACTO BANCARIO:
-                CRITERIOS DE FILTRADO (Mayor):
-                - DES_TDOP = "Bna"
-                - LIBRO = "04" (como string)
-                - ESTADO = "Pendiente" (no procesados en pasos anteriores)
+                - DES_TDOP = "Bna", LIBRO = "04"
+                - MAPEO: FDOC + DEBE vs FECHA + MONTO
                 
-                MAPEO:
-                - Mayor: FDOC + DEBE
-                - Extracto: FECHA (col A) + MONTO (col D)
+                BBVA (CONTINENTAL) - OPERACIONES ABONO/CARGO CART:
+                
+                ETAPA 1 - MAPEO CON EXTRACTO:
+                Mayor: 
+                1. Filtrar por DES_TDOP = "Bna"
+                2. Agrupar por FDOC
+                3. FDOC + DEBE
+                
+                Extracto:
+                1. Identificar Concepto que INICIEN con "ABONO CART" y "CARGO CART"
+                2. Agrupar por F. Operación  
+                3. F. Operación + |Importe| (suma con signo, luego valor absoluto)
+                
+                ETAPA 2 - MAPEO INTERNO MAYOR:
+                Candidatos: DES_TDOP = "Bna" + DEBE > 0 + pendientes
+                Destinos: CUALQUIER registro pendiente (sin filtro DES_TDOP)
+                Criterio: mismo FDOC + DEBE candidato = HABER destino
                 
                 ESTADOS RESULTANTES:
-                - Mayor: "P4 - Conciliada", #REF = [Columna G del Extracto]
-                - Extracto: "P4 - Conciliada", #REF = "[LIBRO]-[COMPROB]" del Mayor
-                
-                ETAPA 4B - MAPEO INTERNO MAYOR (LIBRO 04 vs LIBRO 09):
-                CRITERIOS:
-                - Filas pendientes con LIBRO = "04" (que no se mapearon en 4A)
-                - Buscar coincidencia de DEBE (libro 04) vs HABER (libro 09)
-                
-                ESTADOS RESULTANTES:
-                - Ambas filas: "P4 - Conciliada"
-                - Libro 04: #REF = "09-[COMPROB del libro 09]"
-                - Libro 09: #REF = "04-[COMPROB del libro 04]"
+                - "P4 - Conciliada" para registros mapeados
                 */
                 
-                // // console.log(`🏦 PASO 4: Iniciando procesamiento de operaciones BNA`);
-                // // console.log(`🔍 Total filas a revisar: ${filasFiltradasMayor.length}`);
+                // ⭐ VERIFICAR SI ES BBVA PARA USAR LÓGICA ESPECÍFICA
+                const esBBVA = cuentaConfig && cuentaConfig.codigo === '1041201';
+                
+                if (esBBVA) {
+                    // console.log(`🏦 PASO 4 BBVA: Agrupación por FDOC en Mayor + mapeo ABONO/CARGO CART`);
+                    return this.procesarPaso4BBVA(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto);
+                } else {
+                    // console.log(`🏦 PASO 4 BCP: Operaciones BNA (Banco de la Nación)`);
+                }
                 // // console.log(`🔍 Estados ya procesados: ${estadosFilas.size}`);
                 
                 // ETAPA 4A - Contadores
@@ -2039,14 +2048,431 @@
                 };
             },
 
-            procesarPaso5(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto) {
+            procesarPaso4BBVA(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto) {
+                /*
+                PASO 4 BBVA - DOS ETAPAS (ABONO/CARGO CART):
+                
+                ETAPA 1 - MAPEO CON EXTRACTO:
+                Mayor: 
+                1. Filtrar por DES_TDOP = "Bna"
+                2. Agrupar por FDOC
+                3. FDOC + DEBE
+                
+                Extracto BBVA:
+                1. Identificar en "Concepto" que INICIEN con "ABONO CART" y "CARGO CART"
+                2. Agrupar por "F. Operación"  
+                3. "F. Operación" + |Importe| (suma con signo, luego valor absoluto)
+                
+                ETAPA 2 - MAPEO INTERNO MAYOR (registros pendientes):
+                1. Filtrar candidatos: DES_TDOP = "Bna" + DEBE > 0 + registros pendientes
+                2. Buscar destinos: CUALQUIER registro pendiente (sin filtro DES_TDOP)
+                3. Mapeo exacto: mismo FDOC + DEBE candidato = HABER destino
+                
+                HEADERS BBVA: F. Operación, F. Valor, Código, Nº. Doc., Concepto, Importe, Oficina, ESTADO, #REF
+                
+                ESTADOS RESULTANTES:
+                - "P4 - Conciliada" para registros mapeados en ambas etapas
+                */
+                
+                // console.log(`\n🏦 *** BBVA PASO 4 INICIADO *** - Agrupación por FDOC + mapeo ABONO/CARGO CART`);
+                // console.log(`📋 Total registros Mayor disponibles: ${filasFiltradasMayor.length}`);
+                // console.log(`📋 Total registros Extracto disponibles: ${extractoProcesable.length}`);
+                // console.log(`📋 Estados ya procesados Mayor: ${estadosFilas.size}`);
+                // console.log(`📋 Estados ya procesados Extracto: ${estadosExtracto.size}`);
+                
+                let candidatosMayor = 0;
+                let candidatosExtracto = 0; 
+                let conciliados = 0;
+                let numeroGrupo = 1;
+                
+                // === 1. FILTRAR MAYOR POR DES_TDOP="Bna" Y AGRUPAR POR FDOC ===
+                const gruposPorFechaMayor = new Map();
+                
+                for (let i = 0; i < filasFiltradasMayor.length; i++) {
+                    // Solo procesar filas pendientes
+                    if (estadosFilas.has(i)) continue;
+                    
+                    const filaMayor = filasFiltradasMayor[i];
+                    const desTdop = filaMayor[idxM.desTdop] || '';  // DES_TDOP
+                    const fdoc = filaMayor[idxM.fdoc] || '';
+                    const debe = this.normalizarMonto(filaMayor[idxM.debe] || '0');
+                    
+                    // FILTRO ESPECÍFICO BBVA: DES_TDOP = "Bna" + DEBE > 0
+                    if (desTdop.trim().toLowerCase() === 'bna' && debe > 0) {
+                        candidatosMayor++;
+                        
+                        const fechaNormalizada = this.normalizarFecha(fdoc);
+                        
+                        if (!gruposPorFechaMayor.has(fechaNormalizada)) {
+                            gruposPorFechaMayor.set(fechaNormalizada, {
+                                fechaOriginal: fdoc,
+                                totalDebe: 0,
+                                filas: []
+                            });
+                        }
+                        
+                        const grupo = gruposPorFechaMayor.get(fechaNormalizada);
+                        grupo.totalDebe += debe;
+                        grupo.filas.push(i);
+                        
+                        if (candidatosMayor <= 10) {
+                            // console.log(`📝 BBVA Mayor Candidato ${candidatosMayor}: DES_TDOP="${desTdop}", FDOC="${fdoc}", DEBE=${debe}`);
+                        }
+                    }
+                }
+                
+                // console.log(`📊 BBVA PASO 4 - AGRUPACIÓN MAYOR: ${gruposPorFechaMayor.size} grupos por FDOC formados`);
+                // console.log(`📊 Candidatos Mayor con DES_TDOP="Bna" y DEBE > 0: ${candidatosMayor}`);
+                
+                // === DETALLE DE GRUPOS MAYOR ===
+                // console.log(`\n🔍 === DETALLE GRUPOS MAYOR (DES_TDOP="Bna") ===`);
+                let grupoNumero = 1;
+                for (const [fechaNormalizada, grupo] of gruposPorFechaMayor) {
+                    // console.log(`📅 GRUPO MAYOR ${grupoNumero}: FDOC="${grupo.fechaOriginal}" → Normalizada="${fechaNormalizada}"`);
+                    // console.log(`   💰 Total DEBE: ${grupo.totalDebe.toFixed(2)}`);
+                    // console.log(`   📋 Registros: ${grupo.filas.length}`);
+                    
+                    // Mostrar primeros 3 registros del grupo
+                    grupo.filas.slice(0, 3).forEach((filaIdx, idx) => {
+                        const fila = filasFiltradasMayor[filaIdx];
+                        const debe = this.normalizarMonto(fila[idxM.debe] || '0');
+                        // console.log(`     ${idx + 1}. DEBE=${debe.toFixed(2)}, NUMDOC="${fila[idxM.numdoc] || ''}", COMPROB="${fila[idxM.comprob] || ''}"`);
+                    });
+                    
+                    if (grupo.filas.length > 3) {
+                        // console.log(`     ... y ${grupo.filas.length - 3} registros más`);
+                    }
+                    grupoNumero++;
+                }
+                
+                // === 2. IDENTIFICAR EXTRACTO BBVA ABONO/CARGO CART ===  
+                const registrosAbonoCargoCart = [];
+                
+                for (let i = 0; i < extractoProcesable.length; i++) {
+                    // Solo revisar filas no procesadas del extracto
+                    if (estadosExtracto.has(i)) continue;
+                    
+                    const itemExtracto = extractoProcesable[i];
+                    const filaExtracto = itemExtracto.fila;
+                    
+                    if (!filaExtracto || !Array.isArray(filaExtracto)) continue;
+                    
+                    // Headers BBVA: F. Operación, F. Valor, Código, Nº. Doc., Concepto, Importe, Oficina
+                    const fOperacion = filaExtracto[0] || '';     // F. Operación
+                    const concepto = filaExtracto[4] || '';       // Concepto  
+                    const importe = filaExtracto[5] || '0';       // Importe
+                    
+                    // Verificar si el concepto INICIA con "ABONO CART" o "CARGO CART"
+                    const conceptoUpper = concepto.toString().toUpperCase();
+                    const esAbonoCart = conceptoUpper.startsWith('ABONO CART');
+                    const esCargoCart = conceptoUpper.startsWith('CARGO CART');
+                    
+                    if (esAbonoCart || esCargoCart) {
+                        candidatosExtracto++;
+                        
+                        registrosAbonoCargoCart.push({
+                            indice: i,
+                            fOperacion: fOperacion,
+                            concepto: concepto,
+                            importe: this.normalizarMonto(importe), // MANTENER SIGNO (+ o -)
+                            tipo: esAbonoCart ? 'ABONO CART' : 'CARGO CART'
+                        });
+                        
+                        if (candidatosExtracto <= 10) {
+                            // console.log(`📝 BBVA Extracto Candidato ${candidatosExtracto}: F.Op="${fOperacion}", Concepto="${concepto.substring(0, 40)}...", Importe=${this.normalizarMonto(importe).toFixed(2)} (${this.normalizarMonto(importe) >= 0 ? '+' : '-'}), Tipo=${esAbonoCart ? 'ABONO' : 'CARGO'}`);
+                        }
+                    }
+                }
+                
+                // console.log(`📊 BBVA PASO 4 - EXTRACTO: ${candidatosExtracto} registros ABONO/CARGO CART encontrados`);
+                
+                // === 3. AGRUPAR EXTRACTO POR F. OPERACIÓN ===
+                const gruposPorFOperacion = new Map();
+                
+                registrosAbonoCargoCart.forEach(registro => {
+                    const fOperacionNormalizada = this.normalizarFecha(registro.fOperacion); // Normalizar como fecha
+                    
+                    if (!gruposPorFOperacion.has(fOperacionNormalizada)) {
+                        gruposPorFOperacion.set(fOperacionNormalizada, {
+                            fOperacionOriginal: registro.fOperacion,
+                            totalImporte: 0,
+                            registros: []
+                        });
+                    }
+                    
+                    const grupo = gruposPorFOperacion.get(fOperacionNormalizada);
+                    grupo.totalImporte += registro.importe; // Sumar con signo (+ o -)
+                    grupo.registros.push(registro);
+                });
+                
+                // console.log(`📊 BBVA PASO 4 - AGRUPACIÓN EXTRACTO: ${gruposPorFOperacion.size} grupos por F. Operación formados`);
+                
+                // === DETALLE DE GRUPOS EXTRACTO BBVA ===
+                // console.log(`\n🔍 === DETALLE GRUPOS EXTRACTO BBVA (ABONO/CARGO CART) ===`);
+                let grupoExtractoNum = 1;
+                for (const [fechaNormalizada, grupo] of gruposPorFOperacion) {
+                    // console.log(`📅 GRUPO EXTRACTO ${grupoExtractoNum}: F.Operación="${grupo.fOperacionOriginal}" → Normalizada="${fechaNormalizada}"`);
+                    // console.log(`   💰 Total antes de |valor|: ${grupo.totalImporte.toFixed(2)}`);
+                    // console.log(`   💰 Total |Importe|: ${Math.abs(grupo.totalImporte).toFixed(2)}`);
+                    // console.log(`   📋 Registros: ${grupo.registros.length}`);
+                    
+                    // Mostrar primeros 3 registros del grupo
+                    grupo.registros.slice(0, 3).forEach((registro, idx) => {
+                        const signoStr = registro.importe >= 0 ? '+' : '';
+                        // console.log(`     ${idx + 1}. ${registro.tipo}: Importe=${signoStr}${registro.importe.toFixed(2)}, Concepto="${registro.concepto.substring(0, 30)}..."`);
+                    });
+                    
+                    if (grupo.registros.length > 3) {
+                        // console.log(`     ... y ${grupo.registros.length - 3} registros más`);
+                    }
+                    grupoExtractoNum++;
+                }
+                
+                // === 4. COMPARACIÓN DE GRUPOS: MAYOR vs EXTRACTO ===
+                // console.log(`\n🔗 === COMPARACIÓN GRUPOS: MAYOR (FDOC+DEBE) vs EXTRACTO (F.OP+|IMPORTE|) ===`);
+                // console.log(`┌────────────┬─────────────┬─────────────┬────────────┬─────────────┬─────────────┬─────────┐`);
+                // console.log(`│FECHA NORM  │ MAYOR FDOC  │ MAYOR DEBE  │ BBVA F.OP  │ BBVA IMPORTE│   STATUS    │ MATCH   │`);
+                // console.log(`├────────────┼─────────────┼─────────────┼────────────┼─────────────┼─────────────┼─────────┤`);
+                
+                // Obtener todas las fechas únicas (de ambos lados)
+                const todasFechas = new Set([
+                    ...Array.from(gruposPorFechaMayor.keys()),
+                    ...Array.from(gruposPorFOperacion.keys())
+                ]);
+                
+                for (const fecha of todasFechas) {
+                    const grupoMayor = gruposPorFechaMayor.get(fecha);
+                    const grupoExtracto = gruposPorFOperacion.get(fecha);
+                    
+                    const tieneGrupoMayor = grupoMayor !== undefined;
+                    const tieneGrupoExtracto = grupoExtracto !== undefined;
+                    
+                    let status = '';
+                    let grupoId = '';
+                    
+                    if (tieneGrupoMayor && tieneGrupoExtracto) {
+                        const totalExtractoAbsoluto = Math.abs(grupoExtracto.totalImporte);
+                        const diff = Math.abs(grupoMayor.totalDebe - totalExtractoAbsoluto);
+                        if (diff < 0.01) {
+                            status = 'MATCH ✅';
+                            grupoId = `${numeroGrupo}`;
+                            
+                            // === LOG DETALLADO DEL MATCH ===
+                            // console.log(`\n🎯 MATCH ENCONTRADO - GRUPO ${numeroGrupo}:`);
+                            // console.log(`   📅 Fecha normalizada: "${fecha}"`);
+                            // console.log(`   🏛️  MAYOR: FDOC="${grupoMayor.fechaOriginal}" → Total DEBE=${grupoMayor.totalDebe.toFixed(2)} (${grupoMayor.filas.length} registros)`);
+                            // console.log(`   🏦 EXTRACTO: F.Op="${grupoExtracto.fOperacionOriginal}" → Total antes |valor|=${grupoExtracto.totalImporte.toFixed(2)}, Total |Importe|=${totalExtractoAbsoluto.toFixed(2)} (${grupoExtracto.registros.length} registros)`);
+                            // console.log(`   ✅ Diferencia: ${diff.toFixed(6)} (CONCILIADO)`);
+                            
+                            // === CONCILIAR REGISTROS ===
+                            const refGrupo = `BBVA-GRUPO-${numeroGrupo}`;
+                            
+                            // Marcar todas las filas del grupo Mayor como conciliadas
+                            for (const indiceMayor of grupoMayor.filas) {
+                                estadosFilas.set(indiceMayor, {
+                                    estado: 'P4 - Conciliada',
+                                    ref: refGrupo
+                                });
+                            }
+                            
+                            // Marcar todas las filas del grupo Extracto como conciliadas
+                            for (const registroExtracto of grupoExtracto.registros) {
+                                estadosExtracto.set(registroExtracto.indice, {
+                                    estado: 'P4 - Conciliada',
+                                    ref: refGrupo
+                                });
+                            }
+                            
+                            conciliados++;
+                            numeroGrupo++;
+                        } else {
+                            status = `DIFF ${diff.toFixed(2)} ❌`;
+                            grupoId = '-';
+                            
+                            // === LOG DETALLADO DE NO MATCH ===
+                            // console.log(`\n❌ NO MATCH - Fecha "${fecha}":`);
+                            // console.log(`   🏛️  MAYOR: ${grupoMayor.totalDebe.toFixed(2)} vs 🏦 EXTRACTO: antes |valor|=${grupoExtracto.totalImporte.toFixed(2)}, |Importe|=${totalExtractoAbsoluto.toFixed(2)}`);
+                            // console.log(`   ❌ Diferencia: ${diff.toFixed(2)} (NO CONCILIADO)`);
+                        }
+                    } else if (tieneGrupoMayor) {
+                        status = 'MAYOR SOLO';
+                        grupoId = '-';
+                        
+                        // === LOG GRUPO SOLO EN MAYOR ===
+                        // console.log(`\n⚠️  GRUPO SOLO EN MAYOR - Fecha "${fecha}":`);
+                        // console.log(`   🏛️  MAYOR: FDOC="${grupoMayor.fechaOriginal}" → Total DEBE=${grupoMayor.totalDebe.toFixed(2)} (${grupoMayor.filas.length} registros)`);
+                        // console.log(`   🏦 EXTRACTO: Sin grupo correspondiente`);
+                        
+                    } else {
+                        status = 'BBVA SOLO';
+                        grupoId = '-';
+                        
+                        // === LOG GRUPO SOLO EN EXTRACTO ===
+                        // console.log(`\n⚠️  GRUPO SOLO EN EXTRACTO - Fecha "${fecha}":`);
+                        // console.log(`   🏛️  MAYOR: Sin grupo correspondiente`);
+                        // console.log(`   🏦 EXTRACTO: F.Op="${grupoExtracto.fOperacionOriginal}" → Total antes |valor|=${grupoExtracto.totalImporte.toFixed(2)}, Total |Importe|=${Math.abs(grupoExtracto.totalImporte).toFixed(2)} (${grupoExtracto.registros.length} registros)`);
+                    }
+                    
+                    // Formatear datos para tabla
+                    const fechaStr = (fecha || '').toString().padEnd(10);
+                    const mayorStr = tieneGrupoMayor ? (grupoMayor.fechaOriginal || '').toString().padEnd(11) : '           ';
+                    const mayorDebe = tieneGrupoMayor ? (grupoMayor.totalDebe || 0).toFixed(2).padStart(11) : '           ';
+                    const bbvaStr = tieneGrupoExtracto ? (grupoExtracto.fOperacionOriginal || '').toString().padEnd(10) : '          ';
+                    const bbvaImporte = tieneGrupoExtracto ? Math.abs(grupoExtracto.totalImporte || 0).toFixed(2).padStart(11) : '           ';
+                    const statusStr = status.padEnd(11);
+                    const grupoStr = grupoId.toString().padStart(7);
+                    
+                    // console.log(`│ ${fechaStr} │ ${mayorStr} │ ${mayorDebe} │ ${bbvaStr} │ ${bbvaImporte} │ ${statusStr} │ ${grupoStr} │`);
+                }
+                
+                // console.log(`└────────────┴─────────────┴─────────────┴────────────┴─────────────┴─────────────┴─────────┘`);
+                
+                // === 5. MAPEO INTERNO MAYOR: BNA DEBE vs CUALQUIER HABER ===
+                // console.log(`\n🔗 === ETAPA 2: MAPEO INTERNO MAYOR BBVA (BNA DEBE vs CUALQUIER HABER) ===`);
+                // console.log(`📋 Buscar registros pendientes con DES_TDOP="Bna" DEBE > 0`);
+                // console.log(`📋 Mapear contra CUALQUIER registro con mismo FDOC + HABER igual al DEBE`);
+                
+                let conciliadosInternos = 0;
+                let candidatosBnaDebe = 0;
+                let candidatosHaberEncontrados = 0;
+                
+                // Recopilar candidatos BNA con DEBE
+                const candidatosBna = [];
+                
+                for (let i = 0; i < filasFiltradasMayor.length; i++) {
+                    // Solo procesar filas pendientes (no conciliadas en etapa anterior)
+                    if (estadosFilas.has(i)) continue;
+                    
+                    const filaMayor = filasFiltradasMayor[i];
+                    const desTdop = filaMayor[idxM.desTdop] || '';
+                    const fdoc = filaMayor[idxM.fdoc] || '';
+                    const debe = this.normalizarMonto(filaMayor[idxM.debe] || '0');
+                    const comprob = filaMayor[idxM.comprob] || '';
+                    const numdoc = filaMayor[idxM.numdoc] || '';
+                    
+                    // Solo registros con DES_TDOP="Bna" y DEBE > 0
+                    if (desTdop.trim().toLowerCase() === 'bna' && debe > 0) {
+                        candidatosBnaDebe++;
+                        candidatosBna.push({
+                            indice: i,
+                            fdoc: fdoc,
+                            debe: debe,
+                            comprob: comprob,
+                            numdoc: numdoc,
+                            fechaNormalizada: this.normalizarFecha(fdoc)
+                        });
+                    }
+                }
+                
+                // console.log(`📊 Candidatos BNA con DEBE > 0: ${candidatosBnaDebe}`);
+                
+                // === DETALLE DE CANDIDATOS BNA ===
+                // console.log(`\n🔍 === DETALLE CANDIDATOS BNA (DEBE > 0) ===`);
+                candidatosBna.slice(0, 10).forEach((candidato, idx) => {
+                    // console.log(`📝 Candidato BNA ${idx + 1}: FDOC="${candidato.fdoc}", DEBE=${candidato.debe.toFixed(2)}, COMPROB="${candidato.comprob}", NUMDOC="${candidato.numdoc}"`);
+                });
+                
+                if (candidatosBna.length > 10) {
+                    // console.log(`   ... y ${candidatosBna.length - 10} candidatos más`);
+                }
+                
+                // === MAPEO Y CONCILIACIÓN INTERNA ===
+                // console.log(`\n🔗 === MAPEO: BNA DEBE vs CUALQUIER HABER (mismo FDOC + monto) ===`);
+                
+                const registrosYaUsados = new Set();
+                
+                for (const candidatoBna of candidatosBna) {
+                    // Skip si este candidato BNA ya fue usado
+                    if (registrosYaUsados.has(candidatoBna.indice)) continue;
+                    
+                    // Buscar en TODOS los registros pendientes (sin filtro DES_TDOP)
+                    for (let j = 0; j < filasFiltradasMayor.length; j++) {
+                        // Skip si ya fue procesado en etapa anterior o ya usado en mapeo interno
+                        if (estadosFilas.has(j) || registrosYaUsados.has(j) || j === candidatoBna.indice) continue;
+                        
+                        const filaDestino = filasFiltradasMayor[j];
+                        const fdocDestino = filaDestino[idxM.fdoc] || '';
+                        const haberDestino = this.normalizarMonto(filaDestino[idxM.haber] || '0');
+                        const comprobDestino = filaDestino[idxM.comprob] || '';
+                        const numdocDestino = filaDestino[idxM.numdoc] || '';
+                        const desTdopDestino = filaDestino[idxM.desTdop] || '';
+                        
+                        // Verificar coincidencia: mismo FDOC + HABER igual al DEBE del BNA
+                        const fechaDestinoNormalizada = this.normalizarFecha(fdocDestino);
+                        const diff = Math.abs(candidatoBna.debe - haberDestino);
+                        
+                        if (candidatoBna.fechaNormalizada === fechaDestinoNormalizada && diff < 0.01 && haberDestino > 0) {
+                            candidatosHaberEncontrados++;
+                            
+                            // === MATCH ENCONTRADO ===
+                            // console.log(`\n🎯 MATCH INTERNO ENCONTRADO:`);
+                            // console.log(`   📅 Fecha BNA: "${candidatoBna.fdoc}" vs Destino: "${fdocDestino}" (normalizada: "${candidatoBna.fechaNormalizada}")`);
+                            // console.log(`   🏦 BNA: DES_TDOP="Bna", DEBE=${candidatoBna.debe.toFixed(2)}, COMPROB="${candidatoBna.comprob}", NUMDOC="${candidatoBna.numdoc}"`);
+                            // console.log(`   🎯 DESTINO: DES_TDOP="${desTdopDestino}", HABER=${haberDestino.toFixed(2)}, COMPROB="${comprobDestino}", NUMDOC="${numdocDestino}"`);
+                            // console.log(`   ✅ Diferencia: ${diff.toFixed(6)} (CONCILIADO INTERNO)`);
+                            
+                            // Conciliar ambos registros
+                            estadosFilas.set(candidatoBna.indice, {
+                                estado: 'P4 - Conciliada',
+                                ref: `HABER-${comprobDestino}`
+                            });
+                            
+                            estadosFilas.set(j, {
+                                estado: 'P4 - Conciliada',
+                                ref: `BNA-${candidatoBna.comprob}`
+                            });
+                            
+                            // Marcar como usados
+                            registrosYaUsados.add(candidatoBna.indice);
+                            registrosYaUsados.add(j);
+                            
+                            conciliadosInternos++;
+                            break; // Salir del bucle para buscar siguiente candidato BNA
+                        }
+                    }
+                }
+                
+                // console.log(`\n🏦 MAPEO INTERNO COMPLETADO: ${conciliadosInternos} conciliaciones internas`);
+                
+                // console.log(`\n🏦 BBVA PASO 4 COMPLETADO: ${conciliados} grupos con extracto + ${conciliadosInternos} mapeos internos = ${conciliados + conciliadosInternos} total`);
+                
+                // === TABLA RESUMEN FINAL ===
+                // console.log(`\n📊 RESUMEN FINAL PASO 4 BBVA:`);
+                // console.log(`┌─────────────────────┬─────────┐`);
+                // console.log(`│       CONCEPTO      │  VALOR  │`);
+                // console.log(`├─────────────────────┼─────────┤`);
+                // console.log(`│ Candidatos Mayor    │ ${candidatosMayor.toString().padStart(7)} │`);
+                // console.log(`│ Candidatos Extracto │ ${candidatosExtracto.toString().padStart(7)} │`);
+                // console.log(`│ Grupos Mayor        │ ${gruposPorFechaMayor.size.toString().padStart(7)} │`);
+                // console.log(`│ Grupos Extracto     │ ${gruposPorFOperacion.size.toString().padStart(7)} │`);
+                // console.log(`│ Conciliados c/Extrac│ ${conciliados.toString().padStart(7)} │`);
+                // console.log(`│ Candidatos BNA DEBE │ ${candidatosBnaDebe.toString().padStart(7)} │`);
+                // console.log(`│ Candidatos HABER    │ ${candidatosHaberEncontrados.toString().padStart(7)} │`);
+                // console.log(`│ Conciliados Internos│ ${conciliadosInternos.toString().padStart(7)} │`);
+                // console.log(`│ TOTAL CONCILIADOS   │ ${(conciliados + conciliadosInternos).toString().padStart(7)} │`);
+                // console.log(`└─────────────────────┴─────────┘`);
+                
+                return {
+                    candidatos: candidatosMayor + candidatosExtracto + candidatosBnaDebe + candidatosHaberEncontrados,
+                    conciliados: conciliados + conciliadosInternos,
+                    etapa4a: conciliados, // Conciliados con extracto
+                    etapa4b: conciliadosInternos // Conciliados internos (BNA DEBE vs CUALQUIER HABER)
+                };
+            },
+
+            procesarPaso5(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto, cuentaConfig) {
                 /*
                 PASO 5 - OPERACIONES PROT Y DEV (Agrupación por Totales Diarios):
                 
+                CUENTA ESTÁNDAR (BCP, SANTANDER):
                 CRITERIOS DE FILTRADO:
                 - LIBRO = "04" + GLOSA inicia con "PROT" (Protestos)
-                - LIBRO = "03" + GLOSA inicia con "DEV" (Devoluciones)
+                - LIBRO = "03" o "09" + GLOSA inicia con "DEV" (Devoluciones)
                 - ESTADO = "Pendiente" (no procesados en pasos anteriores)
+                
+                CUENTA BBVA:
+                Mayor: IDENTIFICAR TOTALES POR DÍA (PROT + DEV)
+                Extracto: Concepto="DEV DOC COBRANZAS" + agrupar por F. Operación + |Importe|
                 
                 ESTRATEGIA DE AGRUPACIÓN:
                 1. Agrupar por FDOC (fecha) los registros que cumplen criterios
@@ -2060,6 +2486,11 @@
                 
                 NOTA: Los montos del extracto están en negativo, se usa Math.abs()
                 */
+                
+                // Verificar si es cuenta BBVA
+                if (cuentaConfig && cuentaConfig.codigo === '1041201') {
+                    return this.procesarPaso5BBVA(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto);
+                }
                 
                 // // console.log(`📈 PASO 5: Iniciando procesamiento de operaciones PROT y DEV`);
                 // // console.log(`🔍 Total filas a revisar: ${filasFiltradasMayor.length}`);
@@ -2087,7 +2518,7 @@
                     
                     // Verificar criterios del PASO 5
                     const esPROT = libro.trim() === '04' && glosa.startsWith('PROT');
-                    const esDEV = libro.trim() === '03' && glosa.startsWith('DEV');
+                    const esDEV = (libro.trim() === '03' || libro.trim() === '09') && glosa.startsWith('DEV');
                     
                     if (esPROT || esDEV) {
                         if (esPROT) candidatosPROT++;
@@ -2185,6 +2616,253 @@
                 return {
                     candidatos: candidatosPROT + candidatosDEV,
                     grupos: gruposFormados,
+                    conciliados: conciliados
+                };
+            },
+
+            procesarPaso5BBVA(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto) {
+                /*
+                PASO 5 BBVA - OPERACIONES DEV DOC COBRANZAS:
+                
+                Mayor: 
+                1. IDENTIFICAR TOTALES POR DÍA
+                2. Filtrar por LIBRO = "04" + GLOSA inicia con "PROT" (Protestos)
+                3. Filtrar por LIBRO = "03" o "09" + GLOSA inicia con "DEV" (Devoluciones)
+                4. Agrupar por FDOC + sumar HABER
+                
+                Extracto BBVA:
+                1. Identificar en "Concepto" que contenga "DEV DOC COBRANZAS"
+                2. Agrupar por "F. Operación" (fecha)
+                3. "F. Operación" + |Importe| (valor absoluto)
+                
+                HEADERS BBVA: F. Operación, F. Valor, Código, Nº. Doc., Concepto, Importe, Oficina, ESTADO, #REF
+                
+                ESTADOS RESULTANTES:
+                - "P5 - Conciliada" para registros mapeados
+                */
+                
+                // console.log(`\n📈 === PASO 5 BBVA: DEV DOC COBRANZAS ===`);
+                // console.log(`🔍 Total filas Mayor a revisar: ${filasFiltradasMayor.length}`);
+                // console.log(`🔍 Total filas Extracto disponibles: ${extractoProcesable.length}`);
+                // console.log(`🔍 Estados ya procesados - Mayor: ${estadosFilas.size}, Extracto: ${estadosExtracto.size}`);
+                
+                let candidatosPROT = 0;
+                let candidatosDEV = 0;
+                let candidatosExtracto = 0;
+                let gruposFormados = 0;
+                let conciliados = 0;
+                
+                // === 1. AGRUPAR MAYOR POR FECHA (TOTALES POR DÍA) ===
+                // console.log(`\n🏦 === ETAPA 1: AGRUPACIÓN MAYOR POR FECHA ===`);
+                const gruposPorFechaMayor = new Map();
+                
+                for (let i = 0; i < filasFiltradasMayor.length; i++) {
+                    // Solo procesar filas pendientes
+                    if (estadosFilas.has(i)) continue;
+                    
+                    const filaMayor = filasFiltradasMayor[i];
+                    const libro = filaMayor[idxM.libro] || '';
+                    const glosa = (filaMayor[idxM.glosa] || '').toString().toUpperCase();
+                    const fdoc = filaMayor[idxM.fdoc] || '';
+                    const haber = this.normalizarMonto(filaMayor[idxM.haber] || '0');
+                    const comprob = filaMayor[idxM.comprob] || '';
+                    
+                    // Verificar criterios del PASO 5 BBVA
+                    const esPROT = libro.trim() === '04' && glosa.startsWith('PROT');
+                    const esDEV = (libro.trim() === '03' || libro.trim() === '09') && glosa.startsWith('DEV');
+                    
+                    if (esPROT || esDEV) {
+                        if (esPROT) candidatosPROT++;
+                        if (esDEV) candidatosDEV++;
+                        
+                        // Normalizar fecha para agrupación
+                        const fdocNormalizado = this.normalizarFecha(fdoc);
+                        
+                        if (!gruposPorFechaMayor.has(fdocNormalizado)) {
+                            gruposPorFechaMayor.set(fdocNormalizado, {
+                                fecha: fdocNormalizado,
+                                fechaOriginal: fdoc,
+                                totalHaber: 0,
+                                filas: []
+                            });
+                        }
+                        
+                        const grupo = gruposPorFechaMayor.get(fdocNormalizado);
+                        grupo.totalHaber += haber;
+                        grupo.filas.push({
+                            indice: i,
+                            fila: filaMayor,
+                            libro: libro,
+                            glosa: glosa,
+                            haber: haber,
+                            comprob: comprob
+                        });
+                    }
+                }
+                
+                gruposFormados = gruposPorFechaMayor.size;
+                console.log(`📊 MAYOR - Candidatos LIBRO 04 (PROT): ${candidatosPROT}`);
+                console.log(`📊 MAYOR - Candidatos LIBRO 03/09 (DEV): ${candidatosDEV}`);
+                console.log(`📊 MAYOR - Grupos por fecha formados: ${gruposFormados}`);
+                
+                // === 2. AGRUPAR EXTRACTO POR F. OPERACIÓN (DEV DOC COBRANZAS) ===
+                // console.log(`\n🏦 === ETAPA 2: AGRUPACIÓN EXTRACTO BBVA (DEV DOC COBRANZAS) ===`);
+                const gruposPorFOperacion = new Map();
+                
+                for (let i = 0; i < extractoProcesable.length; i++) {
+                    // Solo revisar filas no procesadas del extracto
+                    if (estadosExtracto.has(i)) continue;
+                    
+                    const itemExtracto = extractoProcesable[i];
+                    const filaExtracto = itemExtracto.fila;
+                    
+                    if (!filaExtracto || !Array.isArray(filaExtracto)) continue;
+                    
+                    const fOperacion = filaExtracto[0] || ''; // F. Operación (Col A)
+                    const concepto = (filaExtracto[4] || '').toString().toUpperCase(); // Concepto (Col E)
+                    const importe = this.normalizarMonto(filaExtracto[5] || '0'); // Importe (Col F)
+                    
+                    // Verificar si contiene "DEV DOC COBRANZAS"
+                    if (concepto.includes('DEV DOC COBRANZAS')) {
+                        candidatosExtracto++;
+                        
+                        // Normalizar fecha para agrupación
+                        const fOperacionNormalizada = this.normalizarFecha(fOperacion);
+                        
+                        if (!gruposPorFOperacion.has(fOperacionNormalizada)) {
+                            gruposPorFOperacion.set(fOperacionNormalizada, {
+                                fecha: fOperacionNormalizada,
+                                fechaOriginal: fOperacion,
+                                totalImporte: 0,
+                                filas: []
+                            });
+                        }
+                        
+                        const grupo = gruposPorFOperacion.get(fOperacionNormalizada);
+                        grupo.totalImporte += importe; // Sumar con signo
+                        grupo.filas.push({
+                            indice: i,
+                            fila: filaExtracto,
+                            fOperacion: fOperacion,
+                            concepto: concepto,
+                            importe: importe
+                        });
+                    }
+                }
+                
+                console.log(`📊 EXTRACTO - Candidatos DEV DOC COBRANZAS: ${candidatosExtracto}`);
+                console.log(`📊 EXTRACTO - Grupos por F. Operación: ${gruposPorFOperacion.size}`);
+                
+                // === 3. MOSTRAR DETALLE DE GRUPOS FORMADOS ===
+                // console.log(`\n🔍 === DETALLE GRUPOS MAYOR ===`);
+                let contadorMayor = 1;
+                for (const [fecha, grupo] of gruposPorFechaMayor) {
+                    // console.log(`📅 GRUPO MAYOR ${contadorMayor}: FDOC="${grupo.fechaOriginal}" → Normalizada="${fecha}"`);
+                    // console.log(`   💰 Total HABER: ${grupo.totalHaber.toFixed(2)} (${grupo.filas.length} filas)`);
+                    
+                    grupo.filas.slice(0, 3).forEach((fila, idx) => {
+                        // console.log(`     ${idx + 1}. LIBRO=${fila.libro}, GLOSA="${fila.glosa.substring(0, 30)}...", HABER=${fila.haber.toFixed(2)}`);
+                    });
+                    if (grupo.filas.length > 3) {
+                        // console.log(`     ... y ${grupo.filas.length - 3} filas más`);
+                    }
+                    contadorMayor++;
+                    if (contadorMayor > 5) break;
+                }
+                
+                // console.log(`\n🔍 === DETALLE GRUPOS EXTRACTO BBVA ===`);
+                let contadorExtracto = 1;
+                for (const [fecha, grupo] of gruposPorFOperacion) {
+                    // console.log(`📅 GRUPO BBVA ${contadorExtracto}: F. Operación="${grupo.fechaOriginal}" → Normalizada="${fecha}"`);
+                    // console.log(`   💰 Total Importe: ${grupo.totalImporte.toFixed(2)} → |${Math.abs(grupo.totalImporte).toFixed(2)}| (${grupo.filas.length} filas)`);
+                    
+                    grupo.filas.slice(0, 3).forEach((fila, idx) => {
+                        // console.log(`     ${idx + 1}. Concepto="${fila.concepto.substring(0, 30)}...", Importe=${fila.importe.toFixed(2)}`);
+                    });
+                    if (grupo.filas.length > 3) {
+                        // console.log(`     ... y ${grupo.filas.length - 3} filas más`);
+                    }
+                    contadorExtracto++;
+                    if (contadorExtracto > 5) break;
+                }
+                
+                // === 4. COMPARACIÓN Y CONCILIACIÓN ===
+                // console.log(`\n🔗 === COMPARACIÓN MAYOR vs EXTRACTO BBVA ===`);
+                // console.log(`┌────────────┬─────────────┬─────────────┬────────────┬─────────────┬─────────────┬─────────┐`);
+                // console.log(`│    FECHA   │    MAYOR    │  MAYOR HAB  │    BBVA    │  BBVA IMP   │   STATUS    │  GRUPO  │`);
+                // console.log(`├────────────┼─────────────┼─────────────┼────────────┼─────────────┼─────────────┼─────────┤`);
+                
+                // Buscar matches entre grupos
+                for (const [fechaMayor, grupoMayor] of gruposPorFechaMayor) {
+                    let matchEncontrado = false;
+                    let grupoId = '';
+                    
+                    for (const [fechaBBVA, grupoBBVA] of gruposPorFOperacion) {
+                        const totalImporteAbsoluto = Math.abs(grupoBBVA.totalImporte);
+                        const diff = Math.abs(grupoMayor.totalHaber - totalImporteAbsoluto);
+                        
+                        if (fechaMayor === fechaBBVA && diff < 0.01) {
+                            // === MATCH ENCONTRADO ===
+                            matchEncontrado = true;
+                            grupoId = `GRUPO-${conciliados + 1}`;
+                            
+                            // console.log(`\n🎯 MATCH ENCONTRADO:`);
+                            // console.log(`   📅 Fecha: "${grupoMayor.fechaOriginal}" ↔ "${grupoBBVA.fechaOriginal}" (normalizada: "${fechaMayor}")`);
+                            // console.log(`   💰 Montos: MAYOR=${grupoMayor.totalHaber.toFixed(2)} ↔ BBVA=|${totalImporteAbsoluto.toFixed(2)}| (diff: ${diff.toFixed(6)})`);
+                            // console.log(`   🔗 Asignando ${grupoId} a ${grupoMayor.filas.length} filas Mayor + ${grupoBBVA.filas.length} filas BBVA`);
+                            
+                            // Conciliar todas las filas del grupo Mayor
+                            grupoMayor.filas.forEach(item => {
+                                estadosFilas.set(item.indice, {
+                                    estado: 'P5 - Conciliada',
+                                    ref: grupoId
+                                });
+                            });
+                            
+                            // Conciliar todas las filas del grupo BBVA
+                            grupoBBVA.filas.forEach(item => {
+                                estadosExtracto.set(item.indice, {
+                                    estado: 'P5 - Conciliada',
+                                    ref: grupoId
+                                });
+                            });
+                            
+                            conciliados++;
+                            break; // Salir del bucle interno
+                        }
+                    }
+                    
+                    // Mostrar en tabla
+                    const fechaStr = fechaMayor.padEnd(10);
+                    const mayorStr = `${grupoMayor.filas.length} filas`.padEnd(11);
+                    const mayorHaber = grupoMayor.totalHaber.toFixed(2).padStart(11);
+                    const bbvaStr = matchEncontrado ? `${gruposPorFOperacion.get(fechaMayor)?.filas.length || 0} filas`.padEnd(10) : 'NO MATCH'.padEnd(10);
+                    const bbvaImporte = matchEncontrado ? Math.abs(gruposPorFOperacion.get(fechaMayor)?.totalImporte || 0).toFixed(2).padStart(11) : '0.00'.padStart(11);
+                    const statusStr = matchEncontrado ? 'MATCH'.padEnd(11) : 'DIFF'.padEnd(11);
+                    const grupoStr = matchEncontrado ? grupoId.padEnd(7) : '-'.padEnd(7);
+                    
+                    // console.log(`│ ${fechaStr} │ ${mayorStr} │ ${mayorHaber} │ ${bbvaStr} │ ${bbvaImporte} │ ${statusStr} │ ${grupoStr} │`);
+                }
+                
+                // console.log(`└────────────┴─────────────┴─────────────┴────────────┴─────────────┴─────────────┴─────────┘`);
+                
+                console.log(`\n🏦 BBVA PASO 5 COMPLETADO: ${conciliados} grupos conciliados`);
+                
+                console.log(`\n📊 RESUMEN FINAL PASO 5 BBVA:`);
+                console.log(`┌─────────────────────┬─────────┐`);
+                console.log(`│       CONCEPTO      │  VALOR  │`);
+                console.log(`├─────────────────────┼─────────┤`);
+                console.log(`│ Candidatos PROT L04 │ ${candidatosPROT.toString().padStart(7)} │`);
+                console.log(`│ Candidatos DEV L03/09│ ${candidatosDEV.toString().padStart(7)} │`);
+                console.log(`│ Candidatos BBVA     │ ${candidatosExtracto.toString().padStart(7)} │`);
+                console.log(`│ Grupos Mayor        │ ${gruposPorFechaMayor.size.toString().padStart(7)} │`);
+                console.log(`│ Grupos BBVA         │ ${gruposPorFOperacion.size.toString().padStart(7)} │`);
+                console.log(`│ GRUPOS CONCILIADOS  │ ${conciliados.toString().padStart(7)} │`);
+                console.log(`└─────────────────────┴─────────┘`);
+                
+                return {
+                    candidatos: candidatosPROT + candidatosDEV + candidatosExtracto,
+                    grupos: gruposFormados + gruposPorFOperacion.size,
                     conciliados: conciliados
                 };
             },
@@ -2903,18 +3581,18 @@
                 const esSantander = cuentaConfig && cuentaConfig.alias === 'SANT';
                 
                 // === DEBUG: Santander Detection ===
-                console.log(`\n🔍 PASO 9 - DETECCIÓN DE BANCO:`);
-                console.log(`   cuentaConfig:`, cuentaConfig);
-                console.log(`   cuentaConfig.alias:`, cuentaConfig?.alias);
-                console.log(`   cuentaConfig.codigo:`, cuentaConfig?.codigo);
-                console.log(`   esSantander:`, esSantander);
+                // console.log(`\n🔍 PASO 9 - DETECCIÓN DE BANCO:`);
+                // console.log(`   cuentaConfig:`, cuentaConfig);
+                // console.log(`   cuentaConfig.alias:`, cuentaConfig?.alias);
+                // console.log(`   cuentaConfig.codigo:`, cuentaConfig?.codigo);
+                // console.log(`   esSantander:`, esSantander);
                 
                 // ⭐ FORZAR SANTANDER SI ES CUENTA 1041401
                 const esCuentaSantander = cuentaConfig?.codigo === '1041401';
                 const esRealmenteSantander = esSantander || esCuentaSantander;
                 
-                console.log(`   esCuentaSantander (por código):`, esCuentaSantander);
-                console.log(`   esRealmenteSantander (final):`, esRealmenteSantander);
+                // console.log(`   esCuentaSantander (por código):`, esCuentaSantander);
+                // console.log(`   esRealmenteSantander (final):`, esRealmenteSantander);
                 
                 if (esRealmenteSantander) {
                     // console.log(`🏦 PASO 9: SANTANDER se procesará en PASO 12 (después de ITF)`);
@@ -3002,32 +3680,32 @@
                 // console.log(`   🔗 Grupos por NUMDOC formados: ${gruposFormados}`);
                 
                 if (gruposFormados === 0) {
-                    console.log(`⚠️ No se encontraron grupos para PASO 9`);
-                    console.log(`   📋 Verificar si las filas tienen LIBRO en ["03", "09", "14", "15"]`);
-                    console.log(`   📋 Verificar si las filas están marcadas como "Pendiente"`);
+                    // console.log(`⚠️ No se encontraron grupos para PASO 9`);
+                    // console.log(`   📋 Verificar si las filas tienen LIBRO en ["03", "09", "14", "15"]`);
+                    // console.log(`   📋 Verificar si las filas están marcadas como "Pendiente"`);
                     return { candidatos: 0, grupos: 0, conciliados: 0 };
                 }
                 
                 // ✅ A. GRUPOS ESPECÍFICOS OBJETIVO
-                console.log(`\n📊 === GRUPOS ESPECÍFICOS ===`);
-                console.log(`🎯 FILTRO ACTIVO: Solo mostrando NUMDOC: 11302, 1113, 11303, 1157, 900013`);
+                // console.log(`\n📊 === GRUPOS ESPECÍFICOS ===`);
+                // console.log(`🎯 FILTRO ACTIVO: Solo mostrando NUMDOC: 11302, 1113, 11303, 1157, 900013`);
                 let contadorGrupo = 104;
                 const gruposObjetivoA = ['11302', '1113', '11303', '1157', '900013']; // Solo estos grupos
                 for (const [numdocNormalizado, grupo] of gruposPorNUMDOC.entries()) {
                     // Solo mostrar los grupos objetivo específicos
                     if (gruposObjetivoA.includes(numdocNormalizado)) {
-                        console.log(`\n🔗 GRUPO ${contadorGrupo}: NUMDOC="${numdocNormalizado}"`);
-                        console.log(`   📅 FDOC: "${grupo.fdoc}" (${this.normalizarFecha(grupo.fdoc)})`);
-                        console.log(`   💰 Total HABER: ${grupo.totalHaber.toFixed(2)}`);
-                        console.log(`   📋 Filas en grupo: ${grupo.filas.length}`);
-                        grupo.filas.forEach((fila, idx) => {
-                            console.log(`     ${idx + 1}. LIBRO="${fila.libro}" | HABER=${fila.haber.toFixed(2)} | COMPROB="${fila.comprob}"`);
-                        });
+                        // console.log(`\n🔗 GRUPO ${contadorGrupo}: NUMDOC="${numdocNormalizado}"`);
+                        // console.log(`   📅 FDOC: "${grupo.fdoc}" (${this.normalizarFecha(grupo.fdoc)})`);
+                        // console.log(`   💰 Total HABER: ${grupo.totalHaber.toFixed(2)}`);
+                        // console.log(`   📋 Filas en grupo: ${grupo.filas.length}`);
+                        // grupo.filas.forEach((fila, idx) => {
+                        //     console.log(`     ${idx + 1}. LIBRO="${fila.libro}" | HABER=${fila.haber.toFixed(2)} | COMPROB="${fila.comprob}"`);
+                        // });
                         contadorGrupo++;
                     }
                 }
                 
-                console.log(`\n🎯 === B. GRUPOS VS EXTRACTO ===`);
+                // console.log(`\n🎯 === B. GRUPOS VS EXTRACTO ===`);
                 
                 // ✅ PASO 9B: BUSCAR MATCHES EN EXTRACTO PARA CADA GRUPO
                 contadorGrupo = 104;
@@ -3038,9 +3716,9 @@
                     const esGrupoObjetivo = gruposObjetivo.includes(numdocNormalizado);
                     
                     if (esGrupoObjetivo) {
-                        console.log(`\n🔍 BUSCANDO MATCH PARA GRUPO ${contadorGrupo}: NUMDOC="${numdocNormalizado}"`);
-                        console.log(`   📅 FDOC: "${grupo.fdoc}" → "${this.normalizarFecha(grupo.fdoc)}"`);
-                        console.log(`   💰 Total HABER: ${grupo.totalHaber.toFixed(2)}`);
+                        // console.log(`\n🔍 BUSCANDO MATCH PARA GRUPO ${contadorGrupo}: NUMDOC="${numdocNormalizado}"`);
+                        // console.log(`   📅 FDOC: "${grupo.fdoc}" → "${this.normalizarFecha(grupo.fdoc)}"`);
+                        // console.log(`   💰 Total HABER: ${grupo.totalHaber.toFixed(2)}`);
                     }
                     
                     // Buscar match en extracto usando FDOC y TOTAL HABER del grupo
@@ -3048,11 +3726,11 @@
                     
                     if (matchExtracto.encontrado) {
                         if (esGrupoObjetivo) {
-                            console.log(`\n✅ ¡MATCH ENCONTRADO PARA GRUPO ${contadorGrupo}!`);
-                            console.log(`   🎯 Extracto índice: ${matchExtracto.indice}`);
-                            console.log(`   📅 Fechas: "${grupo.fdoc}" ↔ "${matchExtracto.fecha}"`);
-                            console.log(`   💰 Montos: ${grupo.totalHaber.toFixed(2)} ↔ ${matchExtracto.monto.toFixed(2)}`);
-                            console.log(`   🏦 Operación #: "${matchExtracto.operacionNumero}"`);
+                            // console.log(`\n✅ ¡MATCH ENCONTRADO PARA GRUPO ${contadorGrupo}!`);
+                            // console.log(`   🎯 Extracto índice: ${matchExtracto.indice}`);
+                            // console.log(`   📅 Fechas: "${grupo.fdoc}" ↔ "${matchExtracto.fecha}"`);
+                            // console.log(`   💰 Montos: ${grupo.totalHaber.toFixed(2)} ↔ ${matchExtracto.monto.toFixed(2)}`);
+                            // console.log(`   🏦 Operación #: "${matchExtracto.operacionNumero}"`);
                         }
                         
                         // Asignar estados a todas las filas del grupo
@@ -3089,8 +3767,8 @@
                         // });
                     } else {
                         if (esGrupoObjetivo) {
-                            console.log(`\n❌ NO SE ENCONTRÓ MATCH PARA GRUPO ${contadorGrupo}: NUMDOC="${numdocNormalizado}"`);
-                            console.log(`   ❓ Verificar en extracto operaciones del ${this.normalizarFecha(grupo.fdoc)} por ${grupo.totalHaber.toFixed(2)}`);
+                            // console.log(`\n❌ NO SE ENCONTRÓ MATCH PARA GRUPO ${contadorGrupo}: NUMDOC="${numdocNormalizado}"`);
+                            // console.log(`   ❓ Verificar en extracto operaciones del ${this.normalizarFecha(grupo.fdoc)} por ${grupo.totalHaber.toFixed(2)}`);
                         }
                     }
                     
@@ -3101,10 +3779,10 @@
                 }
                 
                 // ✅ C. TABLA DE ESTADOS DE GRUPOS (SOLO GRUPOS OBJETIVO)
-                console.log(`\n📊 === C. TABLA DE ESTADOS DE GRUPOS ===`);
-                console.log(`┌───────┬─────────────────┬─────────────────┬──────────────┬─────────────┬─────────────┐`);
-                console.log(`│ GRUPO │ NUMDOC          │ FDOC            │ TOTAL HABER  │ FILAS       │ ESTADO      │`);
-                console.log(`├───────┼─────────────────┼─────────────────┼──────────────┼─────────────┼─────────────┤`);
+                // console.log(`\n📊 === C. TABLA DE ESTADOS DE GRUPOS ===`);
+                // console.log(`┌───────┬─────────────────┬─────────────────┬──────────────┬─────────────┬─────────────┐`);
+                // console.log(`│ GRUPO │ NUMDOC          │ FDOC            │ TOTAL HABER  │ FILAS       │ ESTADO      │`);
+                // console.log(`├───────┼─────────────────┼─────────────────┼──────────────┼─────────────┼─────────────┤`);
                 
                 let gruposConciliados = 0;
                 let gruposNoConciliados = 0;
@@ -3129,14 +3807,14 @@
                         const filasPadded = (grupo.filas?.length || 0).toString().padStart(11);
                         const estadoPadded = (estado || '').toString().padEnd(13);
                         
-                        console.log(`│ ${grupoPadded} │ ${numdocPadded} │ ${fdocPadded} │ ${haberPadded} │ ${filasPadded} │ ${estadoPadded} │`);
+                        // console.log(`│ ${grupoPadded} │ ${numdocPadded} │ ${fdocPadded} │ ${haberPadded} │ ${filasPadded} │ ${estadoPadded} │`);
                     }
                     numeroGrupo++;
                 }
                 
-                console.log(`└───────┴─────────────────┴─────────────────┴──────────────┴─────────────┴─────────────┘`);
-                console.log(`📊 RESUMEN: ${gruposConciliados} conciliados, ${gruposNoConciliados} pendientes`);
-                console.log(`🎯 SOLO MOSTRANDO GRUPOS: ${gruposObjetivoTabla.join(', ')}`);
+                // console.log(`└───────┴─────────────────┴─────────────────┴──────────────┴─────────────┴─────────────┘`);
+                // console.log(`📊 RESUMEN: ${gruposConciliados} conciliados, ${gruposNoConciliados} pendientes`);
+                // console.log(`🎯 SOLO MOSTRANDO GRUPOS: ${gruposObjetivoTabla.join(', ')}`);
                 
                 return {
                     candidatos: totalCandidatos,
@@ -3165,39 +3843,39 @@
                 - Extracto: #REF = "GRUPO-[N]"
                 */
                 
-                console.log(`\n🏦 *** SANT PASO 9 INICIADO *** - Agrupación por FECHA en Mayor y Extracto`);
-                console.log(`📋 IMPORTANTE: Mayor se agrupa por FDOC (fecha), NO por NUMDOC`);
-                console.log(`📋 Total registros Mayor disponibles: ${filasFiltradasMayor.length}`);
-                console.log(`📋 Total registros Extracto disponibles: ${extractoProcesable.length}`);
-                console.log(`📋 Estados ya procesados Mayor: ${estadosFilas.size}`);
-                console.log(`📋 Estados ya procesados Extracto: ${estadosExtracto.size}`);
+                // console.log(`\n🏦 *** SANT PASO 9 INICIADO *** - Agrupación por FECHA en Mayor y Extracto`);
+                // console.log(`📋 IMPORTANTE: Mayor se agrupa por FDOC (fecha), NO por NUMDOC`);
+                // console.log(`📋 Total registros Mayor disponibles: ${filasFiltradasMayor.length}`);
+                // console.log(`📋 Total registros Extracto disponibles: ${extractoProcesable.length}`);
+                // console.log(`📋 Estados ya procesados Mayor: ${estadosFilas.size}`);
+                // console.log(`📋 Estados ya procesados Extracto: ${estadosExtracto.size}`);
                 
                 // === 🔬 TEST DE NORMALIZACIÓN DE FECHAS ===
                 // === 🔬 TEST DE NORMALIZACIÓN DE FECHAS Y VERIFICACIÓN COLUMNA L ===
-                console.log(`\n🔬 === TEST DE NORMALIZACIÓN DE FECHAS ===`);
-                console.log(`📅 Mayor: "6/6/2025" → "${this.normalizarFecha('6/6/2025')}"`);
-                console.log(`📅 SANT: "06/06/2025" → "${this.normalizarFecha('06/06/2025')}"`);
-                console.log(`📅 Mayor: "13/6/2025" → "${this.normalizarFecha('13/6/2025')}"`);
-                console.log(`📅 SANT: "13/06/2025" → "${this.normalizarFecha('13/06/2025')}"`);
-                console.log(`📅 Mayor: "20/6/2025" → "${this.normalizarFecha('20/6/2025')}"`);
-                console.log(`📅 SANT: "20/06/2025" → "${this.normalizarFecha('20/06/2025')}"`);
-                console.log(`📅 Mayor: "27/6/2025" → "${this.normalizarFecha('27/6/2025')}"`);
-                console.log(`📅 SANT: "27/06/2025" → "${this.normalizarFecha('27/06/2025')}"`);
+                // console.log(`\n🔬 === TEST DE NORMALIZACIÓN DE FECHAS ===`);
+                // console.log(`📅 Mayor: "6/6/2025" → "${this.normalizarFecha('6/6/2025')}"`);
+                // console.log(`📅 SANT: "06/06/2025" → "${this.normalizarFecha('06/06/2025')}"`);
+                // console.log(`📅 Mayor: "13/6/2025" → "${this.normalizarFecha('13/6/2025')}"`);
+                // console.log(`📅 SANT: "13/06/2025" → "${this.normalizarFecha('13/06/2025')}"`);
+                // console.log(`📅 Mayor: "20/6/2025" → "${this.normalizarFecha('20/6/2025')}"`);
+                // console.log(`📅 SANT: "20/06/2025" → "${this.normalizarFecha('20/06/2025')}"`);
+                // console.log(`📅 Mayor: "27/6/2025" → "${this.normalizarFecha('27/6/2025')}"`);
+                // console.log(`📅 SANT: "27/06/2025" → "${this.normalizarFecha('27/06/2025')}"`);
                 
                 const coincide06 = this.normalizarFecha('6/6/2025') === this.normalizarFecha('06/06/2025');
                 const coincide13 = this.normalizarFecha('13/6/2025') === this.normalizarFecha('13/06/2025');
                 const coincide20 = this.normalizarFecha('20/6/2025') === this.normalizarFecha('20/06/2025');
                 const coincide27 = this.normalizarFecha('27/6/2025') === this.normalizarFecha('27/06/2025');
                 
-                console.log(`🎯 COINCIDENCIAS: 06/06=${coincide06 ? '✅' : '❌'}, 13/06=${coincide13 ? '✅' : '❌'}, 20/06=${coincide20 ? '✅' : '❌'}, 27/06=${coincide27 ? '✅' : '❌'}`);
+                // console.log(`🎯 COINCIDENCIAS: 06/06=${coincide06 ? '✅' : '❌'}, 13/06=${coincide13 ? '✅' : '❌'}, 20/06=${coincide20 ? '✅' : '❌'}, 27/06=${coincide27 ? '✅' : '❌'}`);
                 
                 // === 🔍 VERIFICACIÓN ESPECÍFICA REGISTROS SANT DISPONIBLES ===
-                console.log(`\n🔍 === VERIFICACIÓN EXTRACTO SANT (solo registros disponibles) ===`);
+                // console.log(`\n🔍 === VERIFICACIÓN EXTRACTO SANT (solo registros disponibles) ===`);
                 const registrosDisponibles = extractoProcesable ? extractoProcesable.filter((_, i) => !estadosExtracto.has(i)) : [];
                 const registrosYaProcesados = extractoProcesable ? extractoProcesable.length - registrosDisponibles.length : 0;
-                console.log(`📊 Total registros SANT en archivo: ${extractoProcesable ? extractoProcesable.length : 0}`);
-                console.log(`🔒 Registros ya procesados (pasos anteriores): ${registrosYaProcesados}`);
-                console.log(`🆓 Registros disponibles para Paso 9: ${registrosDisponibles.length}`);
+                // console.log(`📊 Total registros SANT en archivo: ${extractoProcesable ? extractoProcesable.length : 0}`);
+                // console.log(`🔒 Registros ya procesados (pasos anteriores): ${registrosYaProcesados}`);
+                // console.log(`🆓 Registros disponibles para Paso 9: ${registrosDisponibles.length}`);
                 
                 // DEBUG: Resumen de estados del extracto SANT
                 const estadosEnExtracto = {};
@@ -3209,9 +3887,9 @@
                         estadosEnExtracto['Pendiente'] = (estadosEnExtracto['Pendiente'] || 0) + 1;
                     }
                 }
-                console.log(`📊 RESUMEN ESTADOS EXTRACTO SANT:`);
+                // console.log(`📊 RESUMEN ESTADOS EXTRACTO SANT:`);
                 for (const [estado, cantidad] of Object.entries(estadosEnExtracto)) {
-                    console.log(`   ${estado}: ${cantidad} registros`);
+                    // console.log(`   ${estado}: ${cantidad} registros`);
                 }
                 
                 // DEBUG: Resumen de estados del Mayor
@@ -3224,9 +3902,9 @@
                         estadosEnMayor['Pendiente'] = (estadosEnMayor['Pendiente'] || 0) + 1;
                     }
                 }
-                console.log(`📊 RESUMEN ESTADOS MAYOR SANT:`);
+                // console.log(`📊 RESUMEN ESTADOS MAYOR SANT:`);
                 for (const [estado, cantidad] of Object.entries(estadosEnMayor)) {
-                    console.log(`   ${estado}: ${cantidad} registros`);
+                    // console.log(`   ${estado}: ${cantidad} registros`);
                 }
                 
                 let candidatosLibro03 = 0;
@@ -3258,7 +3936,7 @@
                     
                     if (!esPendiente) {
                         if ((candidatosLibro03 + candidatosLibro09 + candidatosLibro14 + candidatosLibro15) <= 5) {
-                            console.log(`🔍 SALTANDO registro ${i}: ESTADO="${estadoCol}" (no es Pendiente ni vacío), LIBRO="${libro}", FDOC="${fdoc}"`);
+                            // console.log(`🔍 SALTANDO registro ${i}: ESTADO="${estadoCol}" (no es Pendiente ni vacío), LIBRO="${libro}", FDOC="${fdoc}"`);
                         }
                         continue;
                     }
@@ -3267,7 +3945,7 @@
                     if ((candidatosLibro03 + candidatosLibro09 + candidatosLibro14 + candidatosLibro15) <= 10) {
                         const numdoc = filaMayor[idxM.numdoc] || '';
                         const glosa = (filaMayor[idxM.glosa] || '').substring(0, 30);
-                        console.log(`✅ MAYOR PROCESANDO ${candidatosLibro03 + candidatosLibro09 + candidatosLibro14 + candidatosLibro15}: ESTADO="${estadoCol}", LIBRO="${libro}", FDOC="${fdoc}", HABER=${haber}, NUMDOC="${numdoc}", GLOSA="${glosa}..."`);
+                        // console.log(`✅ MAYOR PROCESANDO ${candidatosLibro03 + candidatosLibro09 + candidatosLibro14 + candidatosLibro15}: ESTADO="${estadoCol}", LIBRO="${libro}", FDOC="${fdoc}", HABER=${haber}, NUMDOC="${numdoc}", GLOSA="${glosa}..."`);
                     }
                     
                     // Verificar criterios del PASO 9
@@ -3285,7 +3963,7 @@
                         
                         // 🔍 DEBUG ESPECÍFICO PARA FECHAS PROBLEMÁTICAS
                         if (fdoc === '6/6/2025' || fdoc === '13/6/2025' || fdoc === '20/6/2025' || fdoc === '27/6/2025') {
-                            console.log(`🔍 DEBUG FECHA MAYOR: "${fdoc}" → "${fechaMayorNormalizada}" (LIBRO=${libro}, HABER=${haber})`);
+                            // console.log(`🔍 DEBUG FECHA MAYOR: "${fdoc}" → "${fechaMayorNormalizada}" (LIBRO=${libro}, HABER=${haber})`);
                         }
                         
                         if (fechaMayorNormalizada) {
@@ -3308,7 +3986,7 @@
                             if ((candidatosLibro03 + candidatosLibro09 + candidatosLibro14 + candidatosLibro15) <= 10) {
                                 const numdoc = filaMayor[idxM.numdoc] || '';
                                 const glosa = (filaMayor[idxM.glosa] || '').substring(0, 25);
-                                console.log(`📝 AGREGADO A GRUPO MAYOR ${candidatosLibro03 + candidatosLibro09 + candidatosLibro14 + candidatosLibro15}: FECHA="${fdoc}"→"${fechaMayorNormalizada}", LIBRO="${libro}", HABER=${haber}, NUMDOC="${numdoc}", GLOSA="${glosa}..."`);
+                                // console.log(`📝 AGREGADO A GRUPO MAYOR ${candidatosLibro03 + candidatosLibro09 + candidatosLibro14 + candidatosLibro15}: FECHA="${fdoc}"→"${fechaMayorNormalizada}", LIBRO="${libro}", HABER=${haber}, NUMDOC="${numdoc}", GLOSA="${glosa}..."`);
                             }
                         }
                     }
@@ -3317,7 +3995,7 @@
                 const gruposMayorFormados = gruposPorFechaMayor.size;
                 const totalCandidatos = candidatosLibro03 + candidatosLibro09 + candidatosLibro14 + candidatosLibro15;
                 
-                console.log(`🏦 SANT PASO 9 - AGRUPACIÓN MAYOR: ${gruposMayorFormados} grupos por FECHA formados`);
+                // console.log(`🏦 SANT PASO 9 - AGRUPACIÓN MAYOR: ${gruposMayorFormados} grupos por FECHA formados`);
                 
                 if (gruposMayorFormados === 0) {
                     // console.log(`⚠️ SANT: No se encontraron grupos de fechas en Mayor para PASO 9`);
@@ -3362,7 +4040,7 @@
                     if (registrosProcesadosEnExtracto <= 15) {
                         const referencia = filaExtracto[3] || '';
                         const descripcion = (filaExtracto[4] || '').substring(0, 20);
-                        console.log(`✅ PROCESANDO SANT ${i}: FECHA="${fechaExtracto}", IMPORTE="${importeExtracto}", REF="${referencia}", DESC="${descripcion}..."`);
+                        // console.log(`✅ PROCESANDO SANT ${i}: FECHA="${fechaExtracto}", IMPORTE="${importeExtracto}", REF="${referencia}", DESC="${descripcion}..."`);
                     }
                     
                     registrosProcesadosEnExtracto++;
@@ -3372,7 +4050,7 @@
                     
                     // 🔍 DEBUG ESPECÍFICO PARA FECHAS SANT PROBLEMÁTICAS
                     if (fechaExtracto === '06/06/2025' || fechaExtracto === '13/06/2025' || fechaExtracto === '20/06/2025' || fechaExtracto === '27/06/2025') {
-                        console.log(`🔍 DEBUG FECHA SANT: "${fechaExtracto}" → "${fechaExtractoNormalizada}" (IMPORTE=${importeExtracto}→${montoExtractoAbs})`);
+                        // console.log(`🔍 DEBUG FECHA SANT: "${fechaExtracto}" → "${fechaExtractoNormalizada}" (IMPORTE=${importeExtracto}→${montoExtractoAbs})`);
                     }
                     
                     if (fechaExtractoNormalizada && montoExtractoAbs > 0) {
@@ -3391,27 +4069,27 @@
                         
                         // Debug de grupos formados (solo primeros 5 grupos)
                         if (gruposPorFechaExtracto.size <= 5) {
-                            console.log(`📝 AGREGADO A GRUPO SANT: FECHA="${fechaExtracto}"→"${fechaExtractoNormalizada}", IMPORTE=${importeExtracto}→${montoExtractoAbs}`);
+                            // console.log(`📝 AGREGADO A GRUPO SANT: FECHA="${fechaExtracto}"→"${fechaExtractoNormalizada}", IMPORTE=${importeExtracto}→${montoExtractoAbs}`);
                         }
                     }
                 }
                 
                 const gruposExtractoFormados = gruposPorFechaExtracto.size;
-                console.log(`🏦 SANT PASO 9 - AGRUPACIÓN EXTRACTO: ${gruposExtractoFormados} grupos por FECHA formados`);
+                // console.log(`🏦 SANT PASO 9 - AGRUPACIÓN EXTRACTO: ${gruposExtractoFormados} grupos por FECHA formados`);
                 
                 // === 📊 RESUMEN DE PROCESAMIENTO SANT ===
-                console.log(`\n📊 RESUMEN PROCESAMIENTO SANT:`);
-                console.log(`   📋 Total registros en archivo SANT: ${extractoProcesable.length}`);
-                console.log(`   ⏭️ Saltados ya procesados (pasos anteriores): ${extractoProcesable.length - registrosSaltadosSinDatos - registrosProcesadosEnExtracto}`);
-                console.log(`   ⏭️ Saltados sin datos reales: ${registrosSaltadosSinDatos}`);
-                console.log(`   ✅ Registros PENDIENTES procesados: ${registrosProcesadosEnExtracto}`);
-                console.log(`======================================`);
+                // console.log(`\n📊 RESUMEN PROCESAMIENTO SANT:`);
+                // console.log(`   📋 Total registros en archivo SANT: ${extractoProcesable.length}`);
+                // console.log(`   ⏭️ Saltados ya procesados (pasos anteriores): ${extractoProcesable.length - registrosSaltadosSinDatos - registrosProcesadosEnExtracto}`);
+                // console.log(`   ⏭️ Saltados sin datos reales: ${registrosSaltadosSinDatos}`);
+                // console.log(`   ✅ Registros PENDIENTES procesados: ${registrosProcesadosEnExtracto}`);
+                // console.log(`======================================`);
                 
                 // === 📊 TABLA DE COMPARACIÓN MAYOR VS SANT (SOLO PARA DEBUG) ===
-                console.log(`\n📊 === TABLA DE COMPARACIÓN GRUPOS MAYOR VS SANT (CON ESTADOS) ===`);
-                console.log(`┌────────────┬─────────────┬─────────────┬────────────┬─────────────┬─────────────┬─────────┐`);
-                console.log(`│    FECHA   │  MAYOR FDOC │ MAYOR HABER │ SANT FECHA │ SANT IMPORTE│   STATUS    │ DIFERENC│`);
-                console.log(`├────────────┼─────────────┼─────────────┼────────────┼─────────────┼─────────────┼─────────┤`);
+                // console.log(`\n📊 === TABLA DE COMPARACIÓN GRUPOS MAYOR VS SANT (CON ESTADOS) ===`);
+                // console.log(`┌────────────┬─────────────┬─────────────┬────────────┬─────────────┬─────────────┬─────────┐`);
+                // console.log(`│    FECHA   │  MAYOR FDOC │ MAYOR HABER │ SANT FECHA │ SANT IMPORTE│   STATUS    │ DIFERENC│`);
+                // console.log(`├────────────┼─────────────┼─────────────┼────────────┼─────────────┼─────────────┼─────────┤`);
                 
                 // Obtener todas las fechas únicas (de ambos lados)
                 const todasFechas = new Set([
@@ -3448,34 +4126,34 @@
                     status = status.padEnd(11);
                     diferencia = diferencia.padStart(7);
                     
-                    console.log(`│ ${fechaCol} │ ${mayorFdoc} │ ${mayorHaber} │ ${santFecha} │ ${santImporte} │ ${status} │ ${diferencia} │`);
+                    // console.log(`│ ${fechaCol} │ ${mayorFdoc} │ ${mayorHaber} │ ${santFecha} │ ${santImporte} │ ${status} │ ${diferencia} │`);
                 }
                 
-                console.log(`└────────────┴─────────────┴─────────────┴────────────┴─────────────┴─────────────┴─────────┘`);
-                console.log(`📊 Grupos Mayor: ${gruposMayorFormados} | Grupos SANT: ${gruposExtractoFormados}`);
+                // console.log(`└────────────┴─────────────┴─────────────┴────────────┴─────────────┴─────────────┴─────────┘`);
+                // console.log(`📊 Grupos Mayor: ${gruposMayorFormados} | Grupos SANT: ${gruposExtractoFormados}`);
                 
                 // === 🔍 DEBUG DETALLADO: CONTENIDO DE CADA GRUPO ===
-                console.log(`\n🔍 === DETALLE COMPLETO DE GRUPOS FORMADOS ===`);
+                // console.log(`\n🔍 === DETALLE COMPLETO DE GRUPOS FORMADOS ===`);
                 
-                console.log(`\n📋 DETALLE GRUPOS MAYOR:`);
+                // console.log(`\n📋 DETALLE GRUPOS MAYOR:`);
                 for (const [fecha, grupo] of gruposPorFechaMayor) {
-                    console.log(`  🗓️ GRUPO FECHA ${fecha}: ${grupo.filas.length} registros, TOTAL HABER: ${grupo.totalHaber.toFixed(2)}`);
+                    // console.log(`  🗓️ GRUPO FECHA ${fecha}: ${grupo.filas.length} registros, TOTAL HABER: ${grupo.totalHaber.toFixed(2)}`);
                     for (let i = 0; i < Math.min(3, grupo.filas.length); i++) {
                         const indice = grupo.filas[i];
                         const fila = filasFiltradasMayor[indice];
                         const estadoMayor = estadosFilas.has(indice) ? estadosFilas.get(indice).estado : 'Pendiente';
                         const numdoc = fila[idxM.numdoc] || '';
                         const glosa = (fila[idxM.glosa] || '').substring(0, 20);
-                        console.log(`     • Reg ${i+1}: NUMDOC="${numdoc}", HABER=${this.normalizarMonto(fila[idxM.haber])}, ESTADO_MAYOR="${estadoMayor}", GLOSA="${glosa}..."`);
+                        // console.log(`     • Reg ${i+1}: NUMDOC="${numdoc}", HABER=${this.normalizarMonto(fila[idxM.haber])}, ESTADO_MAYOR="${estadoMayor}", GLOSA="${glosa}..."`);
                     }
                     if (grupo.filas.length > 3) {
-                        console.log(`     ... y ${grupo.filas.length - 3} registros más`);
+                        // console.log(`     ... y ${grupo.filas.length - 3} registros más`);
                     }
                 }
                 
-                console.log(`\n📋 DETALLE GRUPOS SANT:`);
+                // console.log(`\n📋 DETALLE GRUPOS SANT:`);
                 for (const [fecha, grupo] of gruposPorFechaExtracto) {
-                    console.log(`  🗓️ GRUPO FECHA ${fecha}: ${grupo.filas.length} registros, TOTAL IMPORTE: ${grupo.totalImporte.toFixed(2)}`);
+                    // console.log(`  🗓️ GRUPO FECHA ${fecha}: ${grupo.filas.length} registros, TOTAL IMPORTE: ${grupo.totalImporte.toFixed(2)}`);
                     for (let i = 0; i < Math.min(3, grupo.filas.length); i++) {
                         const indice = grupo.filas[i];
                         const item = extractoProcesable[indice];
@@ -3483,50 +4161,50 @@
                         const estadoSant = estadosExtracto.has(indice) ? estadosExtracto.get(indice).estado : 'Pendiente';
                         const referencia = fila[3] || '';
                         const importe = fila[6] || '';
-                        console.log(`     • Reg ${i+1}: REF="${referencia}", IMPORTE=${importe}, ESTADO_SANT="${estadoSant}"`);
+                        // console.log(`     • Reg ${i+1}: REF="${referencia}", IMPORTE=${importe}, ESTADO_SANT="${estadoSant}"`);
                     }
                     if (grupo.filas.length > 3) {
-                        console.log(`     ... y ${grupo.filas.length - 3} registros más`);
+                        // console.log(`     ... y ${grupo.filas.length - 3} registros más`);
                     }
                 }
-                console.log(`===============================================`);
+                // console.log(`===============================================`);
                 
                 // === MOSTRAR TABLA DE GRUPOS MAYOR ===
-                console.log(`\n📅 TABLA GRUPOS MAYOR:`);
-                console.log(`┌────────────┬─────────────┬───────────┬─────────┐`);
-                console.log(`│    FECHA   │ FECHA ORIG  │   HABER   │  FILAS  │`);
-                console.log(`├────────────┼─────────────┼───────────┼─────────┤`);
+                // console.log(`\n📅 TABLA GRUPOS MAYOR:`);
+                // console.log(`┌────────────┬─────────────┬───────────┬─────────┐`);
+                // console.log(`│    FECHA   │ FECHA ORIG  │   HABER   │  FILAS  │`);
+                // console.log(`├────────────┼─────────────┼───────────┼─────────┤`);
                 
                 for (const [fecha, grupo] of gruposPorFechaMayor) {
                     const fechaOrig = (grupo.fechaOriginal || '').toString().padEnd(11);
                     const fechaNorm = (fecha || '').toString().padEnd(10);
                     const haber = (grupo.totalHaber || 0).toFixed(2).padStart(9);
                     const filas = (grupo.filas?.length || 0).toString().padStart(7);
-                    console.log(`│ ${fechaNorm} │ ${fechaOrig} │ ${haber} │ ${filas} │`);
+                    // console.log(`│ ${fechaNorm} │ ${fechaOrig} │ ${haber} │ ${filas} │`);
                 }
-                console.log(`└────────────┴─────────────┴───────────┴─────────┘`);
+                // console.log(`└────────────┴─────────────┴───────────┴─────────┘`);
                 
                 // === MOSTRAR TABLA DE GRUPOS EXTRACTO ===
-                console.log(`\n📅 TABLA GRUPOS EXTRACTO:`);
-                console.log(`┌────────────┬─────────────┬───────────┬─────────┐`);
-                console.log(`│    FECHA   │ FECHA ORIG  │  IMPORTE  │  FILAS  │`);
-                console.log(`├────────────┼─────────────┼───────────┼─────────┤`);
+                // console.log(`\n📅 TABLA GRUPOS EXTRACTO:`);
+                // console.log(`┌────────────┬─────────────┬───────────┬─────────┐`);
+                // console.log(`│    FECHA   │ FECHA ORIG  │  IMPORTE  │  FILAS  │`);
+                // console.log(`├────────────┼─────────────┼───────────┼─────────┤`);
                 
                 for (const [fecha, grupo] of gruposPorFechaExtracto) {
                     const fechaOrig = (grupo.fechaOriginal || '').toString().padEnd(11);
                     const fechaNorm = (fecha || '').toString().padEnd(10);
                     const importe = (grupo.totalImporte || 0).toFixed(2).padStart(9);
                     const filas = (grupo.filas?.length || 0).toString().padStart(7);
-                    console.log(`│ ${fechaNorm} │ ${fechaOrig} │ ${importe} │ ${filas} │`);
+                    // console.log(`│ ${fechaNorm} │ ${fechaOrig} │ ${importe} │ ${filas} │`);
                 }
-                console.log(`└────────────┴─────────────┴───────────┴─────────┘`);
+                // console.log(`└────────────┴─────────────┴───────────┴─────────┘`);
                 
                 // === 3. MAPEAR GRUPOS POR FECHA Y MONTO ===
                 let numeroGrupo = 1;
                 
                 for (const [fechaMayor, grupoMayor] of gruposPorFechaMayor) {
                     // 🔍 DEBUG BÚSQUEDA DE MAPEO
-                    console.log(`🔍 BUSCANDO MAPEO: Fecha Mayor="${fechaMayor}", ¿Existe en Extracto? ${gruposPorFechaExtracto.has(fechaMayor) ? '✅' : '❌'}`);
+                    // console.log(`🔍 BUSCANDO MAPEO: Fecha Mayor="${fechaMayor}", ¿Existe en Extracto? ${gruposPorFechaExtracto.has(fechaMayor) ? '✅' : '❌'}`);
                     
                     if (gruposPorFechaExtracto.has(fechaMayor)) {
                         const grupoExtracto = gruposPorFechaExtracto.get(fechaMayor);
@@ -3535,13 +4213,13 @@
                         const diferencia = Math.abs(grupoMayor.totalHaber - grupoExtracto.totalImporte);
                         const montosCoinciden = diferencia < 0.01; // Tolerancia para decimales
                         
-                        console.log(`🔍 COMPARANDO MONTOS: Mayor=${grupoMayor.totalHaber.toFixed(2)} vs SANT=${grupoExtracto.totalImporte.toFixed(2)}, Diferencia=${diferencia.toFixed(4)}, ¿Coinciden? ${montosCoinciden ? '✅' : '❌'}`);
+                        // console.log(`🔍 COMPARANDO MONTOS: Mayor=${grupoMayor.totalHaber.toFixed(2)} vs SANT=${grupoExtracto.totalImporte.toFixed(2)}, Diferencia=${diferencia.toFixed(4)}, ¿Coinciden? ${montosCoinciden ? '✅' : '❌'}`);
                         
                         if (montosCoinciden) {
                             // ⭐ USAR NÚMERO DE GRUPO COMO REFERENCIA
                             const refGrupo = `GRUPO-${numeroGrupo}`;
                             
-                            console.log(`✅ SANT MATCH GRUPO ${numeroGrupo}: FECHA="${fechaMayor}", HABER=${grupoMayor.totalHaber}, IMPORTE=${grupoExtracto.totalImporte}`);
+                            // console.log(`✅ SANT MATCH GRUPO ${numeroGrupo}: FECHA="${fechaMayor}", HABER=${grupoMayor.totalHaber}, IMPORTE=${grupoExtracto.totalImporte}`);
                             
                             // Marcar todas las filas del grupo Mayor como conciliadas
                             for (const indiceMayor of grupoMayor.filas) {
@@ -3562,25 +4240,25 @@
                             conciliados++;
                             numeroGrupo++;
                         } else {
-                            console.log(`❌ MONTOS NO COINCIDEN: Fecha="${fechaMayor}", diferencia de ${diferencia.toFixed(2)}`);
+                            // console.log(`❌ MONTOS NO COINCIDEN: Fecha="${fechaMayor}", diferencia de ${diferencia.toFixed(2)}`);
                         }
                     } else {
-                        console.log(`❌ FECHA NO ENCONTRADA EN EXTRACTO: "${fechaMayor}"`);
+                        // console.log(`❌ FECHA NO ENCONTRADA EN EXTRACTO: "${fechaMayor}"`);
                     }
                 }
                 
-                console.log(`\n🏦 SANT PASO 9 COMPLETADO: ${conciliados} grupos conciliados con numeración`);
+                // console.log(`\n🏦 SANT PASO 9 COMPLETADO: ${conciliados} grupos conciliados con numeración`);
                 
                 // === TABLA RESUMEN FINAL ===
-                console.log(`\n📊 RESUMEN FINAL PASO 9 SANT:`);
-                console.log(`┌─────────────────────┬─────────┐`);
-                console.log(`│       CONCEPTO      │  VALOR  │`);
-                console.log(`├─────────────────────┼─────────┤`);
-                console.log(`│ Candidatos Mayor    │ ${totalCandidatos.toString().padStart(7)} │`);
-                console.log(`│ Grupos Mayor        │ ${gruposMayorFormados.toString().padStart(7)} │`);
-                console.log(`│ Grupos Extracto     │ ${gruposExtractoFormados.toString().padStart(7)} │`);
-                console.log(`│ Grupos Conciliados  │ ${conciliados.toString().padStart(7)} │`);
-                console.log(`└─────────────────────┴─────────┘`);
+                // console.log(`\n📊 RESUMEN FINAL PASO 9 SANT:`);
+                // console.log(`┌─────────────────────┬─────────┐`);
+                // console.log(`│       CONCEPTO      │  VALOR  │`);
+                // console.log(`├─────────────────────┼─────────┤`);
+                // console.log(`│ Candidatos Mayor    │ ${totalCandidatos.toString().padStart(7)} │`);
+                // console.log(`│ Grupos Mayor        │ ${gruposMayorFormados.toString().padStart(7)} │`);
+                // console.log(`│ Grupos Extracto     │ ${gruposExtractoFormados.toString().padStart(7)} │`);
+                // console.log(`│ Grupos Conciliados  │ ${conciliados.toString().padStart(7)} │`);
+                // console.log(`└─────────────────────┴─────────┘`);
                 
                 return {
                     candidatos: totalCandidatos,
@@ -3618,38 +4296,38 @@
                     return { candidatos: 0, grupos: 0, conciliados: 0 };
                 }
                 
-                console.log(`\n🏦 *** SANT PASO 12 INICIADO *** - Agrupación por FECHA (después de ITF)`);
-                console.log(`📋 IMPORTANTE: Mayor se agrupa por FDOC (fecha), NO por NUMDOC`);
-                console.log(`📋 Total registros Mayor disponibles: ${filasFiltradasMayor.length}`);
-                console.log(`📋 Total registros Extracto disponibles: ${extractoProcesable.length}`);
-                console.log(`📋 Estados ya procesados Mayor: ${estadosFilas.size}`);
-                console.log(`📋 Estados ya procesados Extracto: ${estadosExtracto.size}`);
+                // console.log(`\n🏦 *** SANT PASO 12 INICIADO *** - Agrupación por FECHA (después de ITF)`);
+                // console.log(`📋 IMPORTANTE: Mayor se agrupa por FDOC (fecha), NO por NUMDOC`);
+                // console.log(`📋 Total registros Mayor disponibles: ${filasFiltradasMayor.length}`);
+                // console.log(`📋 Total registros Extracto disponibles: ${extractoProcesable.length}`);
+                // console.log(`📋 Estados ya procesados Mayor: ${estadosFilas.size}`);
+                // console.log(`📋 Estados ya procesados Extracto: ${estadosExtracto.size}`);
                 
                 // === 🔬 TEST DE NORMALIZACIÓN DE FECHAS Y VERIFICACIÓN COLUMNA L ===
-                console.log(`\n🔬 === TEST DE NORMALIZACIÓN DE FECHAS ===`);
-                console.log(`📅 Mayor: "6/6/2025" → "${this.normalizarFecha('6/6/2025')}"`);
-                console.log(`📅 SANT: "06/06/2025" → "${this.normalizarFecha('06/06/2025')}"`);
-                console.log(`📅 Mayor: "13/6/2025" → "${this.normalizarFecha('13/6/2025')}"`);
-                console.log(`📅 SANT: "13/06/2025" → "${this.normalizarFecha('13/06/2025')}"`);
-                console.log(`📅 Mayor: "20/6/2025" → "${this.normalizarFecha('20/6/2025')}"`);
-                console.log(`📅 SANT: "20/06/2025" → "${this.normalizarFecha('20/06/2025')}"`);
-                console.log(`📅 Mayor: "27/6/2025" → "${this.normalizarFecha('27/6/2025')}"`);
-                console.log(`📅 SANT: "27/06/2025" → "${this.normalizarFecha('27/06/2025')}"`);
+                // console.log(`\n🔬 === TEST DE NORMALIZACIÓN DE FECHAS ===`);
+                // console.log(`📅 Mayor: "6/6/2025" → "${this.normalizarFecha('6/6/2025')}"`);
+                // console.log(`📅 SANT: "06/06/2025" → "${this.normalizarFecha('06/06/2025')}"`);
+                // console.log(`📅 Mayor: "13/6/2025" → "${this.normalizarFecha('13/6/2025')}"`);
+                // console.log(`📅 SANT: "13/06/2025" → "${this.normalizarFecha('13/06/2025')}"`);
+                // console.log(`📅 Mayor: "20/6/2025" → "${this.normalizarFecha('20/6/2025')}"`);
+                // console.log(`📅 SANT: "20/06/2025" → "${this.normalizarFecha('20/06/2025')}"`);
+                // console.log(`📅 Mayor: "27/6/2025" → "${this.normalizarFecha('27/6/2025')}"`);
+                // console.log(`📅 SANT: "27/06/2025" → "${this.normalizarFecha('27/06/2025')}"`);
                 
                 const coincide06 = this.normalizarFecha('6/6/2025') === this.normalizarFecha('06/06/2025');
                 const coincide13 = this.normalizarFecha('13/6/2025') === this.normalizarFecha('13/06/2025');
                 const coincide20 = this.normalizarFecha('20/6/2025') === this.normalizarFecha('20/06/2025');
                 const coincide27 = this.normalizarFecha('27/6/2025') === this.normalizarFecha('27/06/2025');
                 
-                console.log(`🎯 COINCIDENCIAS: 06/06=${coincide06 ? '✅' : '❌'}, 13/06=${coincide13 ? '✅' : '❌'}, 20/06=${coincide20 ? '✅' : '❌'}, 27/06=${coincide27 ? '✅' : '❌'}`);
+                // console.log(`🎯 COINCIDENCIAS: 06/06=${coincide06 ? '✅' : '❌'}, 13/06=${coincide13 ? '✅' : '❌'}, 20/06=${coincide20 ? '✅' : '❌'}, 27/06=${coincide27 ? '✅' : '❌'}`);
                 
                 // === 🔍 VERIFICACIÓN ESPECÍFICA REGISTROS SANT DISPONIBLES ===
-                console.log(`\n🔍 === VERIFICACIÓN EXTRACTO SANT (solo registros disponibles) ===`);
+                // console.log(`\n🔍 === VERIFICACIÓN EXTRACTO SANT (solo registros disponibles) ===`);
                 const registrosDisponibles = extractoProcesable ? extractoProcesable.filter((_, i) => !estadosExtracto.has(i)) : [];
                 const registrosYaProcesados = extractoProcesable ? extractoProcesable.length - registrosDisponibles.length : 0;
-                console.log(`📊 Total registros SANT en archivo: ${extractoProcesable ? extractoProcesable.length : 0}`);
-                console.log(`🔒 Registros ya procesados (pasos anteriores): ${registrosYaProcesados}`);
-                console.log(`🆓 Registros disponibles para Paso 12: ${registrosDisponibles.length}`);
+                // console.log(`📊 Total registros SANT en archivo: ${extractoProcesable ? extractoProcesable.length : 0}`);
+                // console.log(`🔒 Registros ya procesados (pasos anteriores): ${registrosYaProcesados}`);
+                // console.log(`🆓 Registros disponibles para Paso 12: ${registrosDisponibles.length}`);
                 
                 // DEBUG: Resumen de estados del extracto SANT
                 const estadosEnExtracto = {};
@@ -3661,9 +4339,9 @@
                         estadosEnExtracto['Pendiente'] = (estadosEnExtracto['Pendiente'] || 0) + 1;
                     }
                 }
-                console.log(`📊 RESUMEN ESTADOS EXTRACTO SANT:`);
+                // console.log(`📊 RESUMEN ESTADOS EXTRACTO SANT:`);
                 for (const [estado, cantidad] of Object.entries(estadosEnExtracto)) {
-                    console.log(`   ${estado}: ${cantidad} registros`);
+                    // console.log(`   ${estado}: ${cantidad} registros`);
                 }
                 
                 // DEBUG: Resumen de estados del Mayor
@@ -3676,9 +4354,9 @@
                         estadosEnMayor['Pendiente'] = (estadosEnMayor['Pendiente'] || 0) + 1;
                     }
                 }
-                console.log(`📊 RESUMEN ESTADOS MAYOR SANT:`);
+                // console.log(`📊 RESUMEN ESTADOS MAYOR SANT:`);
                 for (const [estado, cantidad] of Object.entries(estadosEnMayor)) {
-                    console.log(`   ${estado}: ${cantidad} registros`);
+                    // console.log(`   ${estado}: ${cantidad} registros`);
                 }
                 
                 let candidatosLibro03 = 0;
@@ -3739,7 +4417,7 @@
                 
                 const gruposMayorFormados = gruposPorFechaMayor.size;
                 
-                console.log(`🏦 SANT PASO 12 - AGRUPACIÓN MAYOR: ${gruposMayorFormados} grupos por FECHA formados`);
+                // console.log(`🏦 SANT PASO 12 - AGRUPACIÓN MAYOR: ${gruposMayorFormados} grupos por FECHA formados`);
                 
                 if (gruposMayorFormados === 0) {
                     // console.log(`⚠️ SANT: No se encontraron grupos de fechas en Mayor para PASO 12`);
@@ -3784,7 +4462,7 @@
                     if (registrosProcesadosEnExtracto <= 15) {
                         const referencia = filaExtracto[3] || '';
                         const descripcion = (filaExtracto[4] || '').substring(0, 20);
-                        console.log(`✅ PROCESANDO SANT ${i}: FECHA="${fechaExtracto}", IMPORTE="${importeExtracto}", REF="${referencia}", DESC="${descripcion}..."`);
+                        // console.log(`✅ PROCESANDO SANT ${i}: FECHA="${fechaExtracto}", IMPORTE="${importeExtracto}", REF="${referencia}", DESC="${descripcion}..."`);
                     }
                     
                     registrosProcesadosEnExtracto++;
@@ -3806,26 +4484,26 @@
                     
                     // Debug de grupos formados (solo primeros 5 grupos)
                     if (gruposPorFechaExtracto.size <= 5) {
-                        console.log(`📝 AGREGADO A GRUPO SANT: FECHA="${fechaExtracto}"→"${fechaExtractoNormalizada}", IMPORTE=${importeExtracto}→${montoExtractoAbs}`);
+                        // console.log(`📝 AGREGADO A GRUPO SANT: FECHA="${fechaExtracto}"→"${fechaExtractoNormalizada}", IMPORTE=${importeExtracto}→${montoExtractoAbs}`);
                     }
                 }
                 
                 const gruposExtractoFormados = gruposPorFechaExtracto.size;
-                console.log(`🏦 SANT PASO 12 - AGRUPACIÓN EXTRACTO: ${gruposExtractoFormados} grupos por FECHA formados`);
+                // console.log(`🏦 SANT PASO 12 - AGRUPACIÓN EXTRACTO: ${gruposExtractoFormados} grupos por FECHA formados`);
                 
                 // === 📊 RESUMEN DE PROCESAMIENTO SANT ===
-                console.log(`\n📊 RESUMEN PROCESAMIENTO SANT:`);
-                console.log(`   📋 Total registros en archivo SANT: ${extractoProcesable.length}`);
-                console.log(`   ⏭️ Saltados ya procesados (pasos anteriores): ${extractoProcesable.length - registrosSaltadosSinDatos - registrosProcesadosEnExtracto}`);
-                console.log(`   ⏭️ Saltados sin datos reales: ${registrosSaltadosSinDatos}`);
-                console.log(`   ✅ Registros PENDIENTES procesados: ${registrosProcesadosEnExtracto}`);
-                console.log(`======================================`);
+                // console.log(`\n📊 RESUMEN PROCESAMIENTO SANT:`);
+                // console.log(`   📋 Total registros en archivo SANT: ${extractoProcesable.length}`);
+                // console.log(`   ⏭️ Saltados ya procesados (pasos anteriores): ${extractoProcesable.length - registrosSaltadosSinDatos - registrosProcesadosEnExtracto}`);
+                // console.log(`   ⏭️ Saltados sin datos reales: ${registrosSaltadosSinDatos}`);
+                // console.log(`   ✅ Registros PENDIENTES procesados: ${registrosProcesadosEnExtracto}`);
+                // console.log(`======================================`);
                 
                 // === 📊 TABLA DE COMPARACIÓN MAYOR VS SANT (SOLO PARA DEBUG) ===
-                console.log(`\n📊 === TABLA DE COMPARACIÓN GRUPOS MAYOR VS SANT (CON ESTADOS) ===`);
-                console.log(`┌────────────┬─────────────┬─────────────┬────────────┬─────────────┬─────────────┬─────────┐`);
-                console.log(`│    FECHA   │  MAYOR FDOC │ MAYOR HABER │ SANT FECHA │ SANT IMPORTE│   STATUS    │ DIFERENC│`);
-                console.log(`├────────────┼─────────────┼─────────────┼────────────┼─────────────┼─────────────┼─────────┤`);
+                // console.log(`\n📊 === TABLA DE COMPARACIÓN GRUPOS MAYOR VS SANT (CON ESTADOS) ===`);
+                // console.log(`┌────────────┬─────────────┬─────────────┬────────────┬─────────────┬─────────────┬─────────┐`);
+                // console.log(`│    FECHA   │  MAYOR FDOC │ MAYOR HABER │ SANT FECHA │ SANT IMPORTE│   STATUS    │ DIFERENC│`);
+                // console.log(`├────────────┼─────────────┼─────────────┼────────────┼─────────────┼─────────────┼─────────┤`);
                 
                 // Obtener todas las fechas únicas (de ambos lados)
                 const todasFechas = new Set([
@@ -3836,31 +4514,31 @@
                 let conciliados = 0;
                 let numeroGrupo = 1;
                 
-                console.log(`📊 Fechas únicas encontradas: ${todasFechas.size}`);
-                console.log(`📊 Grupos Mayor: ${gruposMayorFormados} | Grupos SANT: ${gruposExtractoFormados}`);
+                // console.log(`📊 Fechas únicas encontradas: ${todasFechas.size}`);
+                // console.log(`📊 Grupos Mayor: ${gruposMayorFormados} | Grupos SANT: ${gruposExtractoFormados}`);
                 
                 // === 🔍 DEBUG DETALLADO: CONTENIDO DE CADA GRUPO ===
-                console.log(`\n🔍 === DETALLE COMPLETO DE GRUPOS FORMADOS ===`);
+                // console.log(`\n🔍 === DETALLE COMPLETO DE GRUPOS FORMADOS ===`);
                 
-                console.log(`\n📋 DETALLE GRUPOS MAYOR:`);
+                // console.log(`\n📋 DETALLE GRUPOS MAYOR:`);
                 for (const [fecha, grupo] of gruposPorFechaMayor) {
-                    console.log(`  🗓️ GRUPO FECHA ${fecha}: ${grupo.filas.length} registros, TOTAL HABER: ${grupo.totalHaber.toFixed(2)}`);
+                    // console.log(`  🗓️ GRUPO FECHA ${fecha}: ${grupo.filas.length} registros, TOTAL HABER: ${grupo.totalHaber.toFixed(2)}`);
                     for (let i = 0; i < Math.min(3, grupo.filas.length); i++) {
                         const indice = grupo.filas[i];
                         const fila = filasFiltradasMayor[indice];
                         const estadoMayor = estadosFilas.has(indice) ? estadosFilas.get(indice).estado : 'Pendiente';
                         const numdoc = fila[idxM.numdoc] || '';
                         const glosa = (fila[idxM.glosa] || '').substring(0, 20);
-                        console.log(`     • Reg ${i+1}: NUMDOC="${numdoc}", HABER=${this.normalizarMonto(fila[idxM.haber])}, ESTADO_MAYOR="${estadoMayor}", GLOSA="${glosa}..."`);
+                        // console.log(`     • Reg ${i+1}: NUMDOC="${numdoc}", HABER=${this.normalizarMonto(fila[idxM.haber])}, ESTADO_MAYOR="${estadoMayor}", GLOSA="${glosa}..."`);
                     }
                     if (grupo.filas.length > 3) {
-                        console.log(`     ... y ${grupo.filas.length - 3} registros más`);
+                        // console.log(`     ... y ${grupo.filas.length - 3} registros más`);
                     }
                 }
                 
-                console.log(`\n📋 DETALLE GRUPOS SANT:`);
+                // console.log(`\n📋 DETALLE GRUPOS SANT:`);
                 for (const [fecha, grupo] of gruposPorFechaExtracto) {
-                    console.log(`  🗓️ GRUPO FECHA ${fecha}: ${grupo.filas.length} registros, TOTAL IMPORTE: ${grupo.totalImporte.toFixed(2)}`);
+                    // console.log(`  🗓️ GRUPO FECHA ${fecha}: ${grupo.filas.length} registros, TOTAL IMPORTE: ${grupo.totalImporte.toFixed(2)}`);
                     for (let i = 0; i < Math.min(3, grupo.filas.length); i++) {
                         const indice = grupo.filas[i];
                         const item = extractoProcesable[indice];
@@ -3868,13 +4546,13 @@
                         const estadoSant = estadosExtracto.has(indice) ? estadosExtracto.get(indice).estado : 'Pendiente';
                         const referencia = fila[3] || '';
                         const importe = fila[6] || '';
-                        console.log(`     • Reg ${i+1}: REF="${referencia}", IMPORTE=${importe}, ESTADO_SANT="${estadoSant}"`);
+                        // console.log(`     • Reg ${i+1}: REF="${referencia}", IMPORTE=${importe}, ESTADO_SANT="${estadoSant}"`);
                     }
                     if (grupo.filas.length > 3) {
-                        console.log(`     ... y ${grupo.filas.length - 3} registros más`);
+                        // console.log(`     ... y ${grupo.filas.length - 3} registros más`);
                     }
                 }
-                console.log(`===============================================`);
+                // console.log(`===============================================`);
                 
                 // === MAPEO Y CONCILIACIÓN ===
                 for (const fecha of todasFechas) {
@@ -3935,23 +4613,23 @@
                     const statusStr = status.padEnd(11);
                     const difStr = diferencia.toString().padStart(7);
                     
-                    console.log(`│ ${fechaStr} │ ${mayorStr} │ ${mayorHaber} │ ${santStr} │ ${santImporte} │ ${statusStr} │ ${difStr} │`);
+                    // console.log(`│ ${fechaStr} │ ${mayorStr} │ ${mayorHaber} │ ${santStr} │ ${santImporte} │ ${statusStr} │ ${difStr} │`);
                 }
                 
-                console.log(`└────────────┴─────────────┴─────────────┴────────────┴─────────────┴─────────────┴─────────┘`);
+                // console.log(`└────────────┴─────────────┴─────────────┴────────────┴─────────────┴─────────────┴─────────┘`);
                 
-                console.log(`\n🏦 SANT PASO 12 COMPLETADO: ${conciliados} grupos conciliados con numeración`);
+                // console.log(`\n🏦 SANT PASO 12 COMPLETADO: ${conciliados} grupos conciliados con numeración`);
                 
                 // === TABLA RESUMEN FINAL ===
-                console.log(`\n📊 RESUMEN FINAL PASO 12 SANT:`);
-                console.log(`┌─────────────────────┬─────────┐`);
-                console.log(`│       CONCEPTO      │  VALOR  │`);
-                console.log(`├─────────────────────┼─────────┤`);
-                console.log(`│ Candidatos Mayor    │ ${totalCandidatos.toString().padStart(7)} │`);
-                console.log(`│ Grupos Mayor        │ ${gruposMayorFormados.toString().padStart(7)} │`);
-                console.log(`│ Grupos Extracto     │ ${gruposExtractoFormados.toString().padStart(7)} │`);
-                console.log(`│ Grupos Conciliados  │ ${conciliados.toString().padStart(7)} │`);
-                console.log(`└─────────────────────┴─────────┘`);
+                // console.log(`\n📊 RESUMEN FINAL PASO 12 SANT:`);
+                // console.log(`┌─────────────────────┬─────────┐`);
+                // console.log(`│       CONCEPTO      │  VALOR  │`);
+                // console.log(`├─────────────────────┼─────────┤`);
+                // console.log(`│ Candidatos Mayor    │ ${totalCandidatos.toString().padStart(7)} │`);
+                // console.log(`│ Grupos Mayor        │ ${gruposMayorFormados.toString().padStart(7)} │`);
+                // console.log(`│ Grupos Extracto     │ ${gruposExtractoFormados.toString().padStart(7)} │`);
+                // console.log(`│ Grupos Conciliados  │ ${conciliados.toString().padStart(7)} │`);
+                // console.log(`└─────────────────────┴─────────┘`);
                 
                 return {
                     candidatos: totalCandidatos,
@@ -3974,27 +4652,27 @@
                 */
                 
                 if (esGrupoObjetivo) {
-                    console.log(`🔍 Buscando match para grupo NUMDOC: FDOC="${fdocGrupo}", total HABER=${totalHaber}`);
-                    console.log(`📄 Total líneas disponibles en extracto: ${extractoProcesable ? extractoProcesable.length : 0}`);
-                    console.log(`📄 Líneas ya procesadas: ${estadosExtracto.size}`);
+                    // console.log(`🔍 Buscando match para grupo NUMDOC: FDOC="${fdocGrupo}", total HABER=${totalHaber}`);
+                    // console.log(`📄 Total líneas disponibles en extracto: ${extractoProcesable ? extractoProcesable.length : 0}`);
+                    // console.log(`📄 Líneas ya procesadas: ${estadosExtracto.size}`);
                     
                     // Mostrar primeras 5 líneas del extracto con fechas normalizadas
-                    console.log(`📋 PRIMERAS 5 LÍNEAS DEL EXTRACTO DISPONIBLE:`);
+                    // console.log(`📋 PRIMERAS 5 LÍNEAS DEL EXTRACTO DISPONIBLE:`);
                     for (let i = 0; i < Math.min(5, extractoProcesable.length); i++) {
                         if (!estadosExtracto.has(i)) {
                             const fila = extractoProcesable[i].fila;
                             const fechaRaw = fila[idxE.fecha] || '';
                             const fechaNorm = this.normalizarFecha(fechaRaw);
                             const montoRaw = fila[idxE.monto] || '';
-                            console.log(`   ${i}: "${fechaRaw}" → "${fechaNorm}" | Monto: "${montoRaw}"`);
+                            // console.log(`   ${i}: "${fechaRaw}" → "${fechaNorm}" | Monto: "${montoRaw}"`);
                         } else {
-                            console.log(`   ${i}: [YA PROCESADA]`);
+                            // console.log(`   ${i}: [YA PROCESADA]`);
                         }
                     }
                     
                     // Buscar específicamente la fecha objetivo en todo el extracto
                     const fechaObjetivo = this.normalizarFecha(fdocGrupo);
-                    console.log(`🎯 BUSCANDO FECHA OBJETIVO "${fechaObjetivo}" EN TODO EL EXTRACTO:`);
+                    // console.log(`🎯 BUSCANDO FECHA OBJETIVO "${fechaObjetivo}" EN TODO EL EXTRACTO:`);
                     let encontradas = 0;
                     const lineasObjetivo = [];
                     for (let i = 0; i < extractoProcesable.length; i++) {
@@ -4007,7 +4685,7 @@
                             const procesada = estadosExtracto.has(i) ? '[PROCESADA]' : '[DISPONIBLE]';
                             const diferencia = Math.abs(totalHaber - montoNorm);
                             const coincide = diferencia === 0 ? '🎯 MATCH!' : `Dif: ${diferencia.toFixed(2)}`;
-                            console.log(`   Índice ${i}: "${fechaRaw}" | Monto: "${montoRaw}" → ${montoNorm.toFixed(2)} ${procesada} ${coincide}`);
+                            // console.log(`   Índice ${i}: "${fechaRaw}" | Monto: "${montoRaw}" → ${montoNorm.toFixed(2)} ${procesada} ${coincide}`);
                             if (!estadosExtracto.has(i)) {
                                 lineasObjetivo.push({indice: i, monto: montoNorm, diferencia});
                             }
@@ -4015,9 +4693,9 @@
                         }
                     }
                     if (encontradas === 0) {
-                        console.log(`   ❌ NO se encontraron líneas con fecha "${fechaObjetivo}"`);
+                        // console.log(`   ❌ NO se encontraron líneas con fecha "${fechaObjetivo}"`);
                     } else {
-                        console.log(`   📊 Total encontradas: ${encontradas} | Disponibles: ${lineasObjetivo.length}`);
+                        // console.log(`   📊 Total encontradas: ${encontradas} | Disponibles: ${lineasObjetivo.length}`);
                     }
                 }
                 
@@ -4057,9 +4735,9 @@
                     
                     // Solo mostrar logs para coincidencias de fecha o matches completos
                     if (esGrupoObjetivo && (fechasCoinciden || (fechasCoinciden && montosCoinciden))) {
-                        console.log(`   🔍 Candidato ${candidatosRevisados} (Índice ${i}):`);
-                        console.log(`      Fecha: "${fechaExtractoRaw}" → "${fechaExtractoNormalizada}" | FDOC Grupo: "${fechaGrupoNormalizada}" | Match: ${fechasCoinciden ? '✅' : '❌'}`);
-                        console.log(`      Monto: ${montoExtractoRaw} → abs(${montoExtracto.toFixed(2)}) | Total HABER=${totalHaber.toFixed(6)} | Diferencia: ${diferenciaMonto.toFixed(6)} | Match: ${montosCoinciden ? '✅' : '❌'}`);
+                        // console.log(`   🔍 Candidato ${candidatosRevisados} (Índice ${i}):`);
+                        // console.log(`      Fecha: "${fechaExtractoRaw}" → "${fechaExtractoNormalizada}" | FDOC Grupo: "${fechaGrupoNormalizada}" | Match: ${fechasCoinciden ? '✅' : '❌'}`);
+                        // console.log(`      Monto: ${montoExtractoRaw} → abs(${montoExtracto.toFixed(2)}) | Total HABER=${totalHaber.toFixed(6)} | Diferencia: ${diferenciaMonto.toFixed(6)} | Match: ${montosCoinciden ? '✅' : '❌'}`);
                     }
                     
                     if (fechasCoinciden && montosCoinciden) {
