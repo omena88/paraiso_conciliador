@@ -1474,7 +1474,7 @@
         // // console.log(`\n📋 INICIANDO PASO 7: Operaciones Libro 3`);
         // // console.log(`   📋 Extracto procesable: ${extractoProcesable.length} filas disponibles`);
         
-        const resultadosPaso7 = this.procesarPaso7(filasFiltradasMayor, extractoProcesable, indicesMayor, indicesExtracto, estadosFilas, estadosExtracto);
+        const resultadosPaso7 = this.procesarPaso7(filasFiltradasMayor, extractoProcesable, indicesMayor, indicesExtracto, estadosFilas, estadosExtracto, cuentaConfig);
         // // console.log(`📊 PASO 7 COMPLETADO: ${resultadosPaso7.conciliados} conciliaciones LIBRO 3 procesadas`);
         
         // // console.log(`\n📚 INICIANDO PASO 8: Operaciones Múltiples Libros`);
@@ -2701,9 +2701,9 @@
                 }
                 
                 gruposFormados = gruposPorFechaMayor.size;
-                console.log(`📊 MAYOR - Candidatos LIBRO 04 (PROT): ${candidatosPROT}`);
-                console.log(`📊 MAYOR - Candidatos LIBRO 03/09 (DEV): ${candidatosDEV}`);
-                console.log(`📊 MAYOR - Grupos por fecha formados: ${gruposFormados}`);
+                // console.log(`📊 MAYOR - Candidatos LIBRO 04 (PROT): ${candidatosPROT}`);
+                // console.log(`📊 MAYOR - Candidatos LIBRO 03/09 (DEV): ${candidatosDEV}`);
+                // console.log(`📊 MAYOR - Grupos por fecha formados: ${gruposFormados}`);
                 
                 // === 2. AGRUPAR EXTRACTO POR F. OPERACIÓN (DEV DOC COBRANZAS) ===
                 // console.log(`\n🏦 === ETAPA 2: AGRUPACIÓN EXTRACTO BBVA (DEV DOC COBRANZAS) ===`);
@@ -2750,8 +2750,8 @@
                     }
                 }
                 
-                console.log(`📊 EXTRACTO - Candidatos DEV DOC COBRANZAS: ${candidatosExtracto}`);
-                console.log(`📊 EXTRACTO - Grupos por F. Operación: ${gruposPorFOperacion.size}`);
+                // console.log(`📊 EXTRACTO - Candidatos DEV DOC COBRANZAS: ${candidatosExtracto}`);
+                // console.log(`📊 EXTRACTO - Grupos por F. Operación: ${gruposPorFOperacion.size}`);
                 
                 // === 3. MOSTRAR DETALLE DE GRUPOS FORMADOS ===
                 // console.log(`\n🔍 === DETALLE GRUPOS MAYOR ===`);
@@ -2846,23 +2846,224 @@
                 
                 // console.log(`└────────────┴─────────────┴─────────────┴────────────┴─────────────┴─────────────┴─────────┘`);
                 
-                console.log(`\n🏦 BBVA PASO 5 COMPLETADO: ${conciliados} grupos conciliados`);
+                // console.log(`\n🏦 BBVA PASO 5 COMPLETADO: ${conciliados} grupos conciliados`);
                 
-                console.log(`\n📊 RESUMEN FINAL PASO 5 BBVA:`);
-                console.log(`┌─────────────────────┬─────────┐`);
-                console.log(`│       CONCEPTO      │  VALOR  │`);
-                console.log(`├─────────────────────┼─────────┤`);
-                console.log(`│ Candidatos PROT L04 │ ${candidatosPROT.toString().padStart(7)} │`);
-                console.log(`│ Candidatos DEV L03/09│ ${candidatosDEV.toString().padStart(7)} │`);
-                console.log(`│ Candidatos BBVA     │ ${candidatosExtracto.toString().padStart(7)} │`);
-                console.log(`│ Grupos Mayor        │ ${gruposPorFechaMayor.size.toString().padStart(7)} │`);
-                console.log(`│ Grupos BBVA         │ ${gruposPorFOperacion.size.toString().padStart(7)} │`);
-                console.log(`│ GRUPOS CONCILIADOS  │ ${conciliados.toString().padStart(7)} │`);
-                console.log(`└─────────────────────┴─────────┘`);
+                // console.log(`\n📊 RESUMEN FINAL PASO 5 BBVA:`);
+                // console.log(`┌─────────────────────┬─────────┐`);
+                // console.log(`│       CONCEPTO      │  VALOR  │`);
+                // console.log(`├─────────────────────┼─────────┤`);
+                // console.log(`│ Candidatos PROT L04 │ ${candidatosPROT.toString().padStart(7)} │`);
+                // console.log(`│ Candidatos DEV L03/09│ ${candidatosDEV.toString().padStart(7)} │`);
+                // console.log(`│ Candidatos BBVA     │ ${candidatosExtracto.toString().padStart(7)} │`);
+                // console.log(`│ Grupos Mayor        │ ${gruposPorFechaMayor.size.toString().padStart(7)} │`);
+                // console.log(`│ Grupos BBVA         │ ${gruposPorFOperacion.size.toString().padStart(7)} │`);
+                // console.log(`│ GRUPOS CONCILIADOS  │ ${conciliados.toString().padStart(7)} │`);
+                // console.log(`└─────────────────────┴─────────┘`);
                 
                 return {
                     candidatos: candidatosPROT + candidatosDEV + candidatosExtracto,
                     grupos: gruposFormados + gruposPorFOperacion.size,
+                    conciliados: conciliados
+                };
+            },
+
+            procesarPaso6BBVA(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto) {
+                /*
+                PASO 6 BBVA - DEPÓSITOS BANCARIOS:
+                
+                Mayor: 
+                1. Agrupar por criterio: NUMDOC
+                2. FDOC + DEBE
+                3. Siempre en la glosa del mayor: "DEPOSITO BANCARIO"
+                
+                Extracto BBVA:
+                1. F. Operación + |Importe|
+                
+                HEADERS BBVA: F. Operación, F. Valor, Código, Nº. Doc., Concepto, Importe, Oficina, ESTADO, #REF
+                
+                ESTADOS RESULTANTES:
+                - "P6 - Conciliada" para registros mapeados
+                */
+                
+                // console.log(`\n🏦 === PASO 6 BBVA: DEPÓSITOS BANCARIOS ===`);
+                // console.log(`🔍 Total filas Mayor a revisar: ${filasFiltradasMayor.length}`);
+                // console.log(`🔍 Total filas Extracto disponibles: ${extractoProcesable.length}`);
+                // console.log(`🔍 Estados ya procesados - Mayor: ${estadosFilas.size}, Extracto: ${estadosExtracto.size}`);
+                
+                let candidatosMayor = 0;
+                let candidatosExtracto = 0;
+                let gruposFormados = 0;
+                let conciliados = 0;
+                
+                // === 1. IDENTIFICAR CANDIDATOS MAYOR (DEPOSITO BANCARIO) ===
+                // console.log(`\n🏛️ === ETAPA 1: IDENTIFICACIÓN CANDIDATOS MAYOR ===`);
+                const candidatosMayorDepositos = [];
+                
+                for (let i = 0; i < filasFiltradasMayor.length; i++) {
+                    // Solo procesar filas pendientes
+                    if (estadosFilas.has(i)) continue;
+                    
+                    const filaMayor = filasFiltradasMayor[i];
+                    const glosa = (filaMayor[idxM.glosa] || '').toString().toUpperCase();
+                    const numdoc = filaMayor[idxM.numdoc] || '';
+                    const fdoc = filaMayor[idxM.fdoc] || '';
+                    const debe = this.normalizarMonto(filaMayor[idxM.debe] || '0');
+                    const comprob = filaMayor[idxM.comprob] || '';
+                    
+                    // Verificar si contiene "DEPOSITO BANCARIO"
+                    if (glosa.includes('DEPOSITO BANCARIO')) {
+                        candidatosMayor++;
+                        candidatosMayorDepositos.push({
+                            indice: i,
+                            fila: filaMayor,
+                            glosa: glosa,
+                            numdoc: this.normalizarTexto(numdoc),
+                            fdoc: fdoc,
+                            debe: debe,
+                            comprob: comprob,
+                            fechaNormalizada: this.normalizarFecha(fdoc)
+                        });
+                        
+                        if (candidatosMayor <= 10) {
+                            // console.log(`📝 Mayor Candidato ${candidatosMayor}: NUMDOC="${numdoc}", FDOC="${fdoc}", DEBE=${debe.toFixed(2)}, GLOSA="${glosa.substring(0, 30)}..."`);
+                        }
+                    }
+                }
+                
+                // console.log(`📊 MAYOR - Candidatos DEPOSITO BANCARIO: ${candidatosMayor}`);
+                
+                // === 2. AGRUPAR MAYOR POR NUMDOC ===
+                // console.log(`\n📋 === ETAPA 2: AGRUPACIÓN MAYOR POR NUMDOC ===`);
+                const gruposPorNumdoc = new Map();
+                
+                candidatosMayorDepositos.forEach(candidato => {
+                    if (!gruposPorNumdoc.has(candidato.numdoc)) {
+                        gruposPorNumdoc.set(candidato.numdoc, {
+                            numdocOriginal: candidato.numdoc,
+                            filas: []
+                        });
+                    }
+                    gruposPorNumdoc.get(candidato.numdoc).filas.push(candidato);
+                });
+                
+                gruposFormados = gruposPorNumdoc.size;
+                // console.log(`📊 MAYOR - Grupos por NUMDOC formados: ${gruposFormados}`);
+                
+                // === 3. PROCESAR EXTRACTO BBVA (TODOS LOS REGISTROS PENDIENTES) ===
+                // console.log(`\n🏦 === ETAPA 3: PROCESAMIENTO EXTRACTO BBVA ===`);
+                const extractoDisponible = [];
+                
+                for (let i = 0; i < extractoProcesable.length; i++) {
+                    // Solo revisar filas no procesadas del extracto
+                    if (estadosExtracto.has(i)) continue;
+                    
+                    const itemExtracto = extractoProcesable[i];
+                    const filaExtracto = itemExtracto.fila;
+                    
+                    if (!filaExtracto || !Array.isArray(filaExtracto)) continue;
+                    
+                    const fOperacion = filaExtracto[0] || ''; // F. Operación (Col A)
+                    const importe = this.normalizarMonto(filaExtracto[5] || '0'); // Importe (Col F)
+                    const concepto = (filaExtracto[4] || '').toString(); // Concepto (Col E)
+                    
+                    candidatosExtracto++;
+                    extractoDisponible.push({
+                        indice: i,
+                        fila: filaExtracto,
+                        fOperacion: fOperacion,
+                        importe: importe,
+                        importeAbsoluto: Math.abs(importe),
+                        concepto: concepto,
+                        fechaNormalizada: this.normalizarFecha(fOperacion)
+                    });
+                    
+                    if (candidatosExtracto <= 10) {
+                        console.log(`📝 Extracto Candidato ${candidatosExtracto}: F.Op="${fOperacion}", Importe=${importe.toFixed(2)} → |${Math.abs(importe).toFixed(2)}|, Concepto="${concepto.substring(0, 30)}..."`);
+                    }
+                }
+                
+                console.log(`📊 EXTRACTO - Total registros disponibles: ${candidatosExtracto}`);
+                
+                // === 4. DETALLE DE GRUPOS MAYOR ===
+                console.log(`\n🔍 === DETALLE GRUPOS MAYOR (NUMDOC) ===`);
+                let contadorGrupo = 1;
+                for (const [numdoc, grupo] of gruposPorNumdoc) {
+                    console.log(`📅 GRUPO MAYOR ${contadorGrupo}: NUMDOC="${numdoc}"`);
+                    console.log(`   📋 Registros: ${grupo.filas.length}`);
+                    
+                    grupo.filas.slice(0, 3).forEach((fila, idx) => {
+                        console.log(`     ${idx + 1}. FDOC="${fila.fdoc}", DEBE=${fila.debe.toFixed(2)}, COMPROB="${fila.comprob}"`);
+                    });
+                    if (grupo.filas.length > 3) {
+                        console.log(`     ... y ${grupo.filas.length - 3} registros más`);
+                    }
+                    contadorGrupo++;
+                    if (contadorGrupo > 5) break;
+                }
+                
+                // === 5. MAPEO: MAYOR (FDOC+DEBE) vs EXTRACTO (F.OP+|IMPORTE|) ===
+                console.log(`\n🔗 === MAPEO: MAYOR (FDOC+DEBE) vs EXTRACTO (F.OP+|IMPORTE|) ===`);
+                
+                for (const [numdoc, grupo] of gruposPorNumdoc) {
+                    // Para cada fila del grupo, buscar match en extracto
+                    for (const filaMayor of grupo.filas) {
+                        // Skip si ya fue procesada
+                        if (estadosFilas.has(filaMayor.indice)) continue;
+                        
+                        // Buscar match en extracto
+                        for (const itemExtracto of extractoDisponible) {
+                            // Skip si ya fue procesado
+                            if (estadosExtracto.has(itemExtracto.indice)) continue;
+                            
+                            // Comparar fecha y monto
+                            const fechasCoinciden = filaMayor.fechaNormalizada === itemExtracto.fechaNormalizada;
+                            const diff = Math.abs(filaMayor.debe - itemExtracto.importeAbsoluto);
+                            const montosCoinciden = diff < 0.01;
+                            
+                            if (fechasCoinciden && montosCoinciden) {
+                                // === MATCH ENCONTRADO ===
+                                console.log(`\n🎯 MATCH ENCONTRADO:`);
+                                console.log(`   📅 Fecha: "${filaMayor.fdoc}" ↔ "${itemExtracto.fOperacion}" (normalizada: "${filaMayor.fechaNormalizada}")`);
+                                console.log(`   💰 Montos: MAYOR=${filaMayor.debe.toFixed(2)} ↔ EXTRACTO=|${itemExtracto.importeAbsoluto.toFixed(2)}| (diff: ${diff.toFixed(6)})`);
+                                console.log(`   📋 NUMDOC="${numdoc}", COMPROB="${filaMayor.comprob}"`);
+                                console.log(`   📋 Concepto BBVA: "${itemExtracto.concepto.substring(0, 50)}..."`);
+                                
+                                // Conciliar ambos registros
+                                const refMayor = `BBVA-P6-${itemExtracto.fOperacion}`;
+                                const refExtracto = `${filaMayor.comprob}`;
+                                
+                                estadosFilas.set(filaMayor.indice, {
+                                    estado: 'P6 - Conciliada',
+                                    ref: refMayor
+                                });
+                                
+                                estadosExtracto.set(itemExtracto.indice, {
+                                    estado: 'P6 - Conciliada',
+                                    ref: refExtracto
+                                });
+                                
+                                conciliados++;
+                                break; // Salir del bucle de extracto para esta fila de Mayor
+                            }
+                        }
+                    }
+                }
+                
+                console.log(`\n🏦 BBVA PASO 6 COMPLETADO: ${conciliados} depósitos conciliados`);
+                
+                console.log(`\n📊 RESUMEN FINAL PASO 6 BBVA:`);
+                console.log(`┌─────────────────────┬─────────┐`);
+                console.log(`│       CONCEPTO      │  VALOR  │`);
+                console.log(`├─────────────────────┼─────────┤`);
+                console.log(`│ Candidatos Mayor    │ ${candidatosMayor.toString().padStart(7)} │`);
+                console.log(`│ Candidatos Extracto │ ${candidatosExtracto.toString().padStart(7)} │`);
+                console.log(`│ Grupos Mayor NUMDOC │ ${gruposFormados.toString().padStart(7)} │`);
+                console.log(`│ DEPÓSITOS CONCILIAD │ ${conciliados.toString().padStart(7)} │`);
+                console.log(`└─────────────────────┴─────────┘`);
+                
+                return {
+                    candidatos: candidatosMayor + candidatosExtracto,
+                    grupos: gruposFormados,
                     conciliados: conciliados
                 };
             },
@@ -2886,11 +3087,21 @@
                 - FDOC + DEBE (Mayor) ↔ Fecha (Columna A) + Importe (Columna G, valor absoluto)
                 - Fecha formato: dd/mm/aaaa
                 
+                BBVA - MAPEO ESPECÍFICO:
+                - Mayor: Agrupar por NUMDOC, FDOC+DEBE
+                - Extracto: F. Operación + |Importe|
+                - Glosa del mayor: "DEPOSITO BANCARIO"
+                
                 ESTADOS RESULTANTES:
                 - "P6 - Conciliada"
                 - Mayor: #REF = [Referencia del Extracto]
                 - Extracto: #REF = "LIBRO-COMPROB" del Mayor
                 */
+                
+                // Verificar si es cuenta BBVA
+                if (cuentaConfig && cuentaConfig.codigo === '1041201') {
+                    return this.procesarPaso6BBVA(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto);
+                }
                 
                 // // console.log(`📈 PASO 6: Iniciando procesamiento de depósitos bancarios para ${cuentaConfig?.alias || 'cuenta genérica'}`);
                 // // console.log(`🔍 Total filas a revisar: ${filasFiltradasMayor.length}`);
@@ -3232,13 +3443,174 @@
                 return { encontrado: false };
             },
 
-            procesarPaso7(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto) {
+            procesarPaso7BBVA(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto) {
+                /*
+                PASO 7 BBVA - MAPEO DIRECTO:
+                
+                Mayor: 
+                1. FDOC + DEBE (todos los registros pendientes)
+                
+                Extracto BBVA:
+                1. F. Operación + |Importe|
+                
+                HEADERS BBVA: F. Operación, F. Valor, Código, Nº. Doc., Concepto, Importe, Oficina, ESTADO, #REF
+                
+                ESTADOS RESULTANTES:
+                - "P7 - Conciliada" para registros mapeados
+                */
+                
+                // console.log(`\n📋 === PASO 7 BBVA: MAPEO DIRECTO ===`);
+                // console.log(`🔍 Total filas Mayor a revisar: ${filasFiltradasMayor.length}`);
+                // console.log(`🔍 Total filas Extracto disponibles: ${extractoProcesable.length}`);
+                // console.log(`🔍 Estados ya procesados - Mayor: ${estadosFilas.size}, Extracto: ${estadosExtracto.size}`);
+                
+                let candidatosMayor = 0;
+                let candidatosExtracto = 0;
+                let conciliados = 0;
+                
+                // === 1. IDENTIFICAR CANDIDATOS MAYOR (TODOS LOS PENDIENTES) ===
+                // console.log(`\n🏛️ === ETAPA 1: IDENTIFICACIÓN CANDIDATOS MAYOR ===`);
+                const candidatosMayorPendientes = [];
+                
+                for (let i = 0; i < filasFiltradasMayor.length; i++) {
+                    // Solo procesar filas pendientes
+                    if (estadosFilas.has(i)) continue;
+                    
+                    const filaMayor = filasFiltradasMayor[i];
+                    const fdoc = filaMayor[idxM.fdoc] || '';
+                    const debe = this.normalizarMonto(filaMayor[idxM.debe] || '0');
+                    const comprob = filaMayor[idxM.comprob] || '';
+                    const libro = filaMayor[idxM.libro] || '';
+                    const glosa = (filaMayor[idxM.glosa] || '').toString();
+                    
+                    candidatosMayor++;
+                    candidatosMayorPendientes.push({
+                        indice: i,
+                        fila: filaMayor,
+                        fdoc: fdoc,
+                        debe: debe,
+                        comprob: comprob,
+                        libro: libro,
+                        glosa: glosa,
+                        fechaNormalizada: this.normalizarFecha(fdoc)
+                    });
+                    
+                    if (candidatosMayor <= 10) {
+                        // console.log(`📝 Mayor Candidato ${candidatosMayor}: FDOC="${fdoc}", DEBE=${debe.toFixed(2)}, LIBRO="${libro}", GLOSA="${glosa.substring(0, 30)}..."`);
+                    }
+                }
+                
+                // console.log(`📊 MAYOR - Total candidatos pendientes: ${candidatosMayor}`);
+                
+                // === 2. PROCESAR EXTRACTO BBVA (TODOS LOS REGISTROS PENDIENTES) ===
+                // console.log(`\n🏦 === ETAPA 2: PROCESAMIENTO EXTRACTO BBVA ===`);
+                const extractoDisponible = [];
+                
+                for (let i = 0; i < extractoProcesable.length; i++) {
+                    // Solo revisar filas no procesadas del extracto
+                    if (estadosExtracto.has(i)) continue;
+                    
+                    const itemExtracto = extractoProcesable[i];
+                    const filaExtracto = itemExtracto.fila;
+                    
+                    if (!filaExtracto || !Array.isArray(filaExtracto)) continue;
+                    
+                    const fOperacion = filaExtracto[0] || ''; // F. Operación (Col A)
+                    const importe = this.normalizarMonto(filaExtracto[5] || '0'); // Importe (Col F)
+                    const concepto = (filaExtracto[4] || '').toString(); // Concepto (Col E)
+                    
+                    candidatosExtracto++;
+                    extractoDisponible.push({
+                        indice: i,
+                        fila: filaExtracto,
+                        fOperacion: fOperacion,
+                        importe: importe,
+                        importeAbsoluto: Math.abs(importe),
+                        concepto: concepto,
+                        fechaNormalizada: this.normalizarFecha(fOperacion)
+                    });
+                    
+                    if (candidatosExtracto <= 10) {
+                        console.log(`📝 Extracto Candidato ${candidatosExtracto}: F.Op="${fOperacion}", Importe=${importe.toFixed(2)} → |${Math.abs(importe).toFixed(2)}|, Concepto="${concepto.substring(0, 30)}..."`);
+                    }
+                }
+                
+                console.log(`📊 EXTRACTO - Total registros disponibles: ${candidatosExtracto}`);
+                
+                // === 3. MAPEO: MAYOR (FDOC+DEBE) vs EXTRACTO (F.OP+|IMPORTE|) ===
+                console.log(`\n🔗 === MAPEO: MAYOR (FDOC+DEBE) vs EXTRACTO (F.OP+|IMPORTE|) ===`);
+                
+                for (const candidatoMayor of candidatosMayorPendientes) {
+                    // Skip si ya fue procesado
+                    if (estadosFilas.has(candidatoMayor.indice)) continue;
+                    
+                    // Buscar match en extracto
+                    for (const itemExtracto of extractoDisponible) {
+                        // Skip si ya fue procesado
+                        if (estadosExtracto.has(itemExtracto.indice)) continue;
+                        
+                        // Comparar fecha y monto
+                        const fechasCoinciden = candidatoMayor.fechaNormalizada === itemExtracto.fechaNormalizada;
+                        const diff = Math.abs(candidatoMayor.debe - itemExtracto.importeAbsoluto);
+                        const montosCoinciden = diff < 0.01;
+                        
+                        if (fechasCoinciden && montosCoinciden) {
+                            // === MATCH ENCONTRADO ===
+                            console.log(`\n🎯 MATCH ENCONTRADO:`);
+                            console.log(`   📅 Fecha: "${candidatoMayor.fdoc}" ↔ "${itemExtracto.fOperacion}" (normalizada: "${candidatoMayor.fechaNormalizada}")`);
+                            console.log(`   💰 Montos: MAYOR=${candidatoMayor.debe.toFixed(2)} ↔ EXTRACTO=|${itemExtracto.importeAbsoluto.toFixed(2)}| (diff: ${diff.toFixed(6)})`);
+                            console.log(`   📋 LIBRO="${candidatoMayor.libro}", COMPROB="${candidatoMayor.comprob}"`);
+                            console.log(`   📋 Concepto BBVA: "${itemExtracto.concepto.substring(0, 50)}..."`);
+                            
+                            // Conciliar ambos registros
+                            const refMayor = `BBVA-P7-${itemExtracto.fOperacion}`;
+                            const refExtracto = `${candidatoMayor.comprob}`;
+                            
+                            estadosFilas.set(candidatoMayor.indice, {
+                                estado: 'P7 - Conciliada',
+                                ref: refMayor
+                            });
+                            
+                            estadosExtracto.set(itemExtracto.indice, {
+                                estado: 'P7 - Conciliada',
+                                ref: refExtracto
+                            });
+                            
+                            conciliados++;
+                            break; // Salir del bucle de extracto para esta fila de Mayor
+                        }
+                    }
+                }
+                
+                // console.log(`\n📋 BBVA PASO 7 COMPLETADO: ${conciliados} registros conciliados`);
+                
+                // console.log(`\n📊 RESUMEN FINAL PASO 7 BBVA:`);
+                // console.log(`┌─────────────────────┬─────────┐`);
+                // console.log(`│       CONCEPTO      │  VALOR  │`);
+                // console.log(`├─────────────────────┼─────────┤`);
+                // console.log(`│ Candidatos Mayor    │ ${candidatosMayor.toString().padStart(7)} │`);
+                // console.log(`│ Candidatos Extracto │ ${candidatosExtracto.toString().padStart(7)} │`);
+                // console.log(`│ REGISTROS CONCILIAD │ ${conciliados.toString().padStart(7)} │`);
+                // console.log(`└─────────────────────┴─────────┘`);
+                
+                return {
+                    candidatos: candidatosMayor + candidatosExtracto,
+                    conciliados: conciliados
+                };
+            },
+
+            procesarPaso7(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto, cuentaConfig = null) {
                 /*
                 PASO 7 - OPERACIONES LIBRO 3:
                 
+                CUENTA ESTÁNDAR (BCP, SANTANDER):
                 CRITERIOS DE FILTRADO:
                 - LIBRO = "03"
                 - ESTADO = "Pendiente" (no procesados en pasos anteriores)
+                
+                BBVA - MAPEO ESPECÍFICO:
+                - Mayor: FDOC + DEBE (todos los registros pendientes)
+                - Extracto: F. Operación + |Importe|
                 
                 MAPEO ÚNICO:
                 - FDOC + DEBE (Mayor) ↔ FECHA + |MONTO| (Extracto)
@@ -3250,6 +3622,11 @@
                 - Mayor: #REF = [Operación - Número del Extracto]
                 - Extracto: #REF = "LIBRO-COMPROB" del Mayor
                 */
+                
+                // Verificar si es cuenta BBVA
+                if (cuentaConfig && cuentaConfig.codigo === '1041201') {
+                    return this.procesarPaso7BBVA(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto);
+                }
                 
                 // // console.log(`📈 PASO 7: Iniciando procesamiento de operaciones LIBRO 3`);
                 // // console.log(`🔍 Total filas a revisar: ${filasFiltradasMayor.length}`);
@@ -5109,6 +5486,11 @@
                 - Extracto: Descripción contiene "CARGO POR ITF", agrupar todos
                 - Mapeo: Suma HABER (Mayor) vs suma |IMPORTE| (Extracto)
                 
+                BBVA - MAPEO ESPECÍFICO:
+                - Mayor: GLOSA contiene "ITF" + HABER
+                - Extracto: Concepto contiene "ITF", identificar total de operaciones
+                - Mapeo: Suma HABER (Mayor) vs suma |IMPORTE| (Extracto)
+                
                 ESTADOS RESULTANTES:
                 - "P11 - Conciliada"
                 - Mayor: #REF = [Referencia del Extracto]
@@ -5119,12 +5501,15 @@
                 // // console.log(`🔍 Total filas a revisar: ${filasFiltradasMayor.length}`);
                 // // console.log(`🔍 Estados ya procesados: ${estadosFilas.size}`);
                 
-                // === VERIFICAR SI ES SANTANDER PARA MAPEO ESPECÍFICO ===
+                // === VERIFICAR SI ES SANTANDER O BBVA PARA MAPEO ESPECÍFICO ===
                 const esSantander = cuentaConfig && cuentaConfig.alias === 'SANT';
+                const esBBVA = cuentaConfig && cuentaConfig.codigo === '1041201';
                 
                 if (esSantander) {
                     // console.log(`🏦 PASO 11 SANTANDER: Identificar ITF en GLOSA + CARGO POR ITF en Descripción`);
                     return this.procesarPaso11Santander(filasFiltradasMayor, extractoProcesable, idxM, estadosFilas, estadosExtracto);
+                } else if (esBBVA) {
+                    return this.procesarPaso11BBVA(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto);
                 } else {
                     // console.log(`🏦 PASO 11 BCP: Lógica estándar IMPUESTO ITF`);
                 }
@@ -5462,6 +5847,175 @@
                 
                 return {
                     candidatos: candidatosLibro09ITF,
+                    candidatosExtracto: candidatosExtractoITF,
+                    conciliados: conciliados,
+                    totalMayor: totalMayorHaber,
+                    totalExtracto: totalExtractoImporte,
+                    diferencia: diferenciaTotales
+                };
+            },
+
+            procesarPaso11BBVA(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto) {
+                /*
+                PASO 11 BBVA - ITF ESPECÍFICO:
+                
+                ESTRATEGIA ESPECÍFICA:
+                - Mayor: GLOSA contiene "ITF" + HABER
+                - Extracto: Concepto contiene "ITF", identificar total de operaciones
+                - Mapeo: Suma HABER (Mayor) vs suma |IMPORTE| (Extracto)
+                
+                HEADERS BBVA: F. Operación, F. Valor, Código, Nº. Doc., Concepto, Importe, Oficina, ESTADO, #REF
+                
+                ESTADOS RESULTANTES:
+                - "P11 - Conciliada"
+                - Mayor: #REF = [Primera referencia del Extracto]
+                - Extracto: #REF = "LIBRO-COMPROB" del primer registro Mayor ITF
+                */
+                
+                console.log(`\n💰 === PASO 11 BBVA: ITF ===`);
+                console.log(`🔍 Total filas Mayor a revisar: ${filasFiltradasMayor.length}`);
+                console.log(`🔍 Total filas Extracto disponibles: ${extractoProcesable.length}`);
+                console.log(`🔍 Estados ya procesados - Mayor: ${estadosFilas.size}, Extracto: ${estadosExtracto.size}`);
+                
+                let candidatosMayorITF = 0;
+                let candidatosExtractoITF = 0;
+                let conciliados = 0;
+                
+                // === 1. IDENTIFICAR ITF EN MAYOR ===
+                console.log(`\n🏛️ === ETAPA 1: IDENTIFICACIÓN ITF EN MAYOR ===`);
+                const candidatosMayor = [];
+                
+                for (let i = 0; i < filasFiltradasMayor.length; i++) {
+                    // Solo procesar filas pendientes
+                    if (estadosFilas.has(i)) continue;
+                    
+                    const filaMayor = filasFiltradasMayor[i];
+                    const glosa = (filaMayor[idxM.glosa] || '').toString().toUpperCase();
+                    const haber = this.normalizarMonto(filaMayor[idxM.haber] || '0');
+                    const debe = this.normalizarMonto(filaMayor[idxM.debe] || '0');
+                    const comprob = filaMayor[idxM.comprob] || '';
+                    const libro = filaMayor[idxM.libro] || '';
+                    
+                    // Verificar si GLOSA contiene "ITF" y tiene HABER
+                    if (glosa.includes('ITF') && haber > 0) {
+                        candidatosMayorITF++;
+                        candidatosMayor.push({
+                            indice: i,
+                            fila: filaMayor,
+                            glosa: glosa,
+                            haber: haber,
+                            debe: debe,
+                            comprob: comprob,
+                            libro: libro
+                        });
+                        
+                        if (candidatosMayorITF <= 10) {
+                            console.log(`📝 Mayor ITF ${candidatosMayorITF}: GLOSA="${glosa.substring(0, 40)}...", HABER=${haber.toFixed(2)}, LIBRO="${libro}"`);
+                        }
+                    }
+                }
+                
+                console.log(`📊 MAYOR - Candidatos ITF encontrados: ${candidatosMayorITF}`);
+                
+                if (candidatosMayorITF === 0) {
+                    console.log(`⚠️ BBVA: No se encontraron candidatos ITF en Mayor`);
+                    return { candidatos: 0, candidatosExtracto: 0, conciliados: 0 };
+                }
+                
+                // === 2. IDENTIFICAR "ITF" EN EXTRACTO BBVA ===
+                console.log(`\n🏦 === ETAPA 2: IDENTIFICACIÓN ITF EN EXTRACTO BBVA ===`);
+                const extractoITF = [];
+                
+                for (let i = 0; i < extractoProcesable.length; i++) {
+                    // Solo revisar filas no procesadas del extracto
+                    if (estadosExtracto.has(i)) continue;
+                    
+                    const itemExtracto = extractoProcesable[i];
+                    const filaExtracto = itemExtracto.fila;
+                    
+                    if (!filaExtracto || !Array.isArray(filaExtracto)) continue;
+                    
+                    const fOperacion = filaExtracto[0] || ''; // F. Operación (Col A)
+                    const concepto = (filaExtracto[4] || '').toString().toUpperCase(); // Concepto (Col E)
+                    const importe = this.normalizarMonto(filaExtracto[5] || '0'); // Importe (Col F)
+                    
+                    // Verificar si Concepto contiene "ITF"
+                    if (concepto.includes('ITF')) {
+                        candidatosExtractoITF++;
+                        extractoITF.push({
+                            indice: i,
+                            fila: filaExtracto,
+                            fOperacion: fOperacion,
+                            concepto: concepto,
+                            importe: importe,
+                            importeAbsoluto: Math.abs(importe)
+                        });
+                        
+                        if (candidatosExtractoITF <= 10) {
+                            console.log(`📝 Extracto ITF ${candidatosExtractoITF}: F.Op="${fOperacion}", Concepto="${concepto.substring(0, 40)}...", |Importe|=${Math.abs(importe).toFixed(2)}`);
+                        }
+                    }
+                }
+                
+                console.log(`📊 EXTRACTO - Candidatos ITF encontrados: ${candidatosExtractoITF}`);
+                
+                if (candidatosExtractoITF === 0) {
+                    console.log(`⚠️ BBVA: No se encontraron candidatos ITF en Extracto`);
+                    return { candidatos: candidatosMayorITF, candidatosExtracto: 0, conciliados: 0 };
+                }
+                
+                // === 3. MAPEAR: SUMA HABER vs SUMA |IMPORTE| ===
+                console.log(`\n🔗 === ETAPA 3: MAPEO TOTAL HABER vs TOTAL |IMPORTE| ===`);
+                const totalMayorHaber = candidatosMayor.reduce((suma, item) => suma + item.haber, 0);
+                const totalExtractoImporte = extractoITF.reduce((suma, item) => suma + item.importeAbsoluto, 0);
+                const diferenciaTotales = Math.abs(totalMayorHaber - totalExtractoImporte);
+                
+                console.log(`💰 TOTALES ITF:`);
+                console.log(`   🏛️  MAYOR - Total HABER: ${totalMayorHaber.toFixed(2)} (${candidatosMayor.length} registros)`);
+                console.log(`   🏦 EXTRACTO - Total |Importe|: ${totalExtractoImporte.toFixed(2)} (${extractoITF.length} registros)`);
+                console.log(`   🔍 Diferencia: ${diferenciaTotales.toFixed(6)}`);
+                
+                // Verificar si los totales coinciden (diferencia < 0.01)
+                if (diferenciaTotales < 0.01) {
+                    console.log(`✅ BBVA ITF: Los totales COINCIDEN - Conciliando registros`);
+                    
+                    // Conciliar todos los registros del Mayor ITF
+                    candidatosMayor.forEach((candidato, idx) => {
+                        estadosFilas.set(candidato.indice, {
+                            estado: 'P11 - Conciliada',
+                            ref: `BBVA-ITF-${idx + 1}`
+                        });
+                    });
+                    
+                    // Conciliar todos los registros del Extracto ITF
+                    extractoITF.forEach((item, idx) => {
+                        estadosExtracto.set(item.indice, {
+                            estado: 'P11 - Conciliada',
+                            ref: `ITF-${candidatosMayor[0]?.libro || 'XX'}-${candidatosMayor[0]?.comprob || 'XXXX'}`
+                        });
+                    });
+                    
+                    conciliados = candidatosMayor.length + extractoITF.length;
+                    
+                    console.log(`✅ BBVA PASO 11 COMPLETADO: ${conciliados} registros conciliados (${candidatosMayor.length} mayor + ${extractoITF.length} extracto)`);
+                } else {
+                    console.log(`❌ BBVA PASO 11: Los totales NO coinciden - Diferencia: ${diferenciaTotales.toFixed(2)}`);
+                }
+                
+                console.log(`\n📊 RESUMEN FINAL PASO 11 BBVA:`);
+                console.log(`┌─────────────────────┬─────────┐`);
+                console.log(`│       CONCEPTO      │  VALOR  │`);
+                console.log(`├─────────────────────┼─────────┤`);
+                console.log(`│ Candidatos Mayor    │ ${candidatosMayorITF.toString().padStart(7)} │`);
+                console.log(`│ Candidatos Extracto │ ${candidatosExtractoITF.toString().padStart(7)} │`);
+                console.log(`│ Total Mayor HABER   │ ${totalMayorHaber.toFixed(2).padStart(7)} │`);
+                console.log(`│ Total Extracto |IMP|│ ${totalExtractoImporte.toFixed(2).padStart(7)} │`);
+                console.log(`│ Diferencia          │ ${diferenciaTotales.toFixed(2).padStart(7)} │`);
+                console.log(`│ REGISTROS CONCILIAD │ ${conciliados.toString().padStart(7)} │`);
+                console.log(`└─────────────────────┴─────────┘`);
+                
+                return {
+                    candidatos: candidatosMayorITF,
                     candidatosExtracto: candidatosExtractoITF,
                     conciliados: conciliados,
                     totalMayor: totalMayorHaber,

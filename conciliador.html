@@ -572,245 +572,139 @@
                 }
 
                 this.isLoading = true;
-                this.statusMessage.show = false;
-                this.conciliationResult = null;
+                this.showStatus('Iniciando proceso de conciliación...', 'info');
 
-                const fileData = {};
-                const promises = this.files.map(fileObj => {
-                    return new Promise((resolve, reject) => {
-                        const reader = new FileReader();
-                        reader.onload = (e) => {
-                            try {
-                                const data = new Uint8Array(e.target.result);
-                                const workbook = XLSX.read(data, { type: 'array' });
-                                const sheetName = workbook.SheetNames[0];
-                                const worksheet = workbook.Sheets[sheetName];
-                                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
-                                
-                                if (fileObj.category === 'extracto') {
-                                    if (!fileData.extractos) {
-                                        fileData.extractos = [];
-                                    }
+                setTimeout(() => {
+                    const fileData = {
+                        mayor: this.files.find(f => f.category === 'mayor'),
+                        saldo: this.files.find(f => f.category === 'saldo'),
+                        extractos: this.files.filter(f => f.category === 'extracto')
+                    };
+
+                    // Normalizar extractos antes de usarlos
+                    fileData.extractos = this.normalizarExtractos(fileData.extractos);
+
+                    if (!fileData.mayor || fileData.extractos.length === 0) {
+                        this.showStatus('Error: Debes cargar al menos un archivo "Mayor" y un extracto bancario.', 'error');
+                        this.isLoading = false;
+                        return;
+                    }
+
+                    this.statusMessage.show = false;
+                    this.conciliationResult = null;
+
+                    const promises = this.files.map(fileObj => {
+                        return new Promise((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onload = (e) => {
+                                try {
+                                    const data = new Uint8Array(e.target.result);
+                                    const workbook = XLSX.read(data, { type: 'array' });
+                                    const sheetName = workbook.SheetNames[0];
+                                    const worksheet = workbook.Sheets[sheetName];
+                                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
                                     
-                                    // Identificar la cuenta de origen
-                                    const fileNameUpper = fileObj.name.toUpperCase();
-                                    const prefix = this.filePrefixes.extractos.find(p => fileNameUpper.startsWith(p));
-                                    const cuentaOrigen = this.extractoAccountMap[prefix] || 'DESCONOCIDA';
-                                    
-                                    // Añadir la columna CUENTA_ORIGEN a los datos del extracto
-                                    // Configuración específica por banco para headers
-                                    const headerRowConfigCarga = {
-                                        '1041501': 4, '1041505': 4, '1041401': 7, '1041201': 4,
-                                        '1041301': 4, '1041101': 4, '1042101': 4, '1041601': 4
-                                    };
-                                    
-                                    const headerRowIndexCarga = headerRowConfigCarga[cuentaOrigen] || 4;
-                                    
-                                    console.log(`🔍 CARGA DEBUG: Archivo ${fileObj.name}, cuenta=${cuentaOrigen}, headerRowIndex=${headerRowIndexCarga}`);
-                                    
-                                    if (jsonData.length > headerRowIndexCarga) {
-                                        // Añadir CUENTA_ORIGEN al header específico del banco
-                                        if (jsonData[headerRowIndexCarga]) {
-                                            jsonData[headerRowIndexCarga].push('CUENTA_ORIGEN');
-                                            console.log(`✅ CARGA: Header CUENTA_ORIGEN añadido en fila ${headerRowIndexCarga + 1} para ${cuentaOrigen}`);
+                                    if (fileObj.category === 'extracto') {
+                                        if (!fileData.extractos) {
+                                            fileData.extractos = [];
                                         }
                                         
-                                        // Añadir cuenta a todas las filas de datos desde la correcta
-                                        const dataStartIndexCarga = headerRowIndexCarga + 1;
-                                        for (let i = dataStartIndexCarga; i < jsonData.length; i++) {
-                                            if (jsonData[i]) {
-                                            jsonData[i].push(cuentaOrigen);
+                                        // Identificar la cuenta de origen
+                                        const fileNameUpper = fileObj.name.toUpperCase();
+                                        const prefix = this.filePrefixes.extractos.find(p => fileNameUpper.startsWith(p));
+                                        const cuentaOrigen = this.extractoAccountMap[prefix] || 'DESCONOCIDA';
+                                        
+                                        // Añadir la columna CUENTA_ORIGEN a los datos del extracto
+                                        if (jsonData.length > 5) {
+                                            jsonData[4].push('CUENTA_ORIGEN'); // Añadir header
+                                            for (let i = 5; i < jsonData.length; i++) {
+                                                jsonData[i].push(cuentaOrigen);
+                                            }
                                         }
-                                        }
-                                        console.log(`✅ CARGA: CUENTA_ORIGEN ${cuentaOrigen} añadida a ${jsonData.length - dataStartIndexCarga} filas de datos`);
+                                        
+                                        fileData.extractos.push({ name: fileObj.name, data: jsonData });
+                                    } else {
+                                        fileData[fileObj.category] = jsonData;
                                     }
-                                    
-                                    fileData.extractos.push({ name: fileObj.name, data: jsonData });
-                                } else {
-                                    fileData[fileObj.category] = jsonData;
+                                    resolve();
+                                } catch (err) {
+                                    reject(new Error(`Error procesando ${fileObj.name}: ${err.message}`));
                                 }
-                                resolve();
-                            } catch (err) {
-                                reject(new Error(`Error procesando ${fileObj.name}: ${err.message}`));
-                            }
-                        };
-                        reader.onerror = reject;
-                        reader.readAsArrayBuffer(fileObj.file);
-                    });
-                });
-
-                try {
-                    await Promise.all(promises);
-
-                    // Consolidar todos los extractos en uno solo Y organizar por cuenta
-                    let datosExtractoConsolidado = [];
-                    let extractosPorCuenta = {};
-                    
-                    if (fileData.extractos && fileData.extractos.length > 0) {
-                        // Tomar la cabecera del primer extracto
-                        const header = fileData.extractos[0].data.slice(0, 5);
-                        datosExtractoConsolidado.push(...header);
-
-                        // Concatenar los datos (a partir de la fila 6) de todos los extractos
-                        fileData.extractos.forEach(extracto => {
-                            datosExtractoConsolidado.push(...extracto.data.slice(5));
-                            
-                            // También organizar por cuenta para el Excel con configuración específica por banco
-                            if (extracto.data.length > 4) {
-                                // Detectar cuenta del extracto para usar configuración específica
-                                let cuentaExtracto = '';
-                                if (extracto.data.length > 4) {
-                                    // Buscar en múltiples filas para máxima compatibilidad
-                                    for (let i = 4; i < Math.min(extracto.data.length, 10); i++) {
-                                        const fila = extracto.data[i];
-                                        if (fila && fila.length > 0) {
-                                            const ultimaColumna = fila[fila.length - 1];
-                                            if (ultimaColumna && typeof ultimaColumna === 'string' && ultimaColumna.match(/^104\d{4}$/)) {
-                                                cuentaExtracto = ultimaColumna;
-                                                console.log(`🔍 DEBUG: Cuenta detectada ${cuentaExtracto} en fila ${i + 1}`);
-                                                break;
-                                            }
-                                        }
-                                    }
-                                }
-                                
-                                // Si no se detectó cuenta, intentar buscar en toda la estructura
-                                if (!cuentaExtracto) {
-                                    console.warn(`⚠️ Intento alternativo de detección de cuenta...`);
-                                    for (let i = 0; i < Math.min(extracto.data.length, 15); i++) {
-                                        const fila = extracto.data[i];
-                                        if (fila && fila.length > 0) {
-                                            for (let j = 0; j < fila.length; j++) {
-                                                const celda = fila[j];
-                                                if (celda && typeof celda === 'string' && celda.match(/^104\d{4}$/)) {
-                                                    cuentaExtracto = celda;
-                                                    console.log(`🔍 DEBUG ALTERNATIVO: Cuenta ${cuentaExtracto} encontrada en fila ${i + 1}, columna ${j + 1}`);
-                                                    break;
-                                                }
-                                            }
-                                            if (cuentaExtracto) break;
-                                        }
-                                    }
-                                }
-                                
-                                if (!cuentaExtracto) {
-                                    console.error(`❌ No se pudo detectar cuenta del extracto en ninguna parte`);
-                                    // Mostrar primeras filas para debug
-                                    console.log(`🔍 DEBUG: Primeras 5 filas del extracto:`, extracto.data.slice(0, 5));
-                                }
-                                
-                                // Configuración específica de headers por banco
-                                const headerRowConfigLocal = {
-                                    '1041501': 4, '1041505': 4, '1041401': 7, '1041201': 4,
-                                    '1041301': 4, '1041101': 4, '1042101': 4, '1041601': 4
-                                };
-                                
-                                const headerRowIndex = headerRowConfigLocal[cuentaExtracto] || 4;
-                                const dataStartIndex = headerRowIndex + 1;
-                                
-                                // Header del extracto (usando configuración específica) SIN CUENTA_ORIGEN + columnas ESTADO y #REF
-                                const headerOriginal = extracto.data[headerRowIndex] || [];
-                                const headerSinCuentaOrigen = headerOriginal.filter((col, idx) => col !== 'CUENTA_ORIGEN');
-                                const headerConEstados = [...headerSinCuentaOrigen, 'ESTADO', '#REF'];
-                                
-                                console.log(`🔍 HEADER DEBUG: Detectando cuenta principal del extracto...`);
-                                
-                                // Datos del extracto (desde fila específica según banco)
-                                const extractoData = extracto.data.slice(dataStartIndex);
-                                const cuentaOrigenIndex = headerOriginal.indexOf('CUENTA_ORIGEN');
-                                
-                                console.log(`🔍 DEBUG: Procesando extracto cuenta ${cuentaExtracto}, headerRowIndex=${headerRowIndex}, dataStartIndex=${dataStartIndex}`);
-                                console.log(`🔍 DEBUG: cuentaOrigenIndex=${cuentaOrigenIndex}, extractoData.length=${extractoData.length}`);
-                                console.log(`🔍 DEBUG: headerOriginal:`, headerOriginal);
-                                console.log(`🔍 DEBUG: headerConEstados:`, headerConEstados);
-                                
-                                if (cuentaOrigenIndex !== -1 && extractoData.length > 0) {
-                                    extractoData.forEach((fila, idx) => {
-                                        const cuenta = fila[cuentaOrigenIndex];
-                                        if (cuenta && cuenta !== 'DESCONOCIDA') {
-                                            if (!extractosPorCuenta[cuenta]) {
-                                                extractosPorCuenta[cuenta] = [headerConEstados]; // Header con ESTADO y #REF
-                                                console.log(`✅ DEBUG: Creada pestaña para cuenta ${cuenta}`);
-                                                
-                                                // Log específico para SANT
-                                                if (cuenta === '1041401') {
-                                                    console.log(`🎯 SANT DEBUG: Creando pestaña para SANT (1041401)`);
-                                                    console.log(`🎯 SANT HEADER:`, headerConEstados);
-                                                }
-                                            }
-                                            
-                                            // Fila SIN CUENTA_ORIGEN + ESTADO y #REF (todas las columnas)
-                                            const filaSinCuentaOrigen = fila.filter((col, idx) => idx !== cuentaOrigenIndex);
-                                            const filaConEstados = [...filaSinCuentaOrigen, 'Pendiente', ''];
-                                            extractosPorCuenta[cuenta].push(filaConEstados);
-                                            
-                                            // Log solo para las primeras filas de SANT
-                                            if (cuenta === '1041401' && idx < 3) {
-                                                console.log(`🔍 DEBUG SANT fila ${idx + 1}:`, filaSinCuentaOrigen.slice(0, 5));
-                                            }
-                                        }
-                                    });
-                                } else {
-                                    console.warn(`⚠️ No se pudieron procesar datos para cuenta ${cuentaExtracto}: cuentaOrigenIndex=${cuentaOrigenIndex}, extractoData.length=${extractoData.length}`);
-                                }
-                            }
+                            };
+                            reader.onerror = reject;
+                            reader.readAsArrayBuffer(fileObj.file);
                         });
-                    }
-
-                    // DEBUG: Mostrar pestañas creadas
-                    console.log(`📊 DEBUG: Pestañas creadas:`, Object.keys(extractosPorCuenta));
-                    Object.keys(extractosPorCuenta).forEach(cuenta => {
-                        const filas = extractosPorCuenta[cuenta].length;
-                        console.log(`   ${cuenta}: ${filas} filas (incluyendo header)`);
-                        
-                        // Debug específico para SANT
-                        if (cuenta === '1041401') {
-                            console.log(`🎯 SANT FINAL: ${filas} filas encontradas para SANT`);
-                            if (filas > 1) {
-                                console.log(`🎯 SANT SAMPLE:`, extractosPorCuenta[cuenta][1]?.slice(0, 5));
-                            }
-                        }
                     });
 
-                    const result = this.procesarConciliacion(
-                        datosExtractoConsolidado,
-                        fileData.mayor, 
-                        fileData.saldo
-                    );
+                    try {
+                        await Promise.all(promises);
 
-                    // Agregar extractos organizados por cuenta al resultado Y aplicar estados
-                    if (result) {
-                        // Aplicar estados de conciliación a los extractos por cuenta
-                        if (result.estadosExtracto && extractosPorCuenta) {
-                            this.aplicarEstadosAExtractosPorCuenta(extractosPorCuenta, result.estadosExtracto, datosExtractoConsolidado);
-                        }
-                        result.extractosPorCuenta = extractosPorCuenta;
+                        // Consolidar todos los extractos en uno solo Y organizar por cuenta
+                        let datosExtractoConsolidado = [];
+                        let extractosPorCuenta = {};
                         
-                        // DEBUG: Verificar transferencia de extractosPorCuenta a result
-                        console.log(`🔄 TRANSFER DEBUG: Asignando extractosPorCuenta a result`);
-                        console.log(`🔍 DEBUG FINAL: extractosPorCuenta keys:`, Object.keys(extractosPorCuenta));
-                        console.log(`🔍 DEBUG RESULT: result.extractosPorCuenta keys:`, Object.keys(result.extractosPorCuenta));
-                        
-                        if (extractosPorCuenta['1041401']) {
-                            console.log(`✅ SANT encontrado en extractosPorCuenta original: ${extractosPorCuenta['1041401'].length} filas`);
-                        } else {
-                            console.log(`❌ SANT NO encontrado en extractosPorCuenta original`);
+                        if (fileData.extractos && fileData.extractos.length > 0) {
+                            // Tomar la cabecera del primer extracto
+                            const header = fileData.extractos[0].data.slice(0, 5);
+                            datosExtractoConsolidado.push(...header);
+
+                            // Concatenar los datos (a partir de la fila 6) de todos los extractos
+                            fileData.extractos.forEach(extracto => {
+                                datosExtractoConsolidado.push(...extracto.data.slice(5));
+                                
+                                // También organizar por cuenta para el Excel (igual que extracto en versión estable)
+                                if (extracto.data.length > 4) {
+                                    // Header del extracto (fila 5 = índice 4) SIN CUENTA_ORIGEN + columnas ESTADO y #REF
+                                    const headerOriginal = extracto.data[4] || [];
+                                    const headerSinCuentaOrigen = headerOriginal.filter((col, idx) => col !== 'CUENTA_ORIGEN');
+                                    const headerConEstados = [...headerSinCuentaOrigen, 'ESTADO', '#REF'];
+                                    
+                                    // Datos del extracto (desde fila 6 = índice 5)
+                                    const extractoData = extracto.data.slice(5);
+                                    const cuentaOrigenIndex = headerOriginal.indexOf('CUENTA_ORIGEN');
+                                    
+                                    if (cuentaOrigenIndex !== -1 && extractoData.length > 0) {
+                                        extractoData.forEach(fila => {
+                                            const cuenta = fila[cuentaOrigenIndex];
+                                            if (cuenta && cuenta !== 'DESCONOCIDA') {
+                                                if (!extractosPorCuenta[cuenta]) {
+                                                    extractosPorCuenta[cuenta] = [headerConEstados]; // Header con ESTADO y #REF
+                                                }
+                                                
+                                                // Fila SIN CUENTA_ORIGEN + ESTADO y #REF (pendientes por ahora)
+                                                const filaSinCuentaOrigen = fila.filter((col, idx) => idx !== cuentaOrigenIndex);
+                                                const filaConEstados = [...filaSinCuentaOrigen, 'Pendiente', ''];
+                                                extractosPorCuenta[cuenta].push(filaConEstados);
+                                            }
+                                        });
+                                    }
+                                }
+                            });
+                        }
+
+                        const result = this.procesarConciliacion(
+                            datosExtractoConsolidado,
+                            fileData.mayor, 
+                            fileData.saldo
+                        );
+
+                        // Agregar extractos organizados por cuenta al resultado Y aplicar estados
+                        if (result) {
+                            // Aplicar estados de conciliación a los extractos por cuenta
+                            if (result.estadosExtracto && extractosPorCuenta) {
+                                this.aplicarEstadosAExtractosPorCuenta(extractosPorCuenta, result.estadosExtracto, datosExtractoConsolidado);
+                            }
+                            result.extractosPorCuenta = extractosPorCuenta;
                         }
                         
-                        if (result.extractosPorCuenta['1041401']) {
-                            console.log(`✅ SANT encontrado en result.extractosPorCuenta: ${result.extractosPorCuenta['1041401'].length} filas`);
-                        } else {
-                            console.log(`❌ SANT NO encontrado en result.extractosPorCuenta`);
-                        }
+                        this.conciliationResult = result;
+                        this.showStatus('Conciliación completada exitosamente', 'success');
+                     } catch (error) {
+                        console.error("Error en la conciliación:", error);
+                        this.showStatus(error.message, 'error');
+                    } finally {
+                        this.isLoading = false;
                     }
-                    
-                    this.conciliationResult = result;
-                    this.showStatus('Conciliación completada exitosamente', 'success');
-                 } catch (error) {
-                    console.error("Error en la conciliación:", error);
-                    this.showStatus(error.message, 'error');
-                } finally {
-                    this.isLoading = false;
                 }
             },
 
@@ -900,58 +794,68 @@
 
             aplicarEstadosAExtractosPorCuenta(extractosPorCuenta, estadosExtracto, datosExtractoConsolidado) {
                 /*
-                CORREGIDO: Aplica los estados de conciliación del extracto consolidado a los extractos por cuenta individual.
-                SOLUCIÓN: Transferencia directa por índice en lugar de comparación compleja de filas.
+                Aplica los estados de conciliación del extracto consolidado a los extractos por cuenta individual.
+                Similar a como se hacía en la versión estable.
                 */
                 
-                if (!estadosExtracto || estadosExtracto.size === 0) {
-                    console.log(`🔧 APLICAR ESTADOS: No hay estados disponibles para aplicar`);
-                    return;
-                }
+                if (!estadosExtracto || estadosExtracto.size === 0) return;
                 
-                console.log(`🔧 APLICAR ESTADOS: Iniciando transferencia para ${Object.keys(extractosPorCuenta).length} cuentas`);
-                console.log(`🔧 Estados disponibles: ${estadosExtracto.size}`);
+                // Crear un mapa de estados por posición relativa en el extracto consolidado
+                const estadosPorIndice = new Map();
+                let indiceConsolidado = 0;
                 
-                // SOLUCIÓN: Transferencia directa por índice
+                // Recorrer el extracto consolidado (sin header) para mapear estados
+                const datosConsolidadoSinHeader = datosExtractoConsolidado.slice(5);
+                datosConsolidadoSinHeader.forEach((fila, idx) => {
+                    if (estadosExtracto.has(idx)) {
+                        const estadoInfo = estadosExtracto.get(idx);
+                        estadosPorIndice.set(indiceConsolidado, estadoInfo);
+                    }
+                    indiceConsolidado++;
+                });
+                
+                // Aplicar estados a cada extracto por cuenta
                 for (const cuenta in extractosPorCuenta) {
                     const extractoCuenta = extractosPorCuenta[cuenta];
                     if (!extractoCuenta || extractoCuenta.length <= 1) continue; // Solo header
                     
-                    let estadosAplicados = 0;
-                    console.log(`🔧 Procesando cuenta ${cuenta} con ${extractoCuenta.length - 1} filas de datos`);
+                    // Buscar el índice de CUENTA_ORIGEN en el extracto consolidado para identificar filas
+                    const headerConsolidado = datosExtractoConsolidado[4] || [];
+                    const cuentaOrigenIndex = headerConsolidado.indexOf('CUENTA_ORIGEN');
                     
-                    // Aplicar estados directamente por índice (saltando header)
-                    estadosExtracto.forEach((estadoInfo, idxExtracto) => {
-                        const indiceFilaDatos = idxExtracto + 1; // +1 para saltar header
+                    if (cuentaOrigenIndex !== -1) {
+                        let indiceEnConsolidado = 0;
                         
-                        if (indiceFilaDatos < extractoCuenta.length) {
-                            const fila = extractoCuenta[indiceFilaDatos];
-                            
-                            // Verificar que la fila pertenece a esta cuenta
-                            if (fila && fila.length > 0) {
-                                // Actualizar ESTADO y #REF (últimas 2 columnas)
-                                const ultimaCol = fila.length - 1;
-                                fila[ultimaCol - 1] = estadoInfo.estado; // ESTADO
-                                fila[ultimaCol] = estadoInfo.ref; // #REF
-                                estadosAplicados++;
+                        // Recorrer el extracto consolidado para encontrar filas de esta cuenta
+                        datosConsolidadoSinHeader.forEach((filaConsolidada, idxConsolidado) => {
+                            if (filaConsolidada[cuentaOrigenIndex] === cuenta) {
+                                // Esta fila pertenece a la cuenta actual
+                                const estadoInfo = estadosPorIndice.get(idxConsolidado);
                                 
-                                // Debug específico para BCP.01 y BCP.02
-                                if (cuenta === '1041501' || cuenta === '1041505') {
-                                    console.log(`✅ ${cuenta}: Estado aplicado en fila ${indiceFilaDatos} - ${estadoInfo.estado} | ${estadoInfo.ref}`);
+                                if (estadoInfo) {
+                                    // Encontrar la fila correspondiente en extractosPorCuenta[cuenta]
+                                    // (buscar por coincidencia de datos, excluyendo las columnas de estado)
+                                    for (let i = 1; i < extractoCuenta.length; i++) { // Saltar header
+                                        const filaExtractoCuenta = extractoCuenta[i];
+                                        
+                                        // Comparar datos principales (primeras columnas, excluyendo ESTADO y #REF)
+                                        const datosIguales = this.compararFilasExtracto(
+                                            filaConsolidada, 
+                                            filaExtractoCuenta, 
+                                            cuentaOrigenIndex
+                                        );
+                                        
+                                        if (datosIguales) {
+                                            // Actualizar ESTADO y #REF (últimas 2 columnas)
+                                            const ultimaCol = filaExtractoCuenta.length - 1;
+                                            filaExtractoCuenta[ultimaCol - 1] = estadoInfo.estado; // ESTADO
+                                            filaExtractoCuenta[ultimaCol] = estadoInfo.ref; // #REF
+                                            break;
+                                        }
+                                    }
                                 }
                             }
-                        }
-                    });
-                    
-                    console.log(`✅ Cuenta ${cuenta}: ${estadosAplicados} estados aplicados exitosamente`);
-                    
-                    // Debug específico para BCP.01 y BCP.02
-                    if (cuenta === '1041501' || cuenta === '1041505') {
-                        if (estadosAplicados === 0) {
-                            console.log(`⚠️ ${cuenta}: No se pudieron aplicar estados. Verificar estructura de datos.`);
-                        } else {
-                            console.log(`🎯 ${cuenta}: Estados aplicados correctamente. Proceso exitoso.`);
-                        }
+                        });
                     }
                 }
             },
@@ -959,16 +863,11 @@
             compararFilasExtracto(filaConsolidada, filaExtractoCuenta, cuentaOrigenIndex) {
                 /*
                 Compara si dos filas de extracto son la misma (excluyendo CUENTA_ORIGEN y columnas de estado)
-                MEJORADO: Comparación más robusta para BCP.01 y BCP.02
                 */
                 if (!filaConsolidada || !filaExtractoCuenta) return false;
                 
                 // Comparar las primeras columnas principales (fecha, monto, descripción, etc.)
                 const columnasAComparar = Math.min(filaConsolidada.length - 1, filaExtractoCuenta.length - 2); // Excluir estado/ref
-                
-                // Para BCP.01 y BCP.02, usar comparación más flexible
-                let coincidencias = 0;
-                let totalColumnas = 0;
                 
                 for (let i = 0; i < columnasAComparar; i++) {
                     if (i === cuentaOrigenIndex) continue; // Saltar CUENTA_ORIGEN
@@ -976,31 +875,10 @@
                     const val1 = (filaConsolidada[i] || '').toString().trim();
                     const val2 = (filaExtractoCuenta[i] || '').toString().trim();
                     
-                    totalColumnas++;
-                    
-                    // Comparación exacta para columnas críticas (fecha, monto)
-                    if (i === 0 || i === 3) { // Fecha (col 0) y Monto (col 3)
-                        if (val1 === val2) {
-                            coincidencias++;
-                        }
-                    } else {
-                        // Para otras columnas, permitir variaciones menores
-                        if (val1 === val2 || val1.includes(val2) || val2.includes(val1)) {
-                            coincidencias++;
-                        }
-                    }
+                    if (val1 !== val2) return false;
                 }
                 
-                // Requerir al menos 80% de coincidencias para considerar filas iguales
-                const porcentajeCoincidencia = totalColumnas > 0 ? (coincidencias / totalColumnas) * 100 : 0;
-                const esCoincidencia = porcentajeCoincidencia >= 80;
-                
-                // Debug para BCP.01 y BCP.02
-                if (esCoincidencia && (filaConsolidada[cuentaOrigenIndex] === '1041501' || filaConsolidada[cuentaOrigenIndex] === '1041505')) {
-                    console.log(`🔍 COMPARACIÓN BCP: ${coincidencias}/${totalColumnas} columnas coinciden (${porcentajeCoincidencia.toFixed(1)}%)`);
-                }
-                
-                return esCoincidencia;
+                return true;
             },
 
             getCuentaSheetName(cuenta) {
@@ -1016,6 +894,43 @@
                     '1041601': 'BN'       // BCO. DE LA NACION M/N
                 };
                 return mapaCuentas[cuenta] || `CUENTA_${cuenta}`;
+            },
+
+            normalizarExtractos(extractos) {
+                return extractos.map(extracto => {
+                    const cuenta = this.getCuentaFromFile(extracto.name);
+                    
+                    // --- ADAPTACIÓN PARA SANTANDER (1041401) ---
+                    if (cuenta === '1041401') {
+                        let jsonData = extracto.data;
+                        if (jsonData.length < 4) {
+                            console.error(`Archivo Santander ${extracto.name} tiene formato inválido.`);
+                            return extracto; // Devolver sin cambios si el formato es incorrecto
+                        }
+
+                        const dataSantander = jsonData.slice(4); // Datos desde fila 5 (índice 4)
+                        const idxFecha = 0, idxRef = 3, idxDesc = 4, idxImporte = 6, idxSaldo = 7;
+                        
+                        const standardHeader = ['Fecha', 'Fecha valuta', 'Descripción operación', 'Monto', 'Saldo', 'Sucursal - agencia', 'Operación - Número', 'Operación - Hora', 'Usuario', 'UTC', 'Referencia2'];
+                        const standardData = dataSantander.map(row => {
+                            const fecha = row[idxFecha] || '';
+                            const descripcion = row[idxDesc] || '';
+                            const monto = row[idxImporte] || '0';
+                            const referencia = row[idxRef] || '';
+                            const saldo = row[idxSaldo] || '0';
+                            return [fecha, '', descripcion, monto, saldo, '', referencia, '', '', '', ''];
+                        });
+                        
+                        extracto.data = [[], [], [], [], standardHeader, ...standardData];
+                    }
+                    return extracto;
+                });
+            },
+
+            getCuentaFromFile(fileName) {
+                const fileNameUpper = (fileName || '').toUpperCase();
+                const prefix = this.filePrefixes.extractos.find(p => fileNameUpper.startsWith(p));
+                return this.extractoAccountMap[prefix] || 'DESCONOCIDA';
             },
 
             generateExcelFile(datosCompletos, fileName) {
@@ -1044,27 +959,13 @@
                         
                         // Agregar pestañas en orden específico
                         for (const cuenta of ordenCuentas) {
-                            console.log(`🔍 EXCEL DEBUG: Procesando cuenta ${cuenta}`);
-                            
                             if (datosCompletos.extractosPorCuenta[cuenta]) {
                                 const sheetName = this.getCuentaSheetName(cuenta);
                                 const datosHoja = datosCompletos.extractosPorCuenta[cuenta];
                                 
-                                console.log(`✅ EXCEL: Cuenta ${cuenta} encontrada, sheetName=${sheetName}, filas=${datosHoja ? datosHoja.length : 0}`);
-                                
                                 if (datosHoja && datosHoja.length > 0) {
                                     const ws = XLSX.utils.aoa_to_sheet(datosHoja);
                                     XLSX.utils.book_append_sheet(wb, ws, sheetName);
-                                    console.log(`📊 EXCEL: Pestaña "${sheetName}" creada con ${datosHoja.length} filas`);
-                                } else {
-                                    console.log(`❌ EXCEL: Cuenta ${cuenta} sin datos (length=${datosHoja ? datosHoja.length : 'null'})`);
-                                }
-                            } else {
-                                console.log(`❌ EXCEL: Cuenta ${cuenta} NO encontrada en extractosPorCuenta`);
-                                
-                                // Debug específico para SANT
-                                if (cuenta === '1041401') {
-                                    console.log(`🔍 DEBUG SANT: Keys disponibles:`, Object.keys(datosCompletos.extractosPorCuenta || {}));
                                 }
                             }
                         }
@@ -1112,80 +1013,17 @@
             desTdop: ['DES_TDOP'], comprob: ['COMPROB']
         });
 
-        // Configuración específica de fila de headers por banco
-        const headerRowConfig = {
-            '1041501': 4, // BCP.01 - header en fila 5 (índice 4)
-            '1041505': 4, // BCP.02 - header en fila 5 (índice 4)
-            '1041401': 7, // SANT - header en fila 8 (índice 7)
-            '1041201': 4, // BBVA - header en fila 5 (índice 4)
-            '1041301': 4, // SBP - header en fila 5 (índice 4)
-            '1041101': 4, // IBK - header en fila 5 (índice 4)
-            '1042101': 4, // DET - header en fila 5 (índice 4)
-            '1041601': 4  // BN - header en fila 5 (índice 4)
-        };
+        // Según indices_documentos.md: Extracto header en fila 5 (skiprows=4)
+        const headersExtracto = datosExtracto.length > 4 ? datosExtracto[4] : [];
+                const indicesExtracto = this.buscarIndicesColumnas(headersExtracto, {
+            fecha: ['FECHA'], monto: ['MONTO', 'IMPORTE'], operacion: ['OPERACION', 'NUMERO'],
+            descripcion: ['DESCRIPCION OPERACION', 'DESCRIPCIÓN OPERACIÓN', 'DESCRIPCION', 'DESC']
+        });
         
-        // Determinar la cuenta del extracto para obtener la fila de headers correcta
-        // Buscar en las filas de datos (después del header) para encontrar CUENTA_ORIGEN
-        let cuentaExtracto = '';
-        if (datosExtracto.length > 5) {
-            // Buscar CUENTA_ORIGEN en las filas de datos (índice 5 en adelante)
-            for (let i = 5; i < Math.min(datosExtracto.length, 10); i++) {
-                const fila = datosExtracto[i];
-                if (fila && fila.length > 0) {
-                    const ultimaColumna = fila[fila.length - 1];
-                    if (ultimaColumna && typeof ultimaColumna === 'string' && ultimaColumna.match(/^104\d{4}$/)) {
-                        cuentaExtracto = ultimaColumna;
-                        break;
-                    }
-                }
-            }
-        }
-        
-        const headerRowIndex = headerRowConfig[cuentaExtracto] || 4; // Default a fila 5 (índice 4)
-        
-        console.log(`🔍 DEBUG SANT - Cuenta detectada: "${cuentaExtracto}", Header row index: ${headerRowIndex}`);
-        
-        const headersExtracto = datosExtracto.length > headerRowIndex ? datosExtracto[headerRowIndex] : [];
-                // MATRIZ FIJA - BCP como referencia, otros bancos homologados a BCP
-                // Estructura BCP base: fecha=0, descripcion=2, monto=3, operacion=6
-                const indicesMatrizFija = {
-                    // BCP.01 y BCP.02 (estructura base)
-                    '1041501': { fecha: 0, descripcion: 2, monto: 3, operacion: 6 },
-                    '1041505': { fecha: 0, descripcion: 2, monto: 3, operacion: 6 },
-                    
-                    // SANT - Homologado a estructura BCP (headers en fila 8)
-                    '1041401': { fecha: 0, descripcion: 2, monto: 6, operacion: 9 },
-                    
-                    // Otros bancos - Homologados a estructura BCP  
-                    '1041201': { fecha: 0, descripcion: 2, monto: 3, operacion: 6 }, // BBVA
-                    '1041301': { fecha: 0, descripcion: 2, monto: 3, operacion: 6 }, // SBP
-                    '1041101': { fecha: 0, descripcion: 2, monto: 3, operacion: 6 }, // IBK
-                    '1042101': { fecha: 0, descripcion: 2, monto: 3, operacion: 6 }, // DET
-                    '1041601': { fecha: 0, descripcion: 2, monto: 3, operacion: 6 }  // BN
-                };
-                
-                // Usar índices fijos en lugar de búsqueda dinámica
-                const indicesExtracto = indicesMatrizFija[cuentaExtracto] || indicesMatrizFija['1041501']; // Default a BCP
-                
-                console.log(`🔧 MATRIZ FIJA - Cuenta: ${cuentaExtracto}`);
-                console.log(`🔧 Índices asignados:`, indicesExtracto);
-        
-        // DEBUG: Mostrar headers detectados y mapeo de columnas
-        console.log(`🔍 DEBUG MAPEO - Cuenta detectada: "${cuentaExtracto}"`);
-        console.log(`🔍 DEBUG MAPEO - Headers extraídos:`, headersExtracto);
-        console.log(`🔍 DEBUG MAPEO - Índices Mayor:`, indicesMayor);
-        console.log(`📋 Archivo Saldo disponible: ${datosSaldo ? 'SÍ' : 'NO'} ${datosSaldo ? '(' + datosSaldo.length + ' filas)' : ''}`);
-        
-        // Verificar si los índices críticos están mapeados correctamente
-        const indiceCriticos = ['fecha', 'monto', 'operacion', 'descripcion'];
-        const indicesValidos = indiceCriticos.every(key => indicesExtracto[key] !== undefined && indicesExtracto[key] !== -1);
-        console.log(`🔍 DEBUG MAPEO - ¿Índices críticos válidos? ${indicesValidos ? '✅ SÍ' : '❌ NO'}`);
-        if (!indicesValidos) {
-            indiceCriticos.forEach(key => {
-                const valor = indicesExtracto[key];
-                console.log(`   ${key}: ${valor} ${valor === undefined || valor === -1 ? '❌' : '✅'}`);
-            });
-        }
+        // // console.log("🔍 Índices mapeados correctamente");
+        // // console.log(`📋 Índices Mayor:`, indicesMayor);
+        // // console.log(`📋 Índices Extracto:`, indicesExtracto);
+        // // console.log(`📋 Archivo Saldo disponible: ${datosSaldo ? 'SÍ' : 'NO'} ${datosSaldo ? '(' + datosSaldo.length + ' filas)' : ''}`);
         
         // --- ESTRUCTURA GLOBAL PARA ESTADOS DEL SALDO ---
         let estadosSaldo = new Map();
@@ -1211,30 +1049,13 @@
         // --- FILTROS APLICADOS ---
         let dataRowsMayor = datosMayor.slice(2);
         
-        // PASO 1: Filtro por Cuenta Específica - Cuentas BCP.01 y BCP.02
-        // NOTA: Procesamiento para ambas cuentas BCP siguiendo lógica estable
-        const cuentasBCP = ['1041501', '1041505']; // BCP.01 y BCP.02
-        const totalAntesFiltro = dataRowsMayor.length;
+        // PASO 1: Filtrar el DataFrame 'mayor' por cuentas BCP (1041501 y 1041505)
+        const cuentasAProcesar = ['1041501', '1041505', '1041401']; // BCP.01, BCP.02, SANT
         if (indicesMayor.cuenta !== -1) {
-            dataRowsMayor = dataRowsMayor.filter(row => {
-                const cuenta = String(row[indicesMayor.cuenta] || '');
-                return cuentasBCP.includes(cuenta);
-            });
+            dataRowsMayor = dataRowsMayor.filter(row => 
+                cuentasAProcesar.includes(String(row[indicesMayor.cuenta]))
+            );
         }
-        
-        // DEBUG: Mostrar resultado del filtro PASO 1
-        console.log(`🔍 DEBUG PASO 1 - Filtro por cuentas BCP.01 y BCP.02:`);
-        console.log(`   📊 Total filas antes del filtro: ${totalAntesFiltro}`);
-        console.log(`   📊 Total filas después del filtro: ${dataRowsMayor.length}`);
-        console.log(`   📋 Cuentas procesadas: ${cuentasBCP.join(', ')} (BCP.01 y BCP.02)`);
-        
-        // Contar por cuenta
-        const cuentasPorTipo = {};
-        dataRowsMayor.forEach(row => {
-            const cuenta = String(row[indicesMayor.cuenta] || '');
-            cuentasPorTipo[cuenta] = (cuentasPorTipo[cuenta] || 0) + 1;
-        });
-        console.log(`   📋 Distribución por cuenta:`, cuentasPorTipo);
 
         // PASO 2: Omisiones globales
         const omisiones = ['AMERICAN EXP', 'CALIDDA', 'DINERS', 'MASTER CARD', 'MERCADOPAGO', 'VISANET'];
@@ -1292,20 +1113,8 @@
         
         // // console.log(`✅ FILTROS COMPLETADOS: ${dataRowsMayor.length} → ${dataRowsMayor.length} filas finales`)
 
-        // Preparar extracto para conciliación (datos empiezan después del header configurado)
-        const dataStartIndex = headerRowIndex + 1; // Fila siguiente al header
-        let extractoProcesable = datosExtracto.length > dataStartIndex ? 
-            datosExtracto.slice(dataStartIndex).map(fila => ({ fila, conciliado: false })) : [];
-        
-        // DEBUG: Mostrar información del extracto procesable
-        console.log(`🔍 DEBUG EXTRACTO - Data start index: ${dataStartIndex}`);
-        console.log(`🔍 DEBUG EXTRACTO - Total filas procesables: ${extractoProcesable.length}`);
-        if (extractoProcesable.length > 0) {
-            const primeraFila = extractoProcesable[0];
-            console.log(`🔍 DEBUG EXTRACTO - Primera fila ejemplo:`, primeraFila.fila);
-            console.log(`🔍 DEBUG EXTRACTO - Cuenta de esta fila: ${primeraFila.fila[primeraFila.fila.length - 1]}`);
-            console.log(`🔍 DEBUG EXTRACTO - Fecha: "${primeraFila.fila[indicesExtracto.fecha]}", Monto: "${primeraFila.fila[indicesExtracto.monto]}", Operación: "${primeraFila.fila[indicesExtracto.operacion]}"`);
-        }
+        // Preparar extracto para conciliación (datos empiezan en fila 6 = índice 5)
+        let extractoProcesable = datosExtracto.slice(5).map(fila => ({ fila, conciliado: false }));
 
         // VERIFICAR CUÁNTAS ANULACIONES HAY EN TOTAL
         const anulacionesEncontradas = dataRowsMayor.filter(fila => {
@@ -1682,16 +1491,15 @@
         // HOJA 1: MAYOR (filas filtradas después del paso 2)
         const datosMayorHoja = [cabeceraFinal, ...resultadosFiltrados];
         
-        // HOJA 2: EXTRACTO (eliminar primeras filas según configuración del banco + agregar ESTADO y #REF procesados)
+        // HOJA 2: EXTRACTO (eliminar primeras 4 filas + agregar ESTADO y #REF procesados)
         let datosExtractoHoja;
-        if (datosExtracto.length > headerRowIndex) {
-            // Header del extracto (usando configuración específica del banco) + columnas ESTADO y #REF
-            const headerExtracto = datosExtracto[headerRowIndex] ? [...datosExtracto[headerRowIndex], 'ESTADO', '#REF'] : [];
+        if (datosExtracto.length > 4) {
+            // Header del extracto (fila 5 = índice 4) + columnas ESTADO y #REF
+            const headerExtracto = datosExtracto[4] ? [...datosExtracto[4], 'ESTADO', '#REF'] : [];
             
             // Verificar que extractoProcesable existe y es un array
             if (extractoProcesable && Array.isArray(extractoProcesable)) {
-                // Datos del extracto (desde fila siguiente al header) con estados procesados  
-                // Para SANT usar dataStartIndex, para otros bancos mantener compatibilidad
+                // Datos del extracto (desde fila 6 = índice 5) con estados procesados del PASO 4
                 const datosExtractoSinHeader = extractoProcesable.map((item, idx) => {
                     // Verificar si esta fila fue procesada en PASO 4
                     const estadoInfo = estadosExtracto.get(idx);
@@ -1708,9 +1516,8 @@
                 datosExtractoHoja = [headerExtracto, ...datosExtractoSinHeader];
             } else {
                 console.error('⚠️ extractoProcesable no está disponible, usando datos básicos del extracto');
-                // Fallback: usar datos básicos del extracto con configuración dinámica
-                const dataStartIndexFallback = headerRowIndex + 1;
-                const datosExtractoSinHeader = datosExtracto.slice(dataStartIndexFallback).map(fila => [
+                // Fallback: usar datos básicos del extracto
+                const datosExtractoSinHeader = datosExtracto.slice(5).map(fila => [
                     ...fila, 
                     'Pendiente', // ESTADO por defecto
                     '' // #REF vacío
@@ -1939,7 +1746,7 @@
                             if (otroLibro.trim() === '09' && otroHaber > 0) {
                                 candidatosLibro09++;
                                 
-                                // Verificar coincidencia de montos (exacto)
+                                                // Verificar coincidencia de montos (exacto)
                 const diferencia = Math.abs(debe - otroHaber);
                 const coincide = diferencia === 0;
                                 
@@ -2180,26 +1987,6 @@
                         const fdoc = filaMayor[idxM.fdoc] || '';
                         const debe = this.normalizarMonto(filaMayor[idxM.debe] || '0');
                         const comprob = filaMayor[idxM.comprob] || '';
-                        const cuentaFila = filaMayor[idxM.cuenta] || '';
-                        
-                        // DEBUG: Log para candidatos SANT
-                        if (cuentaFila === '1041401') {
-                            console.log(`🔍 DEBUG PASO 6 - Candidato SANT encontrado:`, {
-                                indice: i, cuenta: cuentaFila, libro, glosa: glosa.substring(0, 50),
-                                numdoc, fdoc, debe, comprob
-                            });
-                            
-                            // Mostrar también datos del extracto disponible para mapear
-                            console.log(`🔍 DEBUG PASO 6 - Extracto para mapear (primeras 3 filas):`, 
-                                extractoProcesable.slice(0, 3).map(item => ({
-                                    fecha: item.fila[idxE.fecha],
-                                    monto: item.fila[idxE.monto],
-                                    operacion: item.fila[idxE.operacion],
-                                    descripcion: item.fila[idxE.descripcion],
-                                    cuenta: item.fila[item.fila.length - 1]
-                                }))
-                            );
-                        }
                         
                         candidatosPaso6.push({
                             indice: i,
@@ -2219,110 +2006,66 @@
                     }
                 }
                 
-                // DEBUG: Resumen de candidatos por cuenta en PASO 6
-                const candidatosPorCuenta = {};
-                candidatosPaso6.forEach(c => {
-                    const cuenta = c.fila[idxM.cuenta] || 'N/A';
-                    candidatosPorCuenta[cuenta] = (candidatosPorCuenta[cuenta] || 0) + 1;
-                });
-                
-                console.log(`📊 DEBUG PASO 6 - RESUMEN CANDIDATOS:`);
-                console.log(`   🏦 Total candidatos LIBRO 01 con DEPÓSITO BANCARIO: ${candidatosDepositos}`);
-                console.log(`   📋 Distribución por cuenta:`, candidatosPorCuenta);
+                // // console.log(`📊 PASO 6 - FILTRADO:`);
+                // console.log(`   🏦 Candidatos LIBRO 01 con DEPÓSITO BANCARIO: ${candidatosDepositos}`);
                 
                 if (candidatosDepositos === 0) {
-                    console.log(`⚠️ No se encontraron candidatos para PASO 6`);
+                    // // console.log(`⚠️ No se encontraron candidatos para PASO 6`);
                     return { candidatos: 0, conciliados: 0, etapa6a: 0, etapa6b: 0 };
                 }
                 
                 // ETAPA 6A: Mapeo por NUMDOC vs Operación-Número
-                // console.log(`\n🅰️ ETAPA 6A: Mapeo por NUMDOC vs Operación-Número`);
+                // console.log(`\n🅰️  ETAPA 6A: Mapeo por NUMDOC vs Operación-Número`);
                 
                 for (const candidato of candidatosPaso6) {
                     // Saltar si ya fue procesado en otra etapa
                     if (estadosFilas.has(candidato.indice)) continue;
-                    
-                    // DEBUG: Log para SANT en ETAPA 6A
-                    if (candidato.fila[idxM.cuenta] === '1041401') {
-                        console.log(`🔍 DEBUG PASO 6A - Procesando candidato SANT:`, {
-                            indice: candidato.indice, numdoc: candidato.numdoc,
-                            fdoc: candidato.fdoc, debe: candidato.debe
-                        });
-                    }
-                    
-                    // Buscar en extracto por NUMDOC vs Operación-Número
-                    const matchExtracto = this.buscarMatchPorNUMDOC(candidato.numdoc, extractoProcesable, idxE, estadosExtracto);
-                    
-                    if (matchExtracto.encontrado) {
-                        const refMayor = matchExtracto.operacionNumero;
-                        const refExtracto = `${candidato.libro}-${candidato.comprob}`;
-                        
-                        // Asignar estados
-                        estadosFilas.set(candidato.indice, {
-                            estado: 'P6 - Conciliada',
-                            ref: refMayor
-                        });
-                        
-                        estadosExtracto.set(matchExtracto.indice, {
-                            estado: 'P6 - Conciliada',
-                            ref: refExtracto
-                        });
-                        
-                        conciliadosEtapa6A++;
-                        
-                        // console.log(`✅ ETAPA 6A - CONCILIACIÓN EXITOSA:`);
-                        // console.log(`   📋 Mayor: NUMDOC="${candidato.numdoc}", LIBRO=${candidato.libro}, COMPROB=${candidato.comprob} → REF="${refMayor}"`);
-                        // console.log(`   📋 Extracto: Operación-Número="${matchExtracto.operacionNumero}" → REF="${refExtracto}"`);
-                    }
-                }
-                
-                // ETAPA 6B: Mapeo por FDOC+DEBE vs FECHA+MONTO
-                // console.log(`\n🅱️ ETAPA 6B: Mapeo por FDOC+DEBE vs FECHA+MONTO`);
-                
-                for (const candidato of candidatosPaso6) {
-                    // Saltar si ya fue procesado en ETAPA 6A
-                    if (estadosFilas.has(candidato.indice)) continue;
-                    
-                    // Buscar en extracto por FDOC+DEBE vs FECHA+MONTO
-                    const matchExtracto = this.buscarMatchPorFechaYMonto(candidato.fdoc, candidato.debe, extractoProcesable, idxE, estadosExtracto);
-                    
-                    if (matchExtracto.encontrado) {
-                        const refMayor = matchExtracto.operacionNumero;
-                        const refExtracto = `${candidato.libro}-${candidato.comprob}`;
-                        
-                        // Asignar estados
-                        estadosFilas.set(candidato.indice, {
-                            estado: 'P6 - Conciliada',
-                            ref: refMayor
-                        });
-                        
-                        estadosExtracto.set(matchExtracto.indice, {
-                            estado: 'P6 - Conciliada',
-                            ref: refExtracto
-                        });
-                        
-                        conciliadosEtapa6B++;
-                        
-                        // console.log(`✅ ETAPA 6B - CONCILIACIÓN EXITOSA:`);
-                        // console.log(`   📋 Mayor: FDOC="${candidato.fdoc}", DEBE=${candidato.debe} → REF="${refMayor}"`);
-                        // console.log(`   📋 Extracto: FECHA="${matchExtracto.fecha}", MONTO=${matchExtracto.monto} → REF="${refExtracto}"`);
+
+                    const cuenta = String(candidato.fila[idxM.cuenta] || '');
+
+                    // --- LÓGICA DIFERENCIADA POR BANCO ---
+                    if (cuenta === '1041401') {
+                        // --- LÓGICA PARA SANTANDER (1041401) ---
+                        // Para Santander, en Paso 6 solo mapeamos por FDOC+DEBE vs Fecha+|Importe|
+                        // (La agrupación por NUMDOC se omite según lo solicitado)
+                        const matchExtracto = this.buscarMatchPorFechaYMonto(candidato.fdoc, candidato.debe, extractoProcesable, idxE, estadosExtracto);
+                        if (matchExtracto.encontrado) {
+                            const refMayor = matchExtracto.operacionNumero;
+                            const refExtracto = `${candidato.libro}-${candidato.comprob}`;
+                            
+                            estadosFilas.set(candidato.indice, { estado: 'P6 - Conciliada', ref: refMayor });
+                            estadosExtracto.set(matchExtracto.indice, { estado: 'P6 - Conciliada', ref: refExtracto });
+                            conciliadosEtapa6B++; // Contamos como 6B para consistencia
+                        }
+                    } else {
+                        // --- LÓGICA PARA BCP Y OTROS BANCOS (EXISTENTE) ---
+                        // Primero intentar por NUMDOC
+                        const matchNumdoc = this.buscarMatchPorNUMDOC(candidato.numdoc, extractoProcesable, idxE, estadosExtracto);
+                        if (matchNumdoc.encontrado) {
+                            const refMayor = matchNumdoc.operacionNumero;
+                            const refExtracto = `${candidato.libro}-${candidato.comprob}`;
+                            
+                            estadosFilas.set(candidato.indice, { estado: 'P6 - Conciliada', ref: refMayor });
+                            estadosExtracto.set(matchNumdoc.indice, { estado: 'P6 - Conciliada', ref: refExtracto });
+                            conciliadosEtapa6A++;
+                            continue; // Importante: si se encuentra, no intentar el segundo método
+                        }
+
+                        // Si NUMDOC falla, intentar por FDOC+DEBE
+                        const matchFechaMonto = this.buscarMatchPorFechaYMonto(candidato.fdoc, candidato.debe, extractoProcesable, idxE, estadosExtracto);
+                        if (matchFechaMonto.encontrado) {
+                            const refMayor = matchFechaMonto.operacionNumero;
+                            const refExtracto = `${candidato.libro}-${candidato.comprob}`;
+                            
+                            estadosFilas.set(candidato.indice, { estado: 'P6 - Conciliada', ref: refMayor });
+                            estadosExtracto.set(matchFechaMonto.indice, { estado: 'P6 - Conciliada', ref: refExtracto });
+                            conciliadosEtapa6B++;
+                        }
                     }
                 }
                 
-                const totalConciliados = conciliadosEtapa6A + conciliadosEtapa6B;
-                
-                // // console.log(`📊 PASO 6 - RESUMEN COMPLETO:`);
-                // console.log(`   🏦 Candidatos DEPÓSITOS: ${candidatosDepositos}`);
-                // console.log(`   🅰️ Etapa 6A (NUMDOC): ${conciliadosEtapa6A} conciliaciones`);
-                // console.log(`   🅱️ Etapa 6B (FDOC+DEBE): ${conciliadosEtapa6B} conciliaciones`);
-                // console.log(`   🎯 Total conciliados: ${totalConciliados}`);
-                
-                return {
-                    candidatos: candidatosDepositos,
-                    conciliados: totalConciliados,
-                    etapa6a: conciliadosEtapa6A,
-                    etapa6b: conciliadosEtapa6B
-                };
+                // Las dos etapas de búsqueda se han unificado en el bucle de arriba.
+                // Se elimina el bucle duplicado de la Etapa 6B.
             },
 
             buscarMatchPorNUMDOC(numdocMayor, extractoProcesable, idxE, estadosExtracto) {
@@ -2332,7 +2075,7 @@
                 - Retorna datos del match si se encuentra
                 */
                 
-                console.log(`🔍 Buscando match por NUMDOC: "${numdocMayor}"`);
+                // console.log(`🔍 Buscando match por NUMDOC: "${numdocMayor}"`);
                 
                 let candidatosRevisados = 0;
                 
@@ -2352,17 +2095,14 @@
                     
                     if (!filaExtracto || !Array.isArray(filaExtracto)) continue;
                     
-                    const operacionNumero = filaExtracto[idxE.operacion] || ''; // Usar índice mapeado dinámicamente
+                    const operacionNumero = filaExtracto[6] || ''; // Columna G - Operación Número
                     const operacionNormalizada = this.normalizarTexto(operacionNumero);
                     
                     // Comparar NUMDOC vs Operación-Número (ambos normalizados)
                     const coincide = numdocMayor && operacionNormalizada && numdocMayor === operacionNormalizada;
                     
-                    // DEBUG: Mostrar candidatos para SANT
-                    const cuentaOrigen = filaExtracto[filaExtracto.length - 1] || '';
-                    if (cuentaOrigen === '1041401' && candidatosRevisados <= 5) {
-                        console.log(`   🔍 SANT Candidato ${candidatosRevisados}: Operación="${operacionNumero}" → "${operacionNormalizada}" | Match: ${coincide ? '✅' : '❌'}`);
-                        console.log(`      Comparando NUMDOC="${numdocMayor}" vs OP_NORM="${operacionNormalizada}"`);
+                    if (candidatosRevisados <= 5) {
+                        // console.log(`   🔍 Candidato ${candidatosRevisados}: Operación="${operacionNumero}" → "${operacionNormalizada}" | Match: ${coincide ? '✅' : '❌'}`);
                     }
                     
                     if (coincide) {
@@ -2412,7 +2152,7 @@
                     
                     const fechaExtractoRaw = filaExtracto[idxE.fecha] || '';
                     const montoExtractoRaw = filaExtracto[idxE.monto] || '0';
-                    const operacionNumero = filaExtracto[idxE.operacion] || ''; // Matriz fija - Operación
+                    const operacionNumero = filaExtracto[6] || ''; // Columna G - Operación Número
                     
                     // Normalizar fecha y monto del extracto
                     const fechaExtractoNormalizada = this.normalizarFecha(fechaExtractoRaw);
@@ -2727,7 +2467,7 @@
                     
                     const fechaExtractoRaw = filaExtracto[idxE.fecha] || '';
                     const montoExtractoRaw = filaExtracto[idxE.monto] || '0';
-                    const operacionNumero = filaExtracto[idxE.operacion] || ''; // Matriz fija - Operación
+                    const operacionNumero = filaExtracto[6] || ''; // Columna G - Operación Número
                     
                     // Normalizar fecha y monto del extracto
                     const fechaExtractoNormalizada = this.normalizarFecha(fechaExtractoRaw);
@@ -2765,355 +2505,103 @@
 
             procesarPaso9(dataRowsMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto) {
                 /*
-                PASO 9 - OPERACIONES MÚLTIPLES LIBROS AGRUPADAS:
-                
-                CRITERIOS DE FILTRADO:
-                - LIBRO = "03", "09", "14", "15"
-                - ESTADO = "Pendiente" (no procesados en pasos anteriores)
-                
-                ESTRATEGIA DE AGRUPACIÓN:
-                1. Agrupar por NUMDOC los registros que cumplen criterios
-                2. Sumar TOTAL HABER de cada grupo por NUMDOC
-                3. Mapear: FDOC del grupo + TOTAL HABER vs FECHA + |MONTO| del Extracto
-                
-                ESTADOS RESULTANTES:
-                - Todas las filas del grupo: "P9 - Conciliada"
-                - Mayor: #REF = [Operación - Número del Extracto]
-                - Extracto: #REF = "LIBRO-COMPROB" del primer registro del grupo
-                
-                NOTA: Similar al Paso 5 pero agrupando por NUMDOC y con múltiples libros
+                PASO 9 - OPERACIONES MÚLTIPLES LIBROS AGRUPADAS (Lógica diferenciada por banco)
                 */
-                
-                // console.log(`📈 PASO 9: Iniciando procesamiento de operaciones MÚLTIPLES LIBROS AGRUPADAS`);
-                // console.log(`🔍 Total filas a revisar: ${dataRowsMayor.length}`);
-                // console.log(`🔍 Estados ya procesados: ${estadosFilas.size}`);
-                
-                let candidatosLibro03 = 0;
-                let candidatosLibro09 = 0;
-                let candidatosLibro14 = 0;
-                let candidatosLibro15 = 0;
-                let gruposFormados = 0;
                 let conciliados = 0;
+                const librosAProcesar = ["03", "09", "14", "15"];
                 
-                // Libros objetivo del Paso 9
-                const librosObjetivo = ['03', '09', '14', '15'];
-                
-                // Agrupar filas por NUMDOC que cumplan criterios
-                const gruposPorNUMDOC = new Map();
-                
-                // Primera pasada: Identificar candidatos y agrupar por NUMDOC
+                // --- SEPARAR CANDIDATOS POR CUENTA ---
+                const candidatosSantander = [];
+                const candidatosOtros = [];
+
                 for (let i = 0; i < dataRowsMayor.length; i++) {
-                    // Solo procesar filas pendientes
                     if (estadosFilas.has(i)) continue;
-                    
-                    const filaMayor = dataRowsMayor[i];
-                    const libro = filaMayor[idxM.libro] || '';
-                    const numdoc = filaMayor[idxM.numdoc] || '';
-                    const fdoc = filaMayor[idxM.fdoc] || '';
-                    const haber = this.normalizarMonto(filaMayor[idxM.haber] || '0');
-                    const comprob = filaMayor[idxM.comprob] || '';
-                    
-                    // Verificar criterios del PASO 9
-                    const esLibroObjetivo = librosObjetivo.includes(libro.trim());
-                    
-                    if (esLibroObjetivo) {
-                        // Contar por libro
-                        if (libro.trim() === '03') candidatosLibro03++;
-                        else if (libro.trim() === '09') candidatosLibro09++;
-                        else if (libro.trim() === '14') candidatosLibro14++;
-                        else if (libro.trim() === '15') candidatosLibro15++;
-                        
-                        // Debug: Mostrar los primeros 5 candidatos
-                        // if ((candidatosLibro03 + candidatosLibro09 + candidatosLibro14 + candidatosLibro15) <= 10) {
-                        //     console.log(`🔍 Candidato ${candidatosLibro03 + candidatosLibro09 + candidatosLibro14 + candidatosLibro15}: LIBRO="${libro}", NUMDOC="${numdoc}", FDOC="${fdoc}", HABER=${haber}`);
-                        // }
-                        
-                        // Normalizar NUMDOC para agrupación
-                        const numdocNormalizado = this.normalizarTexto(numdoc);
-                        
-                        if (!gruposPorNUMDOC.has(numdocNormalizado)) {
-                            gruposPorNUMDOC.set(numdocNormalizado, {
-                                numdoc: numdocNormalizado,
-                                numdocOriginal: numdoc,
-                                fdoc: fdoc, // Usar FDOC del primer registro para mapeo
-                                totalHaber: 0,
-                                filas: []
-                            });
-                        }
-                        
-                        const grupo = gruposPorNUMDOC.get(numdocNormalizado);
-                        grupo.totalHaber += haber;
-                        grupo.filas.push({
-                            indice: i,
-                            fila: filaMayor,
-                            libro: libro,
-                            numdoc: numdoc,
-                            fdoc: fdoc,
-                            haber: haber,
-                            comprob: comprob
-                        });
-                    }
-                }
-                
-                gruposFormados = gruposPorNUMDOC.size;
-                const totalCandidatos = candidatosLibro03 + candidatosLibro09 + candidatosLibro14 + candidatosLibro15;
-                
-                // console.log(`📊 PASO 9 - AGRUPACIÓN:`);
-                // console.log(`   📋 Candidatos LIBRO 03: ${candidatosLibro03}`);
-                // console.log(`   📗 Candidatos LIBRO 09: ${candidatosLibro09}`);
-                // console.log(`   📘 Candidatos LIBRO 14: ${candidatosLibro14}`);
-                // console.log(`   📙 Candidatos LIBRO 15: ${candidatosLibro15}`);
-                // console.log(`   📚 Total candidatos: ${totalCandidatos}`);
-                // console.log(`   🔗 Grupos por NUMDOC formados: ${gruposFormados}`);
-                
-                if (gruposFormados === 0) {
-                    console.log(`⚠️ No se encontraron grupos para PASO 9`);
-                    console.log(`   📋 Verificar si las filas tienen LIBRO en ["03", "09", "14", "15"]`);
-                    console.log(`   📋 Verificar si las filas están marcadas como "Pendiente"`);
-                    return { candidatos: 0, grupos: 0, conciliados: 0 };
-                }
-                
-                // ✅ A. GRUPOS ESPECÍFICOS OBJETIVO
-                console.log(`\n📊 === GRUPOS ESPECÍFICOS ===`);
-                console.log(`🎯 FILTRO ACTIVO: Solo mostrando NUMDOC: 11302, 1113, 11303, 1157, 900013`);
-                let contadorGrupo = 104;
-                const gruposObjetivoA = ['11302', '1113', '11303', '1157', '900013']; // Solo estos grupos
-                for (const [numdocNormalizado, grupo] of gruposPorNUMDOC.entries()) {
-                    // Solo mostrar los grupos objetivo específicos
-                    if (gruposObjetivoA.includes(numdocNormalizado)) {
-                        console.log(`\n🔗 GRUPO ${contadorGrupo}: NUMDOC="${numdocNormalizado}"`);
-                        console.log(`   📅 FDOC: "${grupo.fdoc}" (${this.normalizarFecha(grupo.fdoc)})`);
-                        console.log(`   💰 Total HABER: ${grupo.totalHaber.toFixed(2)}`);
-                        console.log(`   📋 Filas en grupo: ${grupo.filas.length}`);
-                        grupo.filas.forEach((fila, idx) => {
-                            console.log(`     ${idx + 1}. LIBRO="${fila.libro}" | HABER=${fila.haber.toFixed(2)} | COMPROB="${fila.comprob}"`);
-                        });
-                        contadorGrupo++;
-                    }
-                }
-                
-                console.log(`\n🎯 === B. GRUPOS VS EXTRACTO ===`);
-                
-                // ✅ PASO 9B: BUSCAR MATCHES EN EXTRACTO PARA CADA GRUPO
-                contadorGrupo = 104;
-                const gruposObjetivo = ['11302', '1113', '11303', '1157', '900013']; // Solo estos grupos
-                
-                for (const [numdocNormalizado, grupo] of gruposPorNUMDOC.entries()) {
-                    // Solo procesar y mostrar logs para los grupos objetivo
-                    const esGrupoObjetivo = gruposObjetivo.includes(numdocNormalizado);
-                    
-                    if (esGrupoObjetivo) {
-                        console.log(`\n🔍 BUSCANDO MATCH PARA GRUPO ${contadorGrupo}: NUMDOC="${numdocNormalizado}"`);
-                        console.log(`   📅 FDOC: "${grupo.fdoc}" → "${this.normalizarFecha(grupo.fdoc)}"`);
-                        console.log(`   💰 Total HABER: ${grupo.totalHaber.toFixed(2)}`);
-                    }
-                    
-                    // Buscar match en extracto usando FDOC y TOTAL HABER del grupo
-                    const matchExtracto = this.buscarMatchExtractoPorGrupoNUMDOC(grupo.fdoc, grupo.totalHaber, extractoProcesable, idxE, estadosExtracto, esGrupoObjetivo);
-                    
-                    if (matchExtracto.encontrado) {
-                        const refMayor = matchExtracto.operacionNumero; // Se quita el sufijo
-                        const refExtracto = `${grupo.filas[0].libro}-${grupo.filas[0].comprob}`;
-                        
-                        // Asignar estados a todas las filas del grupo
-                        grupo.filas.forEach(item => {
-                            estadosFilas.set(item.indice, {
-                                estado: 'P9 - Conciliada',
-                                ref: refMayor
-                            });
-                        });
-                        
-                        estadosExtracto.set(matchExtracto.indice, {
-                            estado: 'P9 - Conciliada',
-                            ref: refExtracto
-                        });
-                        
-                        conciliados += grupo.filas.length;
-                        
-                        if (esGrupoObjetivo) {
-                            console.log(`\n✅ ¡MATCH ENCONTRADO PARA GRUPO ${contadorGrupo}!`);
-                            console.log(`   🎯 Extracto índice: ${matchExtracto.indice}`);
-                            console.log(`   📅 Fechas: "${grupo.fdoc}" ↔ "${matchExtracto.fecha}"`);
-                            console.log(`   💰 Montos: ${grupo.totalHaber.toFixed(2)} ↔ ${matchExtracto.monto.toFixed(2)}`);
-                            console.log(`   🏦 Operación #: "${matchExtracto.operacionNumero}"`);
-                        }
-                    } else {
-                        if (esGrupoObjetivo) {
-                            console.log(`\n❌ NO SE ENCONTRÓ MATCH PARA GRUPO ${contadorGrupo}: NUMDOC="${numdocNormalizado}"`);
-                            console.log(`   ❓ Verificar en extracto operaciones del ${this.normalizarFecha(grupo.fdoc)} por ${grupo.totalHaber.toFixed(2)}`);
+                    const fila = dataRowsMayor[i];
+                    const libro = fila[idxM.libro] || '';
+                    if (librosAProcesar.includes(libro.trim())) {
+                        const cuenta = String(fila[idxM.cuenta] || '');
+                        const candidato = {
+                            indice: i, fila, libro,
+                            fdoc: this.normalizarFecha(fila[idxM.fdoc] || ''),
+                            numdoc: fila[idxM.numdoc] || '',
+                            haber: this.normalizarMonto(fila[idxM.haber] || '0')
+                        };
+                        if (cuenta === '1041401') {
+                            candidatosSantander.push(candidato);
+                        } else {
+                            candidatosOtros.push(candidato);
                         }
                     }
-                    
-                    // Solo incrementar contador para grupos objetivo (para mantener numeración consistente en logs)
-                    if (esGrupoObjetivo) {
-                        contadorGrupo++;
+                }
+
+                // --- LÓGICA PARA SANTANDER (Agrupación por FDOC) ---
+                if (candidatosSantander.length > 0) {
+                    const gruposSantander = this.agruparPorCriterio(candidatosSantander, 'fdoc');
+                    const extractoAgrupadoSantander = this.agruparExtractoPorFecha(extractoProcesable, idxE, estadosExtracto, '1041401');
+
+                    for (const grupo of gruposSantander.values()) {
+                        const totalHaber = grupo.filas.reduce((sum, item) => sum + item.haber, 0);
+                        if (extractoAgrupadoSantander.has(grupo.clave) && Math.abs(extractoAgrupadoSantander.get(grupo.clave).total - totalHaber) < 0.01) {
+                            const matchExtracto = extractoAgrupadoSantander.get(grupo.clave);
+                            const refMayor = matchExtracto.items[0].operacionNumero; // Usar primera operación como referencia
+                            const refExtracto = `${grupo.filas[0].libro}-${grupo.filas[0].numdoc}`;
+
+                            this.marcarComoConciliado(grupo.filas.map(f => f.indice), matchExtracto.items.map(e => e.indice), 'P9 - Conciliada', refMayor, refExtracto, estadosFilas, estadosExtracto);
+                            conciliados += grupo.filas.length;
+                        }
+                    }
+                }
+
+                // --- LÓGICA PARA OTROS BANCOS (Agrupación por NUMDOC) ---
+                if (candidatosOtros.length > 0) {
+                    const gruposOtros = this.agruparPorCriterio(candidatosOtros, 'numdoc');
+                    for (const grupo of gruposOtros.values()) {
+                        const totalHaber = grupo.filas.reduce((sum, item) => sum + item.haber, 0);
+                        const matchExtracto = this.buscarMatchExtractoPorGrupoNUMDOC(grupo.clave, totalHaber, extractoProcesable, idxE, estadosExtracto);
+                        if (matchExtracto.encontrado) {
+                            const refMayor = matchExtracto.operacionNumero;
+                            const refExtracto = `${grupo.filas[0].libro}-${grupo.filas[0].numdoc}`;
+
+                            this.marcarComoConciliado(grupo.filas.map(f => f.indice), [matchExtracto.indice], 'P9 - Conciliada', refMayor, refExtracto, estadosFilas, estadosExtracto);
+                            conciliados += grupo.filas.length;
+                        }
                     }
                 }
                 
-                // ✅ C. TABLA DE ESTADOS DE GRUPOS (SOLO GRUPOS OBJETIVO)
-                console.log(`\n📊 === C. TABLA DE ESTADOS DE GRUPOS ===`);
-                console.log(`┌───────┬─────────────────┬─────────────────┬──────────────┬─────────────┬─────────────┐`);
-                console.log(`│ GRUPO │ NUMDOC          │ FDOC            │ TOTAL HABER  │ FILAS       │ ESTADO      │`);
-                console.log(`├───────┼─────────────────┼─────────────────┼──────────────┼─────────────┼─────────────┤`);
-                
-                let gruposConciliados = 0;
-                let gruposNoConciliados = 0;
-                let numeroGrupo = 104;
-                const gruposObjetivoTabla = ['11302', '1113', '11303', '1157', '900013']; // Redefinir para la tabla
-                
-                for (const [numdocNormalizado, grupo] of gruposPorNUMDOC.entries()) {
-                    // Solo mostrar los grupos objetivo específicos
-                    if (gruposObjetivoTabla.includes(numdocNormalizado)) {
-                        // Verificar si el grupo fue conciliado revisando el estado de la primera fila
-                        const primeraFila = grupo.filas[0];
-                        const estadoPrimeraFila = estadosFilas.get(primeraFila.indice);
-                        const estado = estadoPrimeraFila && estadoPrimeraFila.estado === 'P9 - Conciliada' ? '✅ CONCILIADO' : '❌ PENDIENTE';
-                        
-                        if (estado === '✅ CONCILIADO') gruposConciliados++;
-                        else gruposNoConciliados++;
-                        
-                        const grupoPadded = numeroGrupo.toString().padStart(5);
-                        const numdocPadded = (numdocNormalizado || '').toString().padEnd(15);
-                        const fdocPadded = (grupo.fdoc || '').toString().padEnd(15);
-                        const haberPadded = (grupo.totalHaber || 0).toFixed(2).padStart(12);
-                        const filasPadded = (grupo.filas?.length || 0).toString().padStart(11);
-                        const estadoPadded = (estado || '').toString().padEnd(13);
-                        
-                        console.log(`│ ${grupoPadded} │ ${numdocPadded} │ ${fdocPadded} │ ${haberPadded} │ ${filasPadded} │ ${estadoPadded} │`);
-                    }
-                    numeroGrupo++;
-                }
-                
-                console.log(`└───────┴─────────────────┴─────────────────┴──────────────┴─────────────┴─────────────┘`);
-                console.log(`📊 RESUMEN: ${gruposConciliados} conciliados, ${gruposNoConciliados} pendientes`);
-                console.log(`🎯 SOLO MOSTRANDO GRUPOS: ${gruposObjetivoTabla.join(', ')}`);
-                
-                return {
-                    candidatos: totalCandidatos,
-                    grupos: gruposFormados,
-                    conciliados: conciliados,
-                    libro03: candidatosLibro03,
-                    libro09: candidatosLibro09,
-                    libro14: candidatosLibro14,
-                    libro15: candidatosLibro15
-                };
+                return { conciliados };
             },
 
-            buscarMatchExtractoPorGrupoNUMDOC(fdocGrupo, totalHaber, extractoProcesable, idxE, estadosExtracto, esGrupoObjetivo = false) {
-                /*
-                Busca un match en el extracto para PASO 9 (grupos por NUMDOC):
-                - Compara FDOC del grupo vs FECHA (Extracto col A)
-                - Compara total HABER del grupo vs |MONTO| (Extracto col D en VALOR ABSOLUTO)
-                - Retorna datos del match si se encuentra
-                NOTA: Similar a buscarMatchExtractoPorGrupo del Paso 5 pero para agrupación por NUMDOC
-                */
-                
-                if (esGrupoObjetivo) {
-                    console.log(`🔍 Buscando match para grupo NUMDOC: FDOC="${fdocGrupo}", total HABER=${totalHaber}`);
-                    console.log(`📄 Total líneas disponibles en extracto: ${extractoProcesable ? extractoProcesable.length : 0}`);
-                    console.log(`📄 Líneas ya procesadas: ${estadosExtracto.size}`);
+            // --- FUNCIONES AUXILIARES PARA PASO 9 ---
+            agruparPorCriterio(candidatos, criterio) {
+                const grupos = new Map();
+                candidatos.forEach(c => {
+                    const clave = c[criterio];
+                    if (!grupos.has(clave)) grupos.set(clave, { clave, filas: [] });
+                    grupos.get(clave).filas.push(c);
+                });
+                return grupos;
+            },
+
+            agruparExtractoPorFecha(extractoProcesable, idxE, estadosExtracto, cuentaFiltro) {
+                const grupos = new Map();
+                extractoProcesable.forEach((item, i) => {
+                    if (estadosExtracto.has(i)) return;
+                    const cuenta = String(item.fila[item.fila.length - 1] || '');
+                    if (cuenta !== cuentaFiltro) return;
+
+                    const fecha = this.normalizarFecha(item.fila[idxE.fecha] || '');
+                    if (!grupos.has(fecha)) grupos.set(fecha, { total: 0, items: [] });
                     
-                    // Mostrar primeras 5 líneas del extracto con fechas normalizadas
-                    console.log(`📋 PRIMERAS 5 LÍNEAS DEL EXTRACTO DISPONIBLE:`);
-                    for (let i = 0; i < Math.min(5, extractoProcesable.length); i++) {
-                        if (!estadosExtracto.has(i)) {
-                            const fila = extractoProcesable[i].fila;
-                            const fechaRaw = fila[idxE.fecha] || '';
-                            const fechaNorm = this.normalizarFecha(fechaRaw);
-                            const montoRaw = fila[idxE.monto] || '';
-                            console.log(`   ${i}: "${fechaRaw}" → "${fechaNorm}" | Monto: "${montoRaw}"`);
-                        } else {
-                            console.log(`   ${i}: [YA PROCESADA]`);
-                        }
-                    }
-                    
-                    // Buscar específicamente la fecha objetivo en todo el extracto
-                    const fechaObjetivo = this.normalizarFecha(fdocGrupo);
-                    console.log(`🎯 BUSCANDO FECHA OBJETIVO "${fechaObjetivo}" EN TODO EL EXTRACTO:`);
-                    let encontradas = 0;
-                    const lineasObjetivo = [];
-                    for (let i = 0; i < extractoProcesable.length; i++) {
-                        const fila = extractoProcesable[i].fila;
-                        const fechaRaw = fila[idxE.fecha] || '';
-                        const fechaNorm = this.normalizarFecha(fechaRaw);
-                        if (fechaNorm === fechaObjetivo) {
-                            const montoRaw = fila[idxE.monto] || '';
-                            const montoNorm = Math.abs(this.normalizarMonto(montoRaw));
-                            const procesada = estadosExtracto.has(i) ? '[PROCESADA]' : '[DISPONIBLE]';
-                            const diferencia = Math.abs(totalHaber - montoNorm);
-                            const coincide = diferencia === 0 ? '🎯 MATCH!' : `Dif: ${diferencia.toFixed(2)}`;
-                            console.log(`   Índice ${i}: "${fechaRaw}" | Monto: "${montoRaw}" → ${montoNorm.toFixed(2)} ${procesada} ${coincide}`);
-                            if (!estadosExtracto.has(i)) {
-                                lineasObjetivo.push({indice: i, monto: montoNorm, diferencia});
-                            }
-                            encontradas++;
-                        }
-                    }
-                    if (encontradas === 0) {
-                        console.log(`   ❌ NO se encontraron líneas con fecha "${fechaObjetivo}"`);
-                    } else {
-                        console.log(`   📊 Total encontradas: ${encontradas} | Disponibles: ${lineasObjetivo.length}`);
-                    }
-                }
-                
-                let candidatosRevisados = 0;
-                
-                if (!extractoProcesable || !Array.isArray(extractoProcesable)) {
-                    // // console.log(`❌ Error: extractoProcesable no es válido`);
-                    return { encontrado: false };
-                }
-                
-                const fechaGrupoNormalizada = this.normalizarFecha(fdocGrupo);
-                
-                for (let i = 0; i < extractoProcesable.length; i++) {
-                    // Solo revisar filas no procesadas del extracto
-                    if (estadosExtracto.has(i)) continue;
-                    
-                    candidatosRevisados++;
-                    
-                    const itemExtracto = extractoProcesable[i];
-                    const filaExtracto = itemExtracto.fila;
-                    
-                    if (!filaExtracto || !Array.isArray(filaExtracto)) continue;
-                    
-                    const fechaExtractoRaw = filaExtracto[idxE.fecha] || '';
-                    const montoExtractoRaw = filaExtracto[idxE.monto] || '0';
-                    const operacionNumero = filaExtracto[idxE.operacion] || ''; // Matriz fija - Operación
-                    
-                    // Normalizar fecha y monto del extracto
-                    const fechaExtractoNormalizada = this.normalizarFecha(fechaExtractoRaw);
-                    const montoExtractoRaw_parsed = this.normalizarMonto(montoExtractoRaw);
-                    const montoExtracto = Math.abs(montoExtractoRaw_parsed); // VALOR ABSOLUTO para extracto
-                    
-                    // Comparar fechas y montos
-                    const fechasCoinciden = fechaGrupoNormalizada === fechaExtractoNormalizada;
-                    const diferenciaMonto = Math.abs(totalHaber - montoExtracto);
-                    const montosCoinciden = diferenciaMonto < 0.01; // Tolerancia para errores de floating point
-                    
-                    // Solo mostrar logs para coincidencias de fecha o matches completos
-                    if (esGrupoObjetivo && (fechasCoinciden || (fechasCoinciden && montosCoinciden))) {
-                        console.log(`   🔍 Candidato ${candidatosRevisados} (Índice ${i}):`);
-                        console.log(`      Fecha: "${fechaExtractoRaw}" → "${fechaExtractoNormalizada}" | FDOC Grupo: "${fechaGrupoNormalizada}" | Match: ${fechasCoinciden ? '✅' : '❌'}`);
-                        console.log(`      Monto: ${montoExtractoRaw} → abs(${montoExtracto.toFixed(2)}) | Total HABER=${totalHaber.toFixed(6)} | Diferencia: ${diferenciaMonto.toFixed(6)} | Match: ${montosCoinciden ? '✅' : '❌'}`);
-                    }
-                    
-                    if (fechasCoinciden && montosCoinciden) {
-                        // console.log(`✅ MATCH COMPLETO encontrado en índice ${i}`);
-                        // console.log(`   📋 FDOC Grupo: "${fdocGrupo}" ↔ FECHA Extracto: "${fechaExtractoRaw}"`);
-                        // console.log(`   📋 Total HABER: ${totalHaber} ↔ |MONTO|: ${montoExtracto} (diferencia: ${diferenciaMonto.toFixed(4)})`);
-                        // console.log(`   📋 Operación-Número del extracto: "${operacionNumero}" (se asignará a todas las filas del grupo)`);
-                        return {
-                            encontrado: true,
-                            indice: i,
-                            fecha: fechaExtractoNormalizada,
-                            monto: montoExtracto,
-                            operacionNumero: operacionNumero
-                        };
-                    }
-                }
-                
-                // // console.log(`❌ No se encontró match después de revisar ${candidatosRevisados} candidatos`);
-                return { encontrado: false };
+                    const grupo = grupos.get(fecha);
+                    grupo.total += Math.abs(this.normalizarMonto(item.fila[idxE.monto] || '0'));
+                    grupo.items.push({ indice: i, operacionNumero: item.fila[6] || '' });
+                });
+                return grupos;
+            },
+
+            marcarComoConciliado(indicesMayor, indicesExtracto, estado, refMayor, refExtracto, estadosFilas, estadosExtracto) {
+                indicesMayor.forEach(i => estadosFilas.set(i, { estado, ref: refMayor }));
+                indicesExtracto.forEach(i => estadosExtracto.set(i, { estado, ref: refExtracto }));
             },
 
             procesarPaso10(dataRowsMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto, datosSaldo = null, estadosSaldo = null) {
@@ -3218,7 +2706,7 @@
                             // Extraer últimos 8 caracteres de la descripción
                             const ultimos8Chars = descripcionOperacion.slice(-8);
                             const montoExtractoRaw = filaExtracto[idxE.monto] || '0';
-                            const operacionNumero = filaExtracto[idxE.operacion] || ''; // Matriz fija - Operación
+                            const operacionNumero = filaExtracto[6] || ''; // Columna G - Operación Número
                             
                             extractoCheques.push({
                                 indiceOriginal: i,
@@ -3452,283 +2940,122 @@
 
             procesarPaso11(dataRowsMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto) {
                 /*
-                PASO 11 - ITF (IMPUESTO A LAS TRANSACCIONES FINANCIERAS) - LÓGICA GLOBAL:
-                Réplica exacta de la lógica del conciliador estable.
-                
-                CRITERIOS DE FILTRADO:
-                - Mayor: LIBRO = "09" + GLOSA empieza con "ITF" + ESTADO = "Pendiente"
-                - Extracto: "Descripción operación" contiene "IMPUESTO ITF" (BCP) o empieza con "CARGO POR ITF" (SANT)
-                
-                ESTRATEGIA DE AGRUPACIÓN:
-                1. Identificar todos los registros ITF del mayor (LIBRO 09)
-                2. Identificar todos los registros ITF del extracto
-                3. Conciliar suma total de mayor vs suma total de extracto
-                
-                ESTADOS RESULTANTES:
-                - "P11 - Conciliada" para todos los registros agrupados
-                - Mayor: #REF = [Operación - Número del primer Extracto ITF]
-                - Extracto: #REF = "LIBRO-COMPROB" del primer registro Mayor ITF
+                PASO 11 - ITF (IMPUESTO A LAS TRANSACCIONES FINANCIERAS) - LÓGICA POR CUENTA:
+                Réplica de la lógica estable, pero aplicada individualmente a cada cuenta BCP.
                 */
                 
-                console.log(`📈 PASO 11: Iniciando procesamiento de ITF (GLOBAL)`);
-                console.log(`🔍 Total filas a revisar: ${dataRowsMayor.length}`);
-                console.log(`🔍 Estados ya procesados: ${estadosFilas.size}`);
+                let totalConciliados = 0;
                 
-                let candidatosLibro09ITF = 0;
-                let candidatosExtractoITF = 0;
-                let conciliados = 0;
+                // 1. Identificar las cuentas únicas a procesar (solo las que pasaron el Paso 1)
+                const cuentasAProcesar = [...new Set(
+                    dataRowsMayor
+                        .filter((fila, i) => !estadosFilas.has(i))
+                        .map(fila => String(fila[idxM.cuenta]))
+                )];
                 
-                // Identificar candidatos LIBRO="09" + GLOSA empieza con "ITF"
-                const candidatosMayorITF = [];
-                
-                for (let i = 0; i < dataRowsMayor.length; i++) {
-                    // Solo procesar filas pendientes
-                    if (estadosFilas.has(i)) continue;
+                // console.log(`📈 PASO 11: Iniciando procesamiento de ITF para cuentas: ${cuentasAProcesar.join(', ')}`);
+
+                // 2. Iterar sobre cada cuenta y aplicar la lógica de conciliación
+                for (const cuenta of cuentasAProcesar) {
+                    // console.log(`\n--- Procesando ITF para CUENTA ${cuenta} ---`);
                     
-                    const filaMayor = dataRowsMayor[i];
-                    const libro = filaMayor[idxM.libro] || '';
-                    const glosa = (filaMayor[idxM.glosa] || '').toString().toUpperCase();
-                    
-                    // Verificar criterios del PASO 11
-                    const esLibro09 = libro.trim() === '09';
-                    const esGlosaITF = glosa.startsWith('ITF');
-                    
-                    if (esLibro09 && esGlosaITF) {
-                        candidatosLibro09ITF++;
-                        const fdoc = filaMayor[idxM.fdoc] || '';
-                        const debe = this.normalizarMonto(filaMayor[idxM.debe] || '0');
-                        const haber = this.normalizarMonto(filaMayor[idxM.haber] || '0');
-                        const comprob = filaMayor[idxM.comprob] || '';
-                        const cuenta = filaMayor[idxM.cuenta] || '';
-                        
-                        candidatosMayorITF.push({
-                            indice: i,
-                            fila: filaMayor,
-                            libro: libro,
-                            glosa: glosa,
-                            fdoc: fdoc,
-                            debe: debe,
-                            haber: haber,
-                            comprob: comprob,
-                            cuenta: cuenta
-                        });
-                        
-                        // DEBUG: Mostrar los primeros 3 candidatos ITF del mayor
-                        if (candidatosLibro09ITF <= 3) {
-                            console.log(`🔍 Candidato ITF Mayor ${candidatosLibro09ITF}: CUENTA=${cuenta}, LIBRO="${libro}", GLOSA="${glosa.substring(0, 30)}...", DEBE=${debe}, HABER=${haber}`);
-                        }
-                    }
-                }
-                
-                console.log(`📊 PASO 11 - FILTRADO MAYOR:`);
-                console.log(`   💰 Candidatos LIBRO 09 + ITF: ${candidatosLibro09ITF}`);
-                
-                if (candidatosLibro09ITF === 0) {
-                    console.log(`⚠️ No se encontraron candidatos ITF en LIBRO 09 para PASO 11`);
-                    return { candidatos: 0, conciliados: 0 };
-                }
-                
-                // Filtrar extracto por cuenta específica y descripción que contenga ITF
-                const extractoITF = [];
-                console.log(`🔍 PASO 11 - BUSQUEDA POR CUENTA ESPECÍFICA:`);
-                
-                // DEBUG: Mostrar muestra de cuentas en extractoProcesable
-                console.log(`🔍 DEBUG EXTRACTO - Total filas: ${extractoProcesable ? extractoProcesable.length : 0}`);
-                if (extractoProcesable && extractoProcesable.length > 0) {
-                    const muestraFilas = extractoProcesable.slice(0, 10);
-                    muestraFilas.forEach((item, idx) => {
-                        if (item && item.fila) {
-                            const cuenta = item.fila[item.fila.length - 1] || 'SIN_CUENTA';
-                            console.log(`   Fila ${idx + 1}: CUENTA=${cuenta}, cols=${item.fila.length}`);
-                        }
-                    });
-                }
-                
-                // Para cada ITF del MAYOR, buscar solo en SU extracto específico
-                candidatosMayorITF.forEach((mayorITF, mayorIdx) => {
-                    const cuentaMayor = mayorITF.cuenta; // ej: 1041401 para SANT
-                    console.log(`   🔍 Buscando ITF en extracto para cuenta ${cuentaMayor} (${mayorIdx + 1}/${candidatosMayorITF.length})`);
-                    
-                    let filasRevisadasCuenta = 0; // Contador para esta cuenta específica
-                    let filasTotalesProcesadas = 0; // Contador total de filas procesadas
-                    
-                    if (extractoProcesable && Array.isArray(extractoProcesable)) {
-                        for (let i = 0; i < extractoProcesable.length; i++) {
-                            filasTotalesProcesadas++;
+                    // 3. Filtrar candidatos del MAYOR para esta cuenta
+                    const candidatosMayorITF = dataRowsMayor
+                        .map((fila, i) => ({ fila, i })) // Preservar índice original
+                        .filter(item => {
+                            if (estadosFilas.has(item.i)) return false;
                             
-                            // Solo revisar filas no procesadas del extracto
-                            if (estadosExtracto.has(i)) {
-                                if (cuentaMayor === '1041401' && filasRevisadasCuenta < 3) {
-                                    console.log(`   ⏭️ SANT: Saltando fila ${i} (ya procesada)`);
-                                }
+                            const esMismaCuenta = String(item.fila[idxM.cuenta]) === cuenta;
+                            if (!esMismaCuenta) return false;
+
+                            const libro = item.fila[idxM.libro] || '';
+                            const glosa = (item.fila[idxM.glosa] || '').toString().toUpperCase();
+                            return libro.trim() === '09' && glosa.startsWith('ITF');
+                        })
+                        .map(item => ({
+                            indice: item.i,
+                            fila: item.fila,
+                            libro: item.fila[idxM.libro],
+                            glosa: item.fila[idxM.glosa],
+                            debe: this.normalizarMonto(item.fila[idxM.debe] || '0'),
+                            haber: this.normalizarMonto(item.fila[idxM.haber] || '0'),
+                            comprob: item.fila[idxM.comprob]
+                        }));
+
+                    if (candidatosMayorITF.length === 0) {
+                        // console.log(`   ⚠️ No se encontraron candidatos ITF en MAYOR para cuenta ${cuenta}`);
+                        continue;
+                    }
+
+                    // 4. Filtrar candidatos del EXTRACTO para esta cuenta
+                    const extractoITF = extractoProcesable
+                        .map((item, i) => ({ ...item, i })) // Preservar índice original
+                        .filter(item => {
+                            if (estadosExtracto.has(item.i)) return false;
+
+                            const cuentaOrigen = item.fila[item.fila.length - 1] || ''; // CUENTA_ORIGEN está al final
+                            if (String(cuentaOrigen) !== cuenta) return false;
+
+                            const descripcion = (item.fila[idxE.descripcion] || '').toString().toUpperCase();
+                            return descripcion.includes('IMPUESTO ITF');
+                        })
+                        .map(item => ({
+                            indiceOriginal: item.i,
+                            descripcion: (item.fila[idxE.descripcion] || ''),
+                            monto: Math.abs(this.normalizarMonto(item.fila[idxE.monto] || '0')),
+                            operacionNumero: item.fila[6] || '' // Columna G
+                        }));
+                    
+                    if (extractoITF.length === 0) {
+                        // console.log(`   ⚠️ No se encontraron candidatos ITF en EXTRACTO para cuenta ${cuenta}`);
                         continue;
                     }
                     
-                            const itemExtracto = extractoProcesable[i];
-                            const filaExtracto = itemExtracto.fila;
-                            
-                            if (!filaExtracto || !Array.isArray(filaExtracto)) {
-                                if (cuentaMayor === '1041401' && filasRevisadasCuenta < 3) {
-                                    console.log(`   ❌ SANT: Fila ${i} inválida o no es array`);
-                                }
-                                continue;
-                            }
-                            
-                            const cuentaOrigen = filaExtracto[filaExtracto.length - 1] || ''; // CUENTA_ORIGEN está al final
-                            
-                            if (cuentaMayor === '1041401' && filasRevisadasCuenta < 5) {
-                                console.log(`   🔍 SANT: Fila ${i}, CUENTA_ORIGEN="${cuentaOrigen}", buscando="${cuentaMayor}"`);
-                            }
-                            
-                            // ✅ CLAVE: Solo buscar en el extracto de la MISMA cuenta del MAYOR
-                            if (cuentaOrigen !== cuentaMayor) continue;
-                            
-                            filasRevisadasCuenta++; // Contar filas de esta cuenta específica
-                            
-                            const descripcionOperacion = (filaExtracto[idxE.descripcion] || '').toString().toUpperCase();
-                            
-                            // DEBUG ESPECÍFICO PARA SANT - Mostrar todas las columnas
-                            if (cuentaOrigen === '1041401' && candidatosExtractoITF < 5) {
-                                console.log(`🔍 DEBUG SANT - Fila completa:`, filaExtracto);
-                                console.log(`🔍 SANT Col E (idx4): "${filaExtracto[4] || 'VACÍO'}"`);
-                                console.log(`🔍 SANT Col D (idx3): "${filaExtracto[3] || 'VACÍO'}"`);
-                                console.log(`🔍 SANT Col F (idx5): "${filaExtracto[5] || 'VACÍO'}"`);
-                                console.log(`🔍 SANT Descripción detectada (idx${idxE.descripcion}): "${descripcionOperacion}"`);
-                            }
-                            
-                            // Verificar si contiene ITF (diferentes criterios por banco)
-                            let esITF = false;
-                            if (cuentaOrigen === '1041401') {
-                                // SANT usa "CARGO POR ITF" - usar startsWith para evitar problemas con espacios
-                                esITF = descripcionOperacion.startsWith('CARGO POR ITF');
-                            } else {
-                                // BCP y otros usan "IMPUESTO ITF"
-                                esITF = descripcionOperacion.includes('IMPUESTO ITF');
-                            }
+                    // 5. Sumar totales para la cuenta actual
+                    const totalMayorITF = candidatosMayorITF.reduce((suma, item) => suma + item.haber, 0); // ITF usualmente está en HABER
+                    const totalExtractoITF = extractoITF.reduce((suma, item) => suma + item.monto, 0);
+
+                    // console.log(`   💰 AGRUPACIÓN CUENTA ${cuenta}:`);
+                    // console.log(`      - Total MAYOR: ${totalMayorITF.toFixed(2)} (${candidatosMayorITF.length} registros)`);
+                    // console.log(`      - Total EXTRACTO: ${totalExtractoITF.toFixed(2)} (${extractoITF.length} registros)`);
+                    
+                    // 6. Comparar y conciliar si los totales coinciden
+                    const diferencia = Math.abs(totalMayorITF - totalExtractoITF);
+                    if (diferencia < 0.01) { // Usar tolerancia por decimales
+                        // console.log(`   ✅ CONCILIACIÓN EXITOSA para cuenta ${cuenta} (Diferencia: ${diferencia.toFixed(4)})`);
                         
-                            if (esITF) {
-                                candidatosExtractoITF++;
-                                
-                                const fechaExtracto = filaExtracto[idxE.fecha] || '';
-                                const montoExtracto = Math.abs(this.normalizarMonto(filaExtracto[idxE.monto] || '0'));
-                                const operacionNumero = filaExtracto[idxE.operacion] || '';
-                                
-                                extractoITF.push({
-                                    indiceOriginal: i,
-                                    fecha: fechaExtracto,
-                                    descripcion: descripcionOperacion,
-                                    monto: montoExtracto,
-                                    operacionNumero: operacionNumero,
-                                    cuenta: cuentaOrigen,
-                                    mayorAsociado: mayorIdx // Referencia al ITF del mayor
-                                });
-                                
-                                // DEBUG: Mostrar los primeros 3 candidatos ITF del extracto
-                                if (candidatosExtractoITF <= 3) {
-                                    console.log(`   ✅ ITF Extracto ${candidatosExtractoITF}: CUENTA=${cuentaOrigen}, DESC="${descripcionOperacion.substring(0, 30)}...", MONTO=${montoExtracto}`);
-                                }
-                            }
-                        } // fin for extractoProcesable
+                        const refMayorBase = extractoITF.length > 0 ? extractoITF[0].operacionNumero : 'ITF-GLOBAL';
+                        const refExtracto = candidatosMayorITF.length > 0 ? `${candidatosMayorITF[0].libro}-${candidatosMayorITF[0].comprob}` : '09-ITF';
+
+                        // Asignar estados al MAYOR
+                        candidatosMayorITF.forEach(item => {
+                            estadosFilas.set(item.indice, {
+                                estado: 'P11 - Conciliada',
+                                ref: refMayorBase // Ya no se añade sufijo
+                            });
+                        });
                         
-                        console.log(`   📊 RESUMEN cuenta ${cuentaMayor}:`);
-                        console.log(`      - Filas totales procesadas: ${filasTotalesProcesadas}`);
-                        console.log(`      - Filas de esta cuenta: ${filasRevisadasCuenta}`);
-                        console.log(`      - Estados procesados: ${estadosExtracto.size}`);
-                    } // fin if extractoProcesable
-                }); // fin forEach candidatosMayorITF
-                
-                console.log(`📊 PASO 11 - FILTRADO EXTRACTO:`);
-                console.log(`   💰 Candidatos con ITF: ${candidatosExtractoITF}`);
-                
-                if (candidatosExtractoITF === 0) {
-                    console.log(`⚠️ No se encontraron candidatos ITF en extracto para PASO 11`);
-                    return { candidatos: candidatosLibro09ITF, conciliados: 0 };
+                        // Asignar estados al EXTRACTO
+                        extractoITF.forEach(item => {
+                            estadosExtracto.set(item.indiceOriginal, {
+                                estado: 'P11 - Conciliada',
+                                ref: refExtracto
+                            });
+                        });
+                        
+                        totalConciliados += candidatosMayorITF.length;
+                    } else {
+                        // console.log(`   ❌ CONCILIACIÓN FALLIDA para cuenta ${cuenta} (Diferencia: ${diferencia.toFixed(4)})`);
+                    }
                 }
                 
-                // CONCILIACIÓN INDIVIDUAL POR CUENTA (NO GLOBAL)
-                console.log(`📊 PASO 11 - CONCILIACIÓN POR CUENTA ESPECÍFICA:`);
-                
-                // Agrupar ITF del mayor por cuenta
-                const mayorPorCuenta = {};
-                        candidatosMayorITF.forEach(item => {
-                    if (!mayorPorCuenta[item.cuenta]) {
-                        mayorPorCuenta[item.cuenta] = [];
-                    }
-                    mayorPorCuenta[item.cuenta].push(item);
-                });
-                
-                // Agrupar ITF del extracto por cuenta
-                const extractoPorCuenta = {};
-                extractoITF.forEach(item => {
-                    if (!extractoPorCuenta[item.cuenta]) {
-                        extractoPorCuenta[item.cuenta] = [];
-                    }
-                    extractoPorCuenta[item.cuenta].push(item);
-                });
-                
-                let conciliadosTotal = 0;
-                
-                // Conciliar cada cuenta individualmente
-                Object.keys(mayorPorCuenta).forEach(cuenta => {
-                    const mayorCuenta = mayorPorCuenta[cuenta];
-                    const extractoCuenta = extractoPorCuenta[cuenta] || [];
-                    
-                    const totalMayorCuenta = mayorCuenta.reduce((suma, item) => suma + (item.debe + item.haber), 0);
-                    const totalExtractoCuenta = extractoCuenta.reduce((suma, item) => suma + item.monto, 0);
-                    
-                    console.log(`   💰 CUENTA ${cuenta}:`);
-                    console.log(`      Mayor: ${totalMayorCuenta.toFixed(2)} (${mayorCuenta.length} registros)`);
-                    console.log(`      Extracto: ${totalExtractoCuenta.toFixed(2)} (${extractoCuenta.length} registros)`);
-                    
-                    const diferenciaCuenta = Math.abs(totalMayorCuenta - totalExtractoCuenta);
-                    const coincideCuenta = diferenciaCuenta === 0;
-                    
-                    console.log(`      Diferencia: ${diferenciaCuenta.toFixed(4)} - ${coincideCuenta ? '✅ COINCIDE' : '❌ NO COINCIDE'}`);
-                    
-                    if (coincideCuenta && extractoCuenta.length > 0) {
-                        // CONCILIACIÓN EXITOSA PARA ESTA CUENTA
-                        const refMayor = extractoCuenta[0].operacionNumero || `ITF-${cuenta}`;
-                        const refExtracto = `${mayorCuenta[0].libro}-${mayorCuenta[0].comprob}`;
-                        
-                        // Asignar estados a registros del mayor de esta cuenta
-                        mayorCuenta.forEach((item, idx) => {
-                        estadosFilas.set(item.indice, {
-                            estado: 'P11 - Conciliada',
-                                ref: refMayor
-                        });
-                            
-                            console.log(`      ✅ Mayor ${idx + 1}: GLOSA="${item.glosa.substring(0, 25)}...", MONTO=${item.debe + item.haber} → REF="${refMayor}"`);
-                    });
-                    
-                        // Asignar estados a registros del extracto de esta cuenta  
-                        extractoCuenta.forEach((item, idx) => {
-                        estadosExtracto.set(item.indiceOriginal, {
-                            estado: 'P11 - Conciliada',
-                            ref: refExtracto
-                        });
-                            
-                            console.log(`      ✅ Extracto ${idx + 1}: DESC="${item.descripcion.substring(0, 25)}...", MONTO=${item.monto} → REF="${refExtracto}"`);
-                        });
-                        
-                        conciliadosTotal += mayorCuenta.length + extractoCuenta.length;
-                        console.log(`      🎯 Conciliados ${mayorCuenta.length + extractoCuenta.length} registros para cuenta ${cuenta}`);
-                } else {
-                        console.log(`      ❌ No se pudo conciliar cuenta ${cuenta} (diferencia: ${diferenciaCuenta.toFixed(4)} o sin extracto)`);
-                    }
-                });
-                
-                conciliados = conciliadosTotal;
-                
-                console.log(`📊 PASO 11 - RESUMEN COMPLETO:`);
-                console.log(`   💰 Candidatos LIBRO 09 ITF: ${candidatosLibro09ITF}`);
-                console.log(`   💰 Candidatos extracto ITF: ${candidatosExtractoITF}`);
-                console.log(`   🎯 Registros conciliados: ${conciliados}`);
-                console.log(`   💰 Estrategia: Conciliación individual por cuenta específica`);
-                
                 return {
-                    candidatos: candidatosLibro09ITF,
-                    candidatosExtracto: candidatosExtractoITF,
-                    conciliados: conciliados
+                    conciliados: totalConciliados,
+                    candidatos: 0,
+                    candidatosExtracto: 0,
+                    totalMayor: 0,
+                    totalExtracto: 0,
+                    diferencia: 0
                 };
             },
 
@@ -3972,7 +3299,7 @@
                     
                     const fechaExtractoRaw = filaExtracto[idxE.fecha] || '';
                     const montoExtractoRaw = filaExtracto[idxE.monto] || '0';
-                    const operacionNumero = filaExtracto[idxE.operacion] || ''; // Matriz fija
+                    const operacionNumero = filaExtracto[6] || '';
                     
                     const fechaExtractoNormalizada = this.normalizarFecha(fechaExtractoRaw);
                     const montoExtracto = Math.abs(this.normalizarMonto(montoExtractoRaw));
@@ -4015,7 +3342,7 @@
                     
                     const fechaExtractoRaw = filaExtracto[idxE.fecha] || '';
                     const montoExtractoRaw = filaExtracto[idxE.monto] || '0';
-                    const operacionNumero = filaExtracto[idxE.operacion] || ''; // Matriz fija
+                    const operacionNumero = filaExtracto[6] || '';
                     
                     const fechaExtractoNormalizada = this.normalizarFecha(fechaExtractoRaw);
                     const montoExtracto = Math.abs(this.normalizarMonto(montoExtractoRaw));
@@ -4058,7 +3385,7 @@
                     
                     const fechaExtractoRaw = filaExtracto[idxE.fecha] || '';
                     const montoExtractoRaw = filaExtracto[idxE.monto] || '0';
-                    const operacionNumero = filaExtracto[idxE.operacion] || ''; // Matriz fija
+                    const operacionNumero = filaExtracto[6] || '';
                     
                     const fechaExtractoNormalizada = this.normalizarFecha(fechaExtractoRaw);
                     const montoExtracto = Math.abs(this.normalizarMonto(montoExtractoRaw));
@@ -4112,7 +3439,7 @@
                     
                     const fechaExtractoRaw = filaExtracto[idxE.fecha] || '';
                     const montoExtractoRaw = filaExtracto[idxE.monto] || '0';
-                    const operacionNumero = filaExtracto[idxE.operacion] || ''; // Matriz fija - Operación
+                    const operacionNumero = filaExtracto[6] || ''; // Columna G - Operación Número
                     
                     // Normalizar fecha y monto del extracto
                     const fechaExtractoNormalizada = this.normalizarFecha(fechaExtractoRaw);
@@ -4171,7 +3498,7 @@
                     const fechaExtracto = filaExtracto[0] || ''; // Columna A
                     const montoExtractoRaw = this.normalizarMonto(filaExtracto[3] || '0'); // Columna D
                     const montoExtracto = Math.abs(montoExtractoRaw); // VALOR ABSOLUTO para extracto
-                    const operacionNumero = filaExtracto[idxE.operacion] || ''; // Matriz fija // Columna G
+                    const operacionNumero = filaExtracto[6] || ''; // Columna G
                     
                     const fechaExtractoNormalizada = this.normalizarFecha(fechaExtracto);
                     
