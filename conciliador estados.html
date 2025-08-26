@@ -470,13 +470,13 @@
                     pasos: {
                         paso3: 'anulaciones_standard',
                         paso4: 'ibk_operations',
-                        paso5: 'prot_dev_grouping',
-                        paso6: 'depositos_standard',
-                        paso7: 'libro03_operations',
-                        paso8: 'multi_libro_operations',
-                        paso9: 'multi_libro_grouped',
+                        paso5: 'ibk_financ_docs_78', // Lógica específica IBK para FINANC.DOCS -78
+                        paso6: 'ibk_depositos_abono', // Lógica específica IBK usando columna Abono
+                        paso7: 'ibk_libro03_abono',   // Lógica específica IBK usando columna Abono
+                        paso8: 'ibk_multi_libro_cargo', // Lógica específica IBK usando Fecha operación + |Cargo|
+                        paso9: 'ibk_multi_libro_grouped_cargo', // Lógica específica IBK agrupada usando |Cargo|
                         paso10: 'cheques_operations',
-                        paso11: 'itf_operations',
+                        paso11: 'ibk_itf_abono', // Lógica específica IBK para ITF usando ABONO
                         paso12: 'multi_criteria_progressive'
                     }
                 }
@@ -1855,8 +1855,18 @@
                     
                     // ⭐ VERIFICAR QUE TENGA DATOS REALES ANTES DE ASIGNAR "Pendiente"
                     const filaOriginal = item.fila;
-                    const fechaExtracto = filaOriginal[0] || '';
-                    const importeExtracto = filaOriginal[6] || '0';
+                    let fechaExtracto, importeExtracto;
+                    
+                    if (cuentaConfig && cuentaConfig.alias === 'IBK') {
+                        // Para IBK: estructura original - B=Fecha operación, H=Cargo
+                        fechaExtracto = filaOriginal[1] || '';     // B=Fecha operación
+                        importeExtracto = filaOriginal[7] || '0';  // H=Cargo
+                    } else {
+                        // Para otros bancos: usar estructura estándar
+                        fechaExtracto = filaOriginal[0] || '';
+                        importeExtracto = filaOriginal[6] || '0';
+                    }
+                    
                     const tieneFecha = fechaExtracto && fechaExtracto.toString().trim() !== '';
                     const tieneImporte = importeExtracto && importeExtracto.toString().trim() !== '' && importeExtracto.toString() !== '0';
                     const tieneDatosReales = tieneFecha && tieneImporte;
@@ -1877,17 +1887,17 @@
                         // Para SANT/SBP y otros bancos: preservar columnas originales
                         filaNueva = [...filaOriginal]; // Copia todas las columnas originales
                         
-                        if (cuentaConfig && cuentaConfig.alias === 'SBP') {
-                            // SBP tiene 8 columnas (A-H), rellenar hasta la columna I (8) y J (9)
-                            while (filaNueva.length < 8) {
-                                filaNueva.push(''); // Rellenar columnas faltantes si es necesario
-                            }
-                            filaNueva[8] = estado; // ESTADO en columna I (índice 8)
-                            filaNueva[9] = ref;    // #REF en columna J (índice 9)
-                        } else {
-                            // SANT y otros bancos: añadir ESTADO y #REF al final
-                            filaNueva.push(estado); // Añadir ESTADO como nueva columna
-                            filaNueva.push(ref);    // Añadir #REF como nueva columna
+                    if (cuentaConfig && cuentaConfig.alias === 'SBP') {
+                        // SBP tiene 8 columnas (A-H), rellenar hasta la columna I (8) y J (9)
+                        while (filaNueva.length < 8) {
+                            filaNueva.push(''); // Rellenar columnas faltantes si es necesario
+                        }
+                        filaNueva[8] = estado; // ESTADO en columna I (índice 8)
+                        filaNueva[9] = ref;    // #REF en columna J (índice 9)
+                    } else {
+                        // SANT y otros bancos: añadir ESTADO y #REF al final
+                        filaNueva.push(estado); // Añadir ESTADO como nueva columna
+                        filaNueva.push(ref);    // Añadir #REF como nueva columna
                         }
                     }
                     
@@ -1907,10 +1917,10 @@
                     });
                 } else {
                     datosExtractoSinHeader = datosExtracto.slice(filaDataInicio).map(fila => [
-                        ...fila, 
-                        'Pendiente', // ESTADO por defecto
-                        '' // #REF vacío
-                    ]);
+                    ...fila, 
+                    'Pendiente', // ESTADO por defecto
+                    '' // #REF vacío
+                ]);
                 }
                 datosExtractoHoja = [headerExtracto, ...datosExtractoSinHeader];
             }
@@ -2806,11 +2816,13 @@
                 NOTA: Los montos del extracto están en negativo, se usa Math.abs()
                 */
                 
-                // Verificar si es cuenta BBVA o SBP para usar lógica específica
+                // Verificar si es cuenta BBVA, SBP o IBK para usar lógica específica
                 if (cuentaConfig && cuentaConfig.codigo === '1041201') {
                     return this.procesarPaso5BBVA(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto);
                 } else if (cuentaConfig && cuentaConfig.alias === 'SBP') {
                     return this.procesarPaso5SBP(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto);
+                } else if (cuentaConfig && cuentaConfig.alias === 'IBK') {
+                    return this.procesarPaso5IBK(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto);
                 }
                 
                 // // console.log(`📈 PASO 5: Iniciando procesamiento de operaciones PROT y DEV`);
@@ -3623,9 +3635,11 @@
                 - Extracto: #REF = "LIBRO-COMPROB" del Mayor
                 */
                 
-                // Verificar si es cuenta BBVA
+                // Verificar si es cuenta BBVA o IBK
                 if (cuentaConfig && cuentaConfig.codigo === '1041201') {
                     return this.procesarPaso6BBVA(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto);
+                } else if (cuentaConfig && cuentaConfig.alias === 'IBK') {
+                    return this.procesarPaso6IBK(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto);
                 }
                 
                 // // console.log(`📈 PASO 6: Iniciando procesamiento de depósitos bancarios para ${cuentaConfig?.alias || 'cuenta genérica'}`);
@@ -4148,9 +4162,11 @@
                 - Extracto: #REF = "LIBRO-COMPROB" del Mayor
                 */
                 
-                // Verificar si es cuenta BBVA
+                // Verificar si es cuenta BBVA o IBK
                 if (cuentaConfig && cuentaConfig.codigo === '1041201') {
                     return this.procesarPaso7BBVA(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto);
+                } else if (cuentaConfig && cuentaConfig.alias === 'IBK') {
+                    return this.procesarPaso7IBK(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto);
                 }
                 
                 // // console.log(`📈 PASO 7: Iniciando procesamiento de operaciones LIBRO 3`);
@@ -4266,12 +4282,16 @@
                 - Extracto: #REF = "LIBRO-COMPROB" del Mayor
                 */
                 
-                // ⭐ VERIFICAR SI ES BBVA PARA USAR LÓGICA ESPECÍFICA
+                // ⭐ VERIFICAR SI ES BBVA O IBK PARA USAR LÓGICA ESPECÍFICA
                 const esBBVA = cuentaConfig && cuentaConfig.codigo === '1041201';
+                const esIBK = cuentaConfig && cuentaConfig.alias === 'IBK';
                 
                 if (esBBVA) {
                     // console.log(`🏦 PASO 8 BBVA: FDOC+HABER vs F. Operación + |Importe|`);
                     return this.procesarPaso8BBVA(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto);
+                } else if (esIBK) {
+                    // console.log(`🏦 PASO 8 IBK: FDOC+HABER vs Fecha operación + |Cargo|`);
+                    return this.procesarPaso8IBK(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto);
                 }
                 
                 // // console.log(`📈 PASO 8: Iniciando procesamiento de operaciones MÚLTIPLES LIBROS`);
@@ -4706,9 +4726,10 @@
                 // // console.log(`🔍 Total filas a revisar: ${filasFiltradasMayor.length}`);
                 // // console.log(`🔍 Estados ya procesados: ${estadosFilas.size}`);
                 
-                // === VERIFICAR SI ES SANTANDER O BBVA PARA MAPEO ESPECÍFICO ===
+                // === VERIFICAR SI ES SANTANDER, BBVA O IBK PARA MAPEO ESPECÍFICO ===
                 const esSantander = cuentaConfig && cuentaConfig.alias === 'SANT';
                 const esBBVA = cuentaConfig && cuentaConfig.codigo === '1041201';
+                const esIBK = cuentaConfig && cuentaConfig.alias === 'IBK';
                 
                 // === DEBUG: Bank Detection ===
                 // console.log(`\n🔍 PASO 9 - DETECCIÓN DE BANCO:`);
@@ -4731,6 +4752,9 @@
                 } else if (esBBVA) {
                     // console.log(`🏦 PASO 9 BBVA: Agrupación por comisiones COMISION REC y COMISION RECAUDACION`);
                     return this.procesarPaso9BBVA(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto);
+                } else if (esIBK) {
+                    // console.log(`🏦 PASO 9 IBK: Agrupación por NUMDOC+FECHA con filtros HABER>0 y CARGO<0`);
+                    return this.procesarPaso9IBK(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto);
                 } else {
                     // console.log(`🏦 PASO 9 BCP: Agrupación por NUMDOC en mayor + mapeo FDOC+HABER vs FECHA+MONTO`);
                 }
@@ -4775,20 +4799,23 @@
                         //     console.log(`🔍 Candidato ${candidatosLibro03 + candidatosLibro09 + candidatosLibro14 + candidatosLibro15}: LIBRO="${libro}", NUMDOC="${numdoc}", FDOC="${fdoc}", HABER=${haber}`);
                         // }
                         
-                        // Normalizar NUMDOC para agrupación
+                        // ⭐ AGRUPAR POR NUMDOC + FECHA (evitar mezclar fechas diferentes)
                         const numdocNormalizado = this.normalizarTexto(numdoc);
+                        const fechaNormalizada = this.normalizarFecha(fdoc);
+                        const claveGrupo = `${numdocNormalizado}_${fechaNormalizada}`; // NUMDOC + FECHA
                         
-                        if (!gruposPorNUMDOC.has(numdocNormalizado)) {
-                            gruposPorNUMDOC.set(numdocNormalizado, {
+                        if (!gruposPorNUMDOC.has(claveGrupo)) {
+                            gruposPorNUMDOC.set(claveGrupo, {
                                 numdoc: numdocNormalizado,
                                 numdocOriginal: numdoc,
                                 fdoc: fdoc, // Usar FDOC del primer registro para mapeo
+                                fechaNormalizada: fechaNormalizada,
                                 totalHaber: 0,
                                 filas: []
                             });
                         }
                         
-                        const grupo = gruposPorNUMDOC.get(numdocNormalizado);
+                        const grupo = gruposPorNUMDOC.get(claveGrupo);
                         grupo.totalHaber += haber;
                         grupo.filas.push({
                             indice: i,
@@ -6248,6 +6275,11 @@
                 - Extracto: Concepto contiene "ITF", identificar total de operaciones
                 - Mapeo: Suma HABER (Mayor) vs suma |IMPORTE| (Extracto)
                 
+                IBK - MAPEO ESPECÍFICO:
+                - Mayor: LIBRO = "09" + GLOSA contiene "ITF" + HABER (estándar)
+                - Extracto: Movimiento contiene "ITF" + valor absoluto de ABONO
+                - Mapeo: Suma HABER (Mayor) vs suma |ABONO| (Extracto IBK)
+                
                 ESTADOS RESULTANTES:
                 - "P11 - Conciliada"
                 - Mayor: #REF = [Referencia del Extracto]
@@ -6258,9 +6290,10 @@
                 // // console.log(`🔍 Total filas a revisar: ${filasFiltradasMayor.length}`);
                 // // console.log(`🔍 Estados ya procesados: ${estadosFilas.size}`);
                 
-                // === VERIFICAR SI ES SANTANDER, BBVA O SBP PARA MAPEO ESPECÍFICO ===
+                // === VERIFICAR SI ES SANTANDER, BBVA, SBP O IBK PARA MAPEO ESPECÍFICO ===
                 const esSantander = cuentaConfig && cuentaConfig.alias === 'SANT';
                 const esBBVA = cuentaConfig && cuentaConfig.codigo === '1041201';
+                const esIBK = cuentaConfig && cuentaConfig.alias === 'IBK';
                 const esSBP = cuentaConfig && cuentaConfig.alias === 'SBP';
                 
                 if (esSantander) {
@@ -6268,6 +6301,9 @@
                     return this.procesarPaso11Santander(filasFiltradasMayor, extractoProcesable, idxM, estadosFilas, estadosExtracto);
                 } else if (esBBVA) {
                     return this.procesarPaso11BBVA(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto);
+                } else if (esIBK) {
+                    // console.log(`🏦 PASO 11 IBK: ITF en Movimiento + valor absoluto de Abono`);
+                    return this.procesarPaso11IBK(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto);
                 } else if (esSBP) {
                     return this.procesarPaso11SBP(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto);
                 } else {
@@ -8865,6 +8901,1130 @@
                     totalCandidatos: candidatosGrupoIBK.length,
                     candidatosFinancDocs: totalFinancDocs,
                     candidatosFcdAbon: totalFcdAbon
+                };
+            },
+
+            procesarPaso5IBK(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto) {
+                /*
+                PASO 5 IBK - OPERACIONES FINANC. DE DOCS -78:
+                
+                CRITERIOS EXTRACTO IBK:
+                1. Movimiento (Col E orig) = "FINANC. DE DOCS" 
+                2. Cargo (Col H orig) = "-78.00" (específico para P5)
+                3. Agrupar por Fecha de operación (Col B orig)
+                4. Importe = |Cargo| = |-78.00| = 78.00 (valor absoluto)
+                
+                CRITERIOS MAYOR (ESTÁNDAR):
+                - LIBRO = "04" + GLOSA inicia con "PROT" (Protestos)
+                - LIBRO = "03" o "09" + GLOSA inicia con "DEV" (Devoluciones)
+                - Agrupar por FDOC, sumar HABER
+                
+                MAPEO: FDOC + HABER (Mayor) vs Fecha + |Cargo| (Extracto IBK)
+                
+                ESTADOS RESULTANTES:
+                - "P5 - Conciliada" para registros mapeados
+                - Mayor → REF extracto, Extracto → REF "LIBRO-COMPROB"
+                */
+                
+                if (!extractoProcesable || !Array.isArray(extractoProcesable)) {
+                    return { candidatos: 0, grupos: 0, conciliados: 0 };
+                }
+                
+                console.log(`\n📈 === IBK PASO 5 - FINANC. DE DOCS -78 ===`);
+                
+                // ETAPA 1: Buscar candidatos EXTRACTO IBK (FINANC. DE DOCS + Cargo -78)
+                const candidatosExtractoIBK = [];
+                
+                for (let i = 0; i < extractoProcesable.length; i++) {
+                    if (estadosExtracto.has(i)) continue;
+                    
+                    const item = extractoProcesable[i];
+                    const fila = item.fila;
+                    if (!fila || !Array.isArray(fila)) continue;
+                    
+                    // IBK estructura ORIGINAL: A=vacío, B=Fecha op, C=Fecha proc, D=Nro op, E=Movimiento, F=Descripción, G=Canal, H=Cargo, I=Abono, J=Saldo
+                    const fechaOperacion = fila[1] || '';         // B (índice 1)
+                    const movimiento = (fila[4] || '').toString(); // E (índice 4)
+                    const cargo = (fila[7] || '').toString();      // H (índice 7)
+                    
+                    // CRITERIO IBK P5: FINANC. DE DOCS con cargo -78
+                    if (movimiento.trim() === 'FINANC. DE DOCS' && cargo.trim() === '-78') {
+                        const cargoNumerico = this.normalizarMonto(cargo);
+                        const importeAbsoluto = Math.abs(cargoNumerico); // |-78| = 78
+                        
+                        candidatosExtractoIBK.push({
+                            indice: i,
+                            fechaOperacion: fechaOperacion,
+                            movimiento: movimiento,
+                            cargo: cargo,
+                            cargoNumerico: cargoNumerico,
+                            importeAbsoluto: importeAbsoluto,
+                            fila: fila
+                        });
+                        
+                        if (candidatosExtractoIBK.length <= 5) {
+                            console.log(`✅ Extracto IBK P5 ${candidatosExtractoIBK.length}: Fecha="${fechaOperacion}", Mov="${movimiento}", Cargo="${cargo}", |Cargo|=${importeAbsoluto}`);
+                        }
+                    }
+                }
+                
+                // ETAPA 2: Agrupar extracto IBK por fecha
+                const gruposExtractoPorFecha = new Map();
+                
+                candidatosExtractoIBK.forEach(candidato => {
+                    const fechaNormalizada = this.normalizarFecha(candidato.fechaOperacion);
+                    
+                    if (!fechaNormalizada || fechaNormalizada === '') {
+                        console.log(`❌ FECHA VACÍA en extracto IBK: "${candidato.fechaOperacion}"`);
+                        return;
+                    }
+                    
+                    if (!gruposExtractoPorFecha.has(fechaNormalizada)) {
+                        gruposExtractoPorFecha.set(fechaNormalizada, {
+                            fecha: fechaNormalizada,
+                            fechaOriginal: candidato.fechaOperacion,
+                            registros: [],
+                            totalImporte: 0
+                        });
+                    }
+                    
+                    const grupo = gruposExtractoPorFecha.get(fechaNormalizada);
+                    grupo.registros.push(candidato);
+                    grupo.totalImporte += candidato.importeAbsoluto; // Sumar |cargo|
+                });
+                
+                console.log(`📊 EXTRACTO IBK P5: ${candidatosExtractoIBK.length} candidatos, ${gruposExtractoPorFecha.size} grupos por fecha`);
+                
+                // ETAPA 3: Formar grupos del MAYOR (ESTÁNDAR: PROT + DEV)
+                let candidatosPROT = 0;
+                let candidatosDEV = 0;
+                const gruposMayorPorFecha = new Map();
+                
+                for (let i = 0; i < filasFiltradasMayor.length; i++) {
+                    if (estadosFilas.has(i)) continue;
+                    
+                    const filaMayor = filasFiltradasMayor[i];
+                    const libro = filaMayor[idxM.libro] || '';
+                    const glosa = (filaMayor[idxM.glosa] || '').toString().toUpperCase();
+                    const fdoc = filaMayor[idxM.fdoc] || '';
+                    const haber = this.normalizarMonto(filaMayor[idxM.haber] || '0');
+                    const comprob = filaMayor[idxM.comprob] || '';
+                    
+                    // Criterios estándar P5: PROT (L04) + DEV (L03/L09)
+                    const esPROT = libro.trim() === '04' && (glosa.startsWith('PROT') || glosa.includes('PROT'));
+                    const esDEV = (libro.trim() === '03' || libro.trim() === '09') && (glosa.startsWith('DEV') || glosa.includes('DEV'));
+                    
+                    if ((esPROT || esDEV) && haber > 0) {
+                        if (esPROT) candidatosPROT++;
+                        if (esDEV) candidatosDEV++;
+                        
+                        const fechaNormalizada = this.normalizarFecha(fdoc);
+                        
+                        if (candidatosPROT + candidatosDEV <= 5) {
+                            console.log(`✅ Mayor P5 ${candidatosPROT + candidatosDEV}: LIBRO="${libro}", GLOSA="${glosa.substring(0, 20)}", FDOC="${fdoc}", HABER=${haber}`);
+                        }
+                        
+                        if (!fechaNormalizada || fechaNormalizada === '') {
+                            console.log(`❌ FECHA VACÍA en mayor: FDOC="${fdoc}"`);
+                            continue;
+                        }
+                        
+                        if (!gruposMayorPorFecha.has(fechaNormalizada)) {
+                            gruposMayorPorFecha.set(fechaNormalizada, {
+                                fecha: fechaNormalizada,
+                                fechaOriginal: fdoc,
+                                registros: [],
+                                totalHaber: 0
+                            });
+                        }
+                        
+                        const grupo = gruposMayorPorFecha.get(fechaNormalizada);
+                        grupo.registros.push({
+                            indice: i,
+                            libro: libro,
+                            glosa: glosa,
+                            fdoc: fdoc,
+                            haber: haber,
+                            comprob: comprob,
+                            fila: filaMayor
+                        });
+                        grupo.totalHaber += haber;
+                    }
+                }
+                
+                console.log(`📊 MAYOR P5: ${candidatosPROT} PROT + ${candidatosDEV} DEV = ${candidatosPROT + candidatosDEV} candidatos, ${gruposMayorPorFecha.size} grupos por fecha`);
+                
+                // ETAPA 4: Comparar y conciliar grupos
+                console.log(`\n🔄 === IBK PASO 5 - COMPARACIÓN GRUPOS ===`);
+                
+                let conciliados = 0;
+                const tolerancia = 0.01;
+                
+                gruposExtractoPorFecha.forEach((grupoExtracto, fechaExtracto) => {
+                    const grupoMayor = gruposMayorPorFecha.get(fechaExtracto);
+                    
+                    console.log(`\n📅 COMPARANDO FECHA "${fechaExtracto}":`);
+                    console.log(`   📊 EXTRACTO IBK: ${grupoExtracto.registros.length} registros, Total: S/ ${grupoExtracto.totalImporte.toFixed(2)}`);
+                    
+                    if (grupoMayor) {
+                        console.log(`   📋 MAYOR: ${grupoMayor.registros.length} registros, Total: S/ ${grupoMayor.totalHaber.toFixed(2)}`);
+                        
+                        const diferencia = Math.abs(grupoExtracto.totalImporte - grupoMayor.totalHaber);
+                        console.log(`   💰 DIFERENCIA: S/ ${diferencia.toFixed(4)} (tolerancia: S/ ${tolerancia.toFixed(2)})`);
+                        
+                        if (diferencia <= tolerancia) {
+                            console.log(`   ✅ GRUPO CONCILIADO P5! Fecha="${fechaExtracto}"`);
+                            
+                            // Marcar registros de extracto como conciliados
+                            grupoExtracto.registros.forEach(regExtracto => {
+                                estadosExtracto.set(regExtracto.indice, {
+                                    estado: 'P5 - Conciliada',
+                                    ref: `P5-${fechaExtracto}`
+                                });
+                            });
+                            
+                            // Marcar registros de mayor como conciliados
+                            grupoMayor.registros.forEach(regMayor => {
+                                estadosFilas.set(regMayor.indice, {
+                                    estado: 'P5 - Conciliada',
+                                    ref: `IBK-P5-${fechaExtracto}`
+                                });
+                            });
+                            
+                            conciliados++;
+                        } else {
+                            console.log(`   ❌ NO CONCILIA: Diferencia mayor a tolerancia`);
+                        }
+                    } else {
+                        console.log(`   ❌ MAYOR: No encontrado para esta fecha`);
+                    }
+                });
+                
+                console.log(`📈 RESUMEN IBK P5: ${conciliados} grupos conciliados`);
+                console.log(`🎯 EXTRACTO IBK: ${candidatosExtractoIBK.length} candidatos (FINANC.DOCS -78)`);
+                console.log(`🎯 MAYOR: ${candidatosPROT + candidatosDEV} candidatos (PROT+DEV)`);
+                
+                return {
+                    candidatos: candidatosExtractoIBK.length + candidatosPROT + candidatosDEV,
+                    grupos: Math.max(gruposExtractoPorFecha.size, gruposMayorPorFecha.size),
+                    conciliados: conciliados
+                };
+            },
+
+            procesarPaso6IBK(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto) {
+                /*
+                PASO 6 IBK - DEPÓSITOS BANCARIOS:
+                
+                CRITERIOS MAYOR (IGUAL QUE BCP):
+                - LIBRO = "01"
+                - GLOSA contiene "DEPOSITO BANCARIO"
+                - ESTADO = "Pendiente"
+                
+                DIFERENCIA IBK: 
+                - Extracto usa columna ABONO (I en original, índice 8) en lugar de MONTO estándar
+                - En pestaña IBK: ABONO aparece en columna H pero el procesamiento usa el extracto original
+                
+                ETAPA 6A - Mapeo por NUMDOC:
+                1. NUMDOC (Mayor) ↔ Operación - Número (Extracto)
+                
+                ETAPA 6B - Mapeo por FDOC+DEBE:
+                2. FDOC + DEBE (Mayor) ↔ FECHA + ABONO (Extracto IBK)
+                3. Validación: DEBE (Mayor) vs ABONO (Extracto IBK)
+                
+                ESTADOS RESULTANTES:
+                - "P6 - Conciliada"
+                - Mayor: #REF = [Operación - Número del Extracto]  
+                - Extracto: #REF = "LIBRO-COMPROB" del Mayor
+                */
+                
+                if (!extractoProcesable || !Array.isArray(extractoProcesable)) {
+                    return { candidatos: 0, conciliados: 0 };
+                }
+                
+                console.log(`\n📈 === IBK PASO 6 - DEPÓSITOS BANCARIOS ===`);
+                
+                let candidatosDepositos = 0;
+                let conciliadosEtapa6A = 0;
+                let conciliadosEtapa6B = 0;
+                
+                // ETAPA 1: Identificar candidatos MAYOR (LIBRO="01" + DEPOSITO BANCARIO)
+                const candidatosPaso6 = [];
+                
+                for (let i = 0; i < filasFiltradasMayor.length; i++) {
+                    if (estadosFilas.has(i)) continue;
+                    
+                    const filaMayor = filasFiltradasMayor[i];
+                    const libro = filaMayor[idxM.libro] || '';
+                    const glosa = (filaMayor[idxM.glosa] || '').toString().toUpperCase();
+                    
+                    const esLibro01 = libro.trim() === '01';
+                    const esDepositoBancario = glosa.includes('DEPOSITO BANCARIO');
+                    
+                    if (esLibro01 && esDepositoBancario) {
+                        candidatosDepositos++;
+                        const numdoc = filaMayor[idxM.numdoc] || '';
+                        const fdoc = filaMayor[idxM.fdoc] || '';
+                        const debe = this.normalizarMonto(filaMayor[idxM.debe] || '0');
+                        const comprob = filaMayor[idxM.comprob] || '';
+                        
+                        candidatosPaso6.push({
+                            indice: i,
+                            fila: filaMayor,
+                            libro: libro,
+                            glosa: glosa,
+                            numdoc: this.normalizarTexto(numdoc),
+                            fdoc: fdoc,
+                            debe: debe,
+                            comprob: comprob
+                        });
+                        
+                        if (candidatosDepositos <= 5) {
+                            console.log(`✅ Mayor P6 ${candidatosDepositos}: LIBRO="${libro}", GLOSA="${glosa.substring(0, 30)}...", NUMDOC="${numdoc}", FDOC="${fdoc}", DEBE=${debe}`);
+                        }
+                    }
+                }
+                
+                console.log(`📊 Mayor P6: ${candidatosDepositos} candidatos (LIBRO=01 + DEPOSITO BANCARIO)`);
+                
+                if (candidatosDepositos === 0) {
+                    console.log(`⚠️ No se encontraron candidatos para PASO 6 IBK`);
+                    return { candidatos: 0, conciliados: 0 };
+                }
+                
+                // ETAPA 6A: MAPEO POR NUMDOC vs OPERACIÓN-NÚMERO
+                console.log(`\n🅰️ === IBK PASO 6A - MAPEO POR NUMDOC ===`);
+                
+                for (const candidato of candidatosPaso6) {
+                    if (estadosFilas.has(candidato.indice)) continue;
+                    
+                    // Buscar coincidencia por NUMDOC en extracto
+                    for (let j = 0; j < extractoProcesable.length; j++) {
+                        if (estadosExtracto.has(j)) continue;
+                        
+                        const itemExtracto = extractoProcesable[j];
+                        const filaExtracto = itemExtracto.fila;
+                        if (!filaExtracto || !Array.isArray(filaExtracto)) continue;
+                        
+                        // IBK estructura: Operación-Número en columna D (índice 3)
+                        const operacionNumero = this.normalizarTexto(filaExtracto[3] || '');
+                        
+                        if (candidato.numdoc && operacionNumero && candidato.numdoc === operacionNumero) {
+                            // Conciliar por NUMDOC
+                            estadosFilas.set(candidato.indice, {
+                                estado: 'P6 - Conciliada',
+                                ref: operacionNumero
+                            });
+                            
+                            estadosExtracto.set(j, {
+                                estado: 'P6 - Conciliada',
+                                ref: `${candidato.libro}-${candidato.comprob}`
+                            });
+                            
+                            conciliadosEtapa6A++;
+                            console.log(`✅ P6A CONCILIADO: NUMDOC="${candidato.numdoc}" ↔ OperNum="${operacionNumero}"`);
+                            break;
+                        }
+                    }
+                }
+                
+                // ETAPA 6B: MAPEO POR FDOC+DEBE vs FECHA+ABONO
+                console.log(`\n🅱️ === IBK PASO 6B - MAPEO POR FDOC+DEBE vs FECHA+ABONO ===`);
+                
+                for (const candidato of candidatosPaso6) {
+                    if (estadosFilas.has(candidato.indice)) continue; // Ya conciliado en 6A
+                    
+                    const fechaMayorNormalizada = this.normalizarFecha(candidato.fdoc);
+                    
+                    // Buscar coincidencia por FDOC+DEBE vs FECHA+ABONO
+                    for (let j = 0; j < extractoProcesable.length; j++) {
+                        if (estadosExtracto.has(j)) continue;
+                        
+                        const itemExtracto = extractoProcesable[j];
+                        const filaExtracto = itemExtracto.fila;
+                        if (!filaExtracto || !Array.isArray(filaExtracto)) continue;
+                        
+                        // IBK estructura original: B=Fecha op(1), I=Abono(8)  
+                        const fechaExtracto = filaExtracto[1] || '';
+                        const abonoExtracto = this.normalizarMonto(filaExtracto[8] || '0');
+                        const fechaExtractoNormalizada = this.normalizarFecha(fechaExtracto);
+                        
+                        const fechaCoincide = fechaMayorNormalizada === fechaExtractoNormalizada;
+                        const montoCoincide = Math.abs(candidato.debe - abonoExtracto) < 0.01;
+                        
+                        if (fechaCoincide && montoCoincide) {
+                            const operacionNumero = filaExtracto[3] || '';
+                            
+                            estadosFilas.set(candidato.indice, {
+                                estado: 'P6 - Conciliada',
+                                ref: operacionNumero || `P6B-${fechaMayorNormalizada}`
+                            });
+                            
+                            estadosExtracto.set(j, {
+                                estado: 'P6 - Conciliada', 
+                                ref: `${candidato.libro}-${candidato.comprob}`
+                            });
+                            
+                            conciliadosEtapa6B++;
+                            console.log(`✅ P6B CONCILIADO: FDOC="${candidato.fdoc}" + DEBE=${candidato.debe} ↔ Fecha="${fechaExtracto}" + ABONO=${abonoExtracto}`);
+                            break;
+                        }
+                    }
+                }
+                
+                const totalConciliados = conciliadosEtapa6A + conciliadosEtapa6B;
+                console.log(`📈 RESUMEN IBK P6: ${totalConciliados} conciliados (${conciliadosEtapa6A} por NUMDOC + ${conciliadosEtapa6B} por FDOC+DEBE)`);
+                
+                return {
+                    candidatos: candidatosDepositos,
+                    conciliados: totalConciliados,
+                    etapa6A: conciliadosEtapa6A,
+                    etapa6B: conciliadosEtapa6B
+                };
+            },
+
+            procesarPaso7IBK(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto) {
+                /*
+                PASO 7 IBK - OPERACIONES LIBRO 3:
+                
+                CRITERIOS MAYOR:
+                - LIBRO = "03"
+                - DEBE > 0 (solo registros con debe)
+                - HABER = 0 (sin haber)
+                - ESTADO = "Pendiente"
+                
+                DIFERENCIA IBK:
+                - Extracto usa columna ABONO (I en original, índice 8) en lugar de MONTO estándar
+                - En pestaña IBK: ABONO aparece en columna H pero el procesamiento usa el extracto original
+                
+                MAPEO ÚNICO:
+                - FDOC + DEBE (Mayor) ↔ FECHA + |ABONO| (Extracto IBK)
+                - Validación: DEBE (Mayor) vs |ABONO| (Extracto IBK)
+                
+                ESTADOS RESULTANTES:
+                - "P7 - Conciliada"
+                - Mayor: #REF = [Operación - Número del Extracto]
+                - Extracto: #REF = "LIBRO-COMPROB" del Mayor
+                */
+                
+                if (!extractoProcesable || !Array.isArray(extractoProcesable)) {
+                    return { candidatos: 0, conciliados: 0 };
+                }
+                
+                console.log(`\n📈 === IBK PASO 7 - OPERACIONES LIBRO 3 ===`);
+                
+                let candidatosLibro3 = 0;
+                let conciliados = 0;
+                
+                // ETAPA 1: Identificar candidatos MAYOR (LIBRO="03" con DEBE > 0 y HABER = 0)
+                const candidatosPaso7 = [];
+                
+                for (let i = 0; i < filasFiltradasMayor.length; i++) {
+                    if (estadosFilas.has(i)) continue;
+                    
+                    const filaMayor = filasFiltradasMayor[i];
+                    const libro = filaMayor[idxM.libro] || '';
+                    
+                    const esLibro03 = libro.trim() === '03';
+                    
+                    if (esLibro03) {
+                        const fdoc = filaMayor[idxM.fdoc] || '';
+                        const debe = this.normalizarMonto(filaMayor[idxM.debe] || '0');
+                        const haber = this.normalizarMonto(filaMayor[idxM.haber] || '0');
+                        const comprob = filaMayor[idxM.comprob] || '';
+                        
+                        // Solo conciliar registros con DEBE > 0 y HABER = 0
+                        const tieneDebeSinHaber = debe > 0 && Math.abs(haber) < 0.01;
+                        
+                        if (tieneDebeSinHaber) {
+                            candidatosLibro3++;
+                            candidatosPaso7.push({
+                                indice: i,
+                                fila: filaMayor,
+                                libro: libro,
+                                fdoc: fdoc,
+                                debe: debe,
+                                haber: haber,
+                                comprob: comprob
+                            });
+                            
+                            if (candidatosLibro3 <= 5) {
+                                console.log(`✅ Mayor P7 ${candidatosLibro3}: LIBRO="${libro}", FDOC="${fdoc}", DEBE=${debe}, HABER=${haber}, COMPROB="${comprob}"`);
+                            }
+                        }
+                    }
+                }
+                
+                console.log(`📊 Mayor P7: ${candidatosLibro3} candidatos (LIBRO=03 + DEBE>0 + HABER=0)`);
+                
+                if (candidatosLibro3 === 0) {
+                    console.log(`⚠️ No se encontraron candidatos para PASO 7 IBK`);
+                    return { candidatos: 0, conciliados: 0 };
+                }
+                
+                // ETAPA 2: MAPEO FDOC+DEBE vs FECHA+|ABONO|
+                console.log(`\n🔄 === IBK PASO 7 - MAPEO FDOC+DEBE vs FECHA+|ABONO| ===`);
+                
+                for (const candidato of candidatosPaso7) {
+                    if (estadosFilas.has(candidato.indice)) continue;
+                    
+                    const fechaMayorNormalizada = this.normalizarFecha(candidato.fdoc);
+                    
+                    // Buscar coincidencia en extracto IBK
+                    for (let j = 0; j < extractoProcesable.length; j++) {
+                        if (estadosExtracto.has(j)) continue;
+                        
+                        const itemExtracto = extractoProcesable[j];
+                        const filaExtracto = itemExtracto.fila;
+                        if (!filaExtracto || !Array.isArray(filaExtracto)) continue;
+                        
+                        // IBK estructura original: B=Fecha op(1), I=Abono(8)
+                        const fechaExtracto = filaExtracto[1] || '';
+                        const abonoExtracto = this.normalizarMonto(filaExtracto[8] || '0');
+                        const abonoAbsoluto = Math.abs(abonoExtracto); // |ABONO|
+                        const fechaExtractoNormalizada = this.normalizarFecha(fechaExtracto);
+                        
+                        const fechaCoincide = fechaMayorNormalizada === fechaExtractoNormalizada;
+                        const montoCoincide = Math.abs(candidato.debe - abonoAbsoluto) < 0.01;
+                        
+                        if (fechaCoincide && montoCoincide) {
+                            const operacionNumero = filaExtracto[3] || '';
+                            
+                            estadosFilas.set(candidato.indice, {
+                                estado: 'P7 - Conciliada',
+                                ref: operacionNumero || `P7-${fechaMayorNormalizada}`
+                            });
+                            
+                            estadosExtracto.set(j, {
+                                estado: 'P7 - Conciliada',
+                                ref: `${candidato.libro}-${candidato.comprob}`
+                            });
+                            
+                            conciliados++;
+                            console.log(`✅ P7 CONCILIADO: FDOC="${candidato.fdoc}" + DEBE=${candidato.debe} ↔ Fecha="${fechaExtracto}" + |ABONO|=${abonoAbsoluto}`);
+                            break;
+                        }
+                    }
+                }
+                
+                console.log(`📈 RESUMEN IBK P7: ${conciliados} conciliados de ${candidatosLibro3} candidatos`);
+                
+                return {
+                    candidatos: candidatosLibro3,
+                    conciliados: conciliados
+                };
+            },
+
+            procesarPaso11IBK(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto) {
+                /*
+                PASO 11 IBK - ITF ESPECÍFICO:
+                
+                CRITERIOS MAYOR (ESTÁNDAR):
+                - LIBRO = "09"
+                - GLOSA contiene "ITF"
+                - HABER > 0
+                - ESTADO = "Pendiente"
+                
+                CRITERIOS EXTRACTO IBK (ESPECÍFICO):
+                - Movimiento contiene "ITF" (E en extracto original, índice 4)
+                - Usar valor absoluto de CARGO (H en extracto original, índice 7)
+                
+                MAPEO:
+                - Suma HABER (Mayor) vs suma |CARGO| (Extracto IBK)
+                
+                ESTADOS RESULTANTES:
+                - "P11 - Conciliada"
+                - Mayor: #REF = [Primera referencia del Extracto]
+                - Extracto: #REF = "LIBRO-COMPROB" del primer registro Mayor ITF
+                */
+                
+                if (!extractoProcesable || !Array.isArray(extractoProcesable)) {
+                    return { candidatos: 0, conciliados: 0 };
+                }
+                
+                console.log(`\n📈 === IBK PASO 11 - ITF ===`);
+                
+                let candidatosMayorITF = 0;
+                let candidatosExtractoITF = 0;
+                let conciliados = 0;
+                
+                // === 1. IDENTIFICAR ITF EN MAYOR ===
+                console.log(`\n🏛️ === ETAPA 1: IDENTIFICACIÓN ITF EN MAYOR ===`);
+                const candidatosMayor = [];
+                let totalHaberMayor = 0;
+                
+                for (let i = 0; i < filasFiltradasMayor.length; i++) {
+                    if (estadosFilas.has(i)) continue;
+                    
+                    const filaMayor = filasFiltradasMayor[i];
+                    const libro = filaMayor[idxM.libro] || '';
+                    const glosa = (filaMayor[idxM.glosa] || '').toString().toUpperCase();
+                    const haber = this.normalizarMonto(filaMayor[idxM.haber] || '0');
+                    const comprob = filaMayor[idxM.comprob] || '';
+                    
+                    // Verificar criterios: LIBRO=09 + GLOSA contiene ITF + HABER > 0
+                    const esLibro09 = libro.trim() === '09';
+                    const contieneITF = glosa.includes('ITF');
+                    const tieneHaber = haber > 0;
+                    
+                    if (esLibro09 && contieneITF && tieneHaber) {
+                        candidatosMayorITF++;
+                        totalHaberMayor += haber;
+                        
+                        candidatosMayor.push({
+                            indice: i,
+                            fila: filaMayor,
+                            libro: libro,
+                            glosa: glosa,
+                            haber: haber,
+                            comprob: comprob
+                        });
+                        
+                        if (candidatosMayorITF <= 5) {
+                            console.log(`✅ Mayor ITF ${candidatosMayorITF}: LIBRO="${libro}", GLOSA="${glosa.substring(0, 30)}...", HABER=${haber}`);
+                        }
+                    }
+                }
+                
+                console.log(`📊 Mayor ITF: ${candidatosMayorITF} candidatos, Total HABER: ${totalHaberMayor}`);
+                
+                if (candidatosMayorITF === 0) {
+                    console.log(`⚠️ No se encontraron candidatos ITF en Mayor`);
+                    return { candidatos: 0, conciliados: 0 };
+                }
+                
+                // === 2. IDENTIFICAR ITF EN EXTRACTO IBK ===
+                console.log(`\n💳 === ETAPA 2: IDENTIFICACIÓN ITF EN EXTRACTO IBK ===`);
+                const candidatosExtracto = [];
+                let totalCargoExtracto = 0;
+                
+                for (let j = 0; j < extractoProcesable.length; j++) {
+                    if (estadosExtracto.has(j)) continue;
+                    
+                    const itemExtracto = extractoProcesable[j];
+                    const filaExtracto = itemExtracto.fila;
+                    if (!filaExtracto || !Array.isArray(filaExtracto)) continue;
+                    
+                    // IBK estructura original: E=Movimiento(4), H=Cargo(7)
+                    const movimiento = (filaExtracto[4] || '').toString().toUpperCase();
+                    const cargo = this.normalizarMonto(filaExtracto[7] || '0');
+                    const cargoAbsoluto = Math.abs(cargo); // |CARGO|
+                    
+                    // DEBUG: Mostrar primeras 3 filas para verificar estructura
+                    // if (j < 3) {
+                    //     console.log(`🔍 DEBUG Fila ${j}:`);
+                    //     console.log(`   Fila completa:`, filaExtracto);
+                    //     console.log(`   [4] Movimiento: "${movimiento}"`);
+                    //     console.log(`   [7] Cargo: "${filaExtracto[7]}" → ${cargo} → |${cargoAbsoluto}|`);
+                    // }
+                    
+                    // Verificar criterio: Movimiento contiene "ITF"
+                    const contieneITF = movimiento.includes('ITF');
+                    
+                    if (contieneITF && cargoAbsoluto > 0) {
+                        candidatosExtractoITF++;
+                        totalCargoExtracto += cargoAbsoluto;
+                        
+                        candidatosExtracto.push({
+                            indice: j,
+                            fila: filaExtracto,
+                            movimiento: movimiento,
+                            cargo: cargo,
+                            cargoAbsoluto: cargoAbsoluto
+                        });
+                        
+                        if (candidatosExtractoITF <= 5) {
+                            console.log(`✅ Extracto ITF ${candidatosExtractoITF}: Movimiento="${movimiento.substring(0, 30)}...", |CARGO|=${cargoAbsoluto}`);
+                        }
+                    }
+                }
+                
+                console.log(`💳 Extracto ITF: ${candidatosExtractoITF} candidatos, Total |CARGO|: ${totalCargoExtracto}`);
+                
+                if (candidatosExtractoITF === 0) {
+                    console.log(`⚠️ No se encontraron candidatos ITF en Extracto IBK`);
+                    return { candidatos: candidatosMayorITF, conciliados: 0 };
+                }
+                
+                // === 3. COMPARACIÓN Y CONCILIACIÓN ===
+                console.log(`\n🔄 === ETAPA 3: COMPARACIÓN TOTALES ===`);
+                const tolerancia = 0.01;
+                const diferencia = Math.abs(totalHaberMayor - totalCargoExtracto);
+                
+                console.log(`📊 COMPARACIÓN:`);
+                console.log(`   🏛️ Total HABER Mayor: ${totalHaberMayor}`);
+                console.log(`   💳 Total |CARGO| Extracto: ${totalCargoExtracto}`);
+                console.log(`   📏 Diferencia: ${diferencia}`);
+                console.log(`   ✅ Tolerancia: ${tolerancia}`);
+                
+                if (diferencia <= tolerancia) {
+                    // Conciliar todos los registros ITF
+                    const primerComprobMayor = candidatosMayor[0]?.comprob || 'ITF';
+                    const primeraRefExtracto = candidatosExtracto[0]?.fila[2] || 'ITF'; // Nro. Operación (C en IBK reorganizada)
+                    
+                    // Marcar todos los candidatos del Mayor como conciliados
+                    for (const candidato of candidatosMayor) {
+                        estadosFilas.set(candidato.indice, {
+                            estado: 'P11 - Conciliada',
+                            ref: primeraRefExtracto
+                        });
+                        conciliados++;
+                    }
+                    
+                    // Marcar todos los candidatos del Extracto como conciliados
+                    for (const candidato of candidatosExtracto) {
+                        estadosExtracto.set(candidato.indice, {
+                            estado: 'P11 - Conciliada',
+                            ref: `09-${primerComprobMayor}`
+                        });
+                    }
+                    
+                    console.log(`✅ P11 CONCILIADO: ${candidatosMayorITF} registros Mayor + ${candidatosExtractoITF} registros Extracto`);
+                } else {
+                    console.log(`❌ P11 NO CONCILIADO: Diferencia ${diferencia} > tolerancia ${tolerancia}`);
+                }
+                
+                console.log(`📈 RESUMEN IBK P11: ${conciliados} conciliados de ${candidatosMayorITF} candidatos Mayor`);
+                
+                return {
+                    candidatos: candidatosMayorITF + candidatosExtractoITF,
+                    conciliados: conciliados,
+                    totalMayor: totalHaberMayor,
+                    totalExtracto: totalCargoExtracto,
+                    diferencia: diferencia
+                };
+            },
+
+            procesarPaso8IBK(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto) {
+                /*
+                PASO 8 IBK - OPERACIONES MÚLTIPLES LIBROS INDIVIDUALES:
+                
+                CRITERIOS MAYOR:
+                - LIBRO = "03", "09", "14", "15"
+                - ESTADO = "Pendiente"
+                - HABER > 0 (solo salidas de dinero)
+                
+                CRITERIOS EXTRACTO IBK:
+                - CARGO < 0 (solo cargos/débitos negativos)
+                - ESTADO = "Pendiente"
+                
+                MAPEO INDIVIDUAL:
+                - FDOC + HABER (Mayor) ↔ Fecha operación + |CARGO| (Extracto IBK)
+                - Mapeo 1:1 sin agrupación
+                
+                ESTADOS RESULTANTES:
+                - "P8 - Conciliada"
+                - Mayor: #REF = [Operación - Número del Extracto]
+                - Extracto: #REF = "LIBRO-COMPROB" del Mayor
+                */
+                
+                if (!extractoProcesable || !Array.isArray(extractoProcesable)) {
+                    return { candidatos: 0, conciliados: 0 };
+                }
+                
+                console.log(`\n📈 === IBK PASO 8 - OPERACIONES MÚLTIPLES LIBROS ===`);
+                
+                let candidatosLibro03 = 0;
+                let candidatosLibro09 = 0;
+                let candidatosLibro14 = 0;
+                let candidatosLibro15 = 0;
+                let conciliados = 0;
+                
+                // Libros objetivo del Paso 8
+                const librosObjetivo = ['03', '09', '14', '15'];
+                
+                // Identificar candidatos de múltiples libros
+                const candidatosPaso8 = [];
+                
+                for (let i = 0; i < filasFiltradasMayor.length; i++) {
+                    if (estadosFilas.has(i)) continue;
+                    
+                    const filaMayor = filasFiltradasMayor[i];
+                    const libro = filaMayor[idxM.libro] || '';
+                    
+                    const esLibroObjetivo = librosObjetivo.includes(libro.trim());
+                    
+                    if (esLibroObjetivo) {
+                        const fdoc = filaMayor[idxM.fdoc] || '';
+                        const haber = this.normalizarMonto(filaMayor[idxM.haber] || '0');
+                        const comprob = filaMayor[idxM.comprob] || '';
+                        
+                        // ⭐ FILTRO IBK PASO 8: Solo registros con HABER > 0 (salidas de dinero)
+                        if (haber > 0) {
+                            // Contar por libro
+                            if (libro.trim() === '03') candidatosLibro03++;
+                            else if (libro.trim() === '09') candidatosLibro09++;
+                            else if (libro.trim() === '14') candidatosLibro14++;
+                            else if (libro.trim() === '15') candidatosLibro15++;
+                            
+                            candidatosPaso8.push({
+                                indice: i,
+                                fila: filaMayor,
+                                libro: libro,
+                                fdoc: fdoc,
+                                haber: haber,
+                                comprob: comprob
+                            });
+                        }
+                    }
+                }
+                
+                const totalCandidatos = candidatosLibro03 + candidatosLibro09 + candidatosLibro14 + candidatosLibro15;
+                console.log(`📊 Mayor P8: ${totalCandidatos} candidatos (L03=${candidatosLibro03}, L09=${candidatosLibro09}, L14=${candidatosLibro14}, L15=${candidatosLibro15})`);
+                
+                if (totalCandidatos === 0) {
+                    console.log(`⚠️ No se encontraron candidatos para PASO 8 IBK`);
+                    return { candidatos: 0, conciliados: 0 };
+                }
+                
+                // ANÁLISIS DE CANDIDATOS DEL EXTRACTO IBK
+                console.log(`\n💳 === IBK PASO 8 - ANÁLISIS EXTRACTO ===`);
+                const candidatosExtracto = [];
+                
+                for (let j = 0; j < extractoProcesable.length; j++) {
+                    if (estadosExtracto.has(j)) continue;
+                    
+                    const itemExtracto = extractoProcesable[j];
+                    // Para IBK: itemExtracto.fila contiene la estructura original, no reorganizada
+                    // Necesitamos reorganizar aquí: slice(1, 10) toma B-J del original
+                    const filaOriginal = itemExtracto.fila;
+                    if (!filaOriginal || !Array.isArray(filaOriginal)) continue;
+                    
+                    // Reorganizar IBK: B-J del original (índices 1-9) → A-I del reorganizado (índices 0-8)
+                    const filaExtracto = filaOriginal.slice(1, 10); // B12-J12 → A1-I1
+                    
+                    // DEBUG: Mostrar estructura completa de las primeras 3 filas
+                    if (j < 3) {
+                        console.log(`🔍 DEBUG Extracto fila ${j}:`);
+                        console.log(`   Fila completa (${filaExtracto.length} elementos):`, filaExtracto);
+                        console.log(`   [0]: "${filaExtracto[0]}" (Fecha)`);
+                        console.log(`   [1]: "${filaExtracto[1]}"`);
+                        console.log(`   [2]: "${filaExtracto[2]}"`);
+                        console.log(`   [3]: "${filaExtracto[3]}"`);
+                        console.log(`   [4]: "${filaExtracto[4]}"`);
+                        console.log(`   [5]: "${filaExtracto[5]}"`);
+                        console.log(`   [6]: "${filaExtracto[6]}" (Cargo)`);
+                        console.log(`   [7]: "${filaExtracto[7]}"`);
+                        console.log(`   [8]: "${filaExtracto[8]}"`);
+                        console.log(`   [9]: "${filaExtracto[9]}"`);
+                    }
+                    
+                    // IBK estructura reorganizada: A=Fecha operación(0), G=Cargo(6)
+                    const fechaExtracto = filaExtracto[0] || '';
+                    const cargo = this.normalizarMonto(filaExtracto[6] || '0');
+                    const cargoAbsoluto = Math.abs(cargo);
+                    
+                    // Para IBK: incluir TODOS los registros (cargo puede ser 0, positivo o negativo)
+                    candidatosExtracto.push({
+                        indice: j,
+                        fechaOriginal: fechaExtracto,
+                        fechaNormalizada: this.normalizarFecha(fechaExtracto),
+                        cargoOriginal: cargo,
+                        cargoAbsoluto: cargoAbsoluto,
+                        operacion: filaExtracto[2] || ''
+                    });
+                }
+                
+                console.log(`📊 Extracto IBK: ${candidatosExtracto.length} candidatos totales`);
+                
+                // DEBUG: Buscar fechas específicas del mayor en el extracto
+                const fechasMayor = ['2025-06-02', '2025-06-04', '2025-06-05'];
+                fechasMayor.forEach(fechaBuscada => {
+                    const coincidencias = candidatosExtracto.filter(cand => cand.fechaNormalizada === fechaBuscada);
+                    console.log(`🔍 Fecha "${fechaBuscada}": ${coincidencias.length} registros en extracto`);
+                    coincidencias.slice(0, 5).forEach((cand, idx) => {
+                        console.log(`   ${idx + 1}. |CARGO|: ${cand.cargoAbsoluto}, Op: "${cand.operacion}"`);
+                    });
+                });
+                
+                candidatosExtracto.slice(0, 10).forEach((cand, idx) => {
+                    console.log(`   ${idx + 1}. Fecha: "${cand.fechaOriginal}" → "${cand.fechaNormalizada}", |CARGO|: ${cand.cargoAbsoluto}, Op: "${cand.operacion}"`);
+                });
+                if (candidatosExtracto.length > 10) {
+                    console.log(`   ... y ${candidatosExtracto.length - 10} más`);
+                }
+                
+                // MAPEO: FDOC+HABER vs FECHA+|CARGO|
+                console.log(`\n🔄 === IBK PASO 8 - MAPEO FDOC+HABER vs FECHA+|CARGO| ===`);
+                
+                let intentosMapeo = 0;
+                
+                for (const candidato of candidatosPaso8) {
+                    if (estadosFilas.has(candidato.indice)) continue;
+                    
+                    const fechaMayorNormalizada = this.normalizarFecha(candidato.fdoc);
+                    
+                    // DEBUG: Mostrar candidatos del mayor
+                    if (intentosMapeo < 10) { // Aumentamos límite para ver todos los candidatos
+                        console.log(`🔍 DEBUG Mayor P8 ${intentosMapeo + 1}:`);
+                        console.log(`   LIBRO="${candidato.libro}", FDOC="${candidato.fdoc}" → "${fechaMayorNormalizada}", HABER=${candidato.haber}`);
+                    }
+                    
+                    // Buscar coincidencia en extracto IBK
+                    let intentosExtracto = 0;
+                    for (let j = 0; j < extractoProcesable.length; j++) {
+                        if (estadosExtracto.has(j)) continue;
+                        
+                        const itemExtracto = extractoProcesable[j];
+                        // Para IBK: usar estructura ORIGINAL (extractoProcesable mantiene estructura original)
+                        const filaOriginal = itemExtracto.fila;
+                        if (!filaOriginal || !Array.isArray(filaOriginal)) continue;
+                        
+                        // IBK estructura ORIGINAL: A=vacío, B=Fecha op, C=Fecha proc, D=Nro op, E=Movimiento, F=Descripción, G=Canal, H=Cargo, I=Abono, J=Saldo
+                        const fechaExtracto = filaOriginal[1] || '';  // B=Fecha operación
+                        const nroOperacion = filaOriginal[3] || '';   // D=Nro operación  
+                        const cargo = this.normalizarMonto(filaOriginal[7] || '0'); // H=Cargo
+                        
+                        // ⭐ FILTRO IBK PASO 8: Solo registros con CARGO < 0 (cargos/débitos)
+                        if (cargo >= 0) continue; // Saltar registros con cargo positivo o cero
+                        
+                        const cargoAbsoluto = Math.abs(cargo); // |CARGO|
+                        const fechaExtractoNormalizada = this.normalizarFecha(fechaExtracto);
+                        
+                        // DEBUG: Mostrar filas del extracto para cada candidato del mayor
+                        if (intentosExtracto < 10) { // Aumentamos límite para ver más candidatos
+                            console.log(`🔍 DEBUG Extracto fila ${j} (candidato ${intentosMapeo + 1}):`);
+                            console.log(`   Fila original completa:`, filaOriginal);
+                            console.log(`   [1]: "${filaOriginal[1]}" (B=Fecha operación)`);
+                            console.log(`   [3]: "${filaOriginal[3]}" (D=Nro operación)`);
+                            console.log(`   [7]: "${filaOriginal[7]}" (H=Cargo) → ${cargo} → |${cargoAbsoluto}|`);
+                            console.log(`   Coincide fecha: ${fechaMayorNormalizada} === ${fechaExtractoNormalizada} = ${fechaMayorNormalizada === fechaExtractoNormalizada}`);
+                            console.log(`   Coincide monto: ${candidato.haber} === ${cargoAbsoluto} = ${Math.abs(candidato.haber - cargoAbsoluto) < 0.01}`);
+                        }  
+                        if (intentosExtracto < 10) { // Aumentamos límite para debug
+                            console.log(`   Extracto ${intentosExtracto + 1}:`);
+                            console.log(`     Fecha original: "${fechaExtracto}" → normalizada: "${fechaExtractoNormalizada}"`);
+                            console.log(`     |CARGO|: ${cargoAbsoluto}`);
+                            console.log(`     Mayor fecha: "${candidato.fdoc}" → normalizada: "${fechaMayorNormalizada}"`);
+                            console.log(`     Mayor HABER: ${candidato.haber}`);
+                            console.log(`     ¿Fechas iguales?: ${fechaMayorNormalizada === fechaExtractoNormalizada}`);
+                            console.log(`     ¿Montos iguales?: ${Math.abs(candidato.haber - cargoAbsoluto) < 0.01} (diff: ${Math.abs(candidato.haber - cargoAbsoluto)})`);
+                            intentosExtracto++;
+                        }
+                        
+                        const fechaCoincide = fechaMayorNormalizada === fechaExtractoNormalizada;
+                        const tolerancia = 0.01;
+                        const diferenciaMonto = Math.abs(candidato.haber - cargoAbsoluto);
+                        const montoCoincide = diferenciaMonto < tolerancia;
+                        
+                        if (fechaCoincide && montoCoincide) {
+                            // Para IBK: usar Nro. de operación (columna D = índice 3 original)
+                            const refMayor = nroOperacion || `P8-${fechaMayorNormalizada}`;
+                            const refExtracto = `${candidato.libro}-${candidato.comprob}`;
+                            
+                            estadosFilas.set(candidato.indice, {
+                                estado: 'P8 - Conciliada',
+                                ref: refMayor
+                            });
+                            
+                            estadosExtracto.set(j, {
+                                estado: 'P8 - Conciliada',
+                                ref: refExtracto
+                            });
+                            
+                            conciliados++;
+                            console.log(`✅ IBK PASO 8 - CONCILIACIÓN EXITOSA:`);
+                            console.log(`   📋 Mayor: LIBRO=${candidato.libro}, FDOC="${candidato.fdoc}", HABER=${candidato.haber}, COMPROB=${candidato.comprob} → REF="${refMayor}"`);
+                            console.log(`   📋 Extracto: FECHA="${fechaExtracto}", |CARGO|=${cargoAbsoluto}, NRO_OP="${nroOperacion}" → REF="${refExtracto}"`);
+                            break; // Salir del bucle extracto para este candidato Mayor (mapeo 1:1)
+                        }
+                    }
+                    
+                    intentosMapeo++;
+                    // if (intentosMapeo >= 3) break; // Quitamos límite para ver todos los candidatos
+                }
+                
+                console.log(`📈 RESUMEN IBK P8: ${conciliados} conciliados de ${totalCandidatos} candidatos`);
+                
+                return {
+                    candidatos: totalCandidatos,
+                    conciliados: conciliados,
+                    libro03: candidatosLibro03,
+                    libro09: candidatosLibro09,
+                    libro14: candidatosLibro14,
+                    libro15: candidatosLibro15
+                };
+            },
+
+            procesarPaso9IBK(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto) {
+                /*
+                PASO 9 IBK - OPERACIONES MÚLTIPLES LIBROS AGRUPADAS:
+                
+                CRITERIOS MAYOR:
+                - LIBRO = "03", "09", "14", "15"
+                - ESTADO = "Pendiente"
+                - HABER > 0 (solo salidas de dinero)
+                - Agrupar por NUMDOC + FECHA → sumar TOTAL HABER
+                
+                CRITERIOS EXTRACTO IBK:
+                - CARGO < 0 (solo cargos/débitos negativos)
+                - ESTADO = "Pendiente"
+                
+                ESTRATEGIA:
+                1. Agrupar Mayor por NUMDOC + FECHA → sumar TOTAL HABER (solo HABER > 0)
+                2. Mapear: FDOC + TOTAL HABER (Grupo) ↔ Fecha operación + |CARGO| (Extracto IBK)
+                3. Solo filas pendientes se incluyen en cada grupo
+                
+                ESTADOS RESULTANTES:
+                - "P9 - Conciliada" para todas las filas del grupo
+                - Mayor: #REF = [Operación - Número del Extracto]
+                - Extracto: #REF = "LIBRO-COMPROB" del primer registro del grupo
+                */
+                
+                if (!extractoProcesable || !Array.isArray(extractoProcesable)) {
+                    return { candidatos: 0, conciliados: 0 };
+                }
+                
+                console.log(`\n📈 === IBK PASO 9 - OPERACIONES MÚLTIPLES LIBROS AGRUPADAS ===`);
+                
+                let candidatosLibro03 = 0;
+                let candidatosLibro09 = 0;
+                let candidatosLibro14 = 0;
+                let candidatosLibro15 = 0;
+                let gruposFormados = 0;
+                let conciliados = 0;
+                
+                // Libros objetivo del Paso 9
+                const librosObjetivo = ['03', '09', '14', '15'];
+                
+                // Agrupar filas por NUMDOC que cumplan criterios
+                const gruposPorNUMDOC = new Map();
+                
+                // Primera pasada: Identificar candidatos y agrupar por NUMDOC
+                for (let i = 0; i < filasFiltradasMayor.length; i++) {
+                    if (estadosFilas.has(i)) continue;
+                    
+                    const filaMayor = filasFiltradasMayor[i];
+                    const libro = filaMayor[idxM.libro] || '';
+                    const numdoc = filaMayor[idxM.numdoc] || '';
+                    const fdoc = filaMayor[idxM.fdoc] || '';
+                    const haber = this.normalizarMonto(filaMayor[idxM.haber] || '0');
+                    const comprob = filaMayor[idxM.comprob] || '';
+                    
+                    const esLibroObjetivo = librosObjetivo.includes(libro.trim());
+                    
+                    if (esLibroObjetivo) {
+                        // ⭐ FILTRO IBK PASO 9: Solo registros con HABER > 0 (igual que Paso 8)
+                        if (haber > 0) {
+                            // Contar por libro
+                            if (libro.trim() === '03') candidatosLibro03++;
+                            else if (libro.trim() === '09') candidatosLibro09++;
+                            else if (libro.trim() === '14') candidatosLibro14++;
+                            else if (libro.trim() === '15') candidatosLibro15++;
+                            
+                            // ⭐ AGRUPAR POR NUMDOC + FECHA (evitar mezclar fechas diferentes)
+                            const numdocNormalizado = this.normalizarTexto(numdoc);
+                            const fechaNormalizada = this.normalizarFecha(fdoc);
+                            const claveGrupo = `${numdocNormalizado}_${fechaNormalizada}`; // NUMDOC + FECHA
+                            
+                            if (!gruposPorNUMDOC.has(claveGrupo)) {
+                                gruposPorNUMDOC.set(claveGrupo, {
+                                    numdoc: numdocNormalizado,
+                                    numdocOriginal: numdoc,
+                                    fdoc: fdoc, // Usar FDOC del primer registro para mapeo
+                                    fechaNormalizada: fechaNormalizada,
+                                    totalHaber: 0,
+                                    filas: []
+                                });
+                            }
+                            
+                            const grupo = gruposPorNUMDOC.get(claveGrupo);
+                            grupo.totalHaber += haber;
+                            grupo.filas.push({
+                                indice: i,
+                                fila: filaMayor,
+                                libro: libro,
+                                numdoc: numdoc,
+                                fdoc: fdoc,
+                                haber: haber,
+                                comprob: comprob
+                            });
+                        }
+                    }
+                }
+                
+                gruposFormados = gruposPorNUMDOC.size;
+                const totalCandidatos = candidatosLibro03 + candidatosLibro09 + candidatosLibro14 + candidatosLibro15;
+                
+                console.log(`📊 Mayor P9: ${totalCandidatos} candidatos agrupados en ${gruposFormados} grupos por NUMDOC`);
+                console.log(`📊 Distribución: L03=${candidatosLibro03}, L09=${candidatosLibro09}, L14=${candidatosLibro14}, L15=${candidatosLibro15}`);
+                
+                if (gruposFormados === 0) {
+                    console.log(`⚠️ No se formaron grupos para PASO 9 IBK`);
+                    return { candidatos: totalCandidatos, grupos: 0, conciliados: 0 };
+                }
+                
+                // MAPEO: FDOC+TOTAL HABER vs FECHA+|CARGO|
+                console.log(`\n🔄 === IBK PASO 9 - MAPEO FDOC+TOTAL HABER vs FECHA+|CARGO| ===`);
+                
+                for (const [numdoc, grupo] of gruposPorNUMDOC) {
+                    // ⭐ FILTRAR SOLO FILAS PENDIENTES del grupo (no saltar todo el grupo)
+                    const filasPendientes = grupo.filas.filter(f => !estadosFilas.has(f.indice));
+                    if (filasPendientes.length === 0) continue; // Solo continuar si no hay filas pendientes
+                    
+                    // Recalcular total HABER solo con filas pendientes
+                    const totalHaberPendiente = filasPendientes.reduce((sum, f) => sum + f.haber, 0);
+                    
+                    const fechaMayorNormalizada = this.normalizarFecha(grupo.fdoc);
+                    
+                    // Buscar coincidencia en extracto IBK
+                    for (let j = 0; j < extractoProcesable.length; j++) {
+                        if (estadosExtracto.has(j)) continue;
+                        
+                        const itemExtracto = extractoProcesable[j];
+                        // Para IBK: usar estructura ORIGINAL (igual que Paso 8)
+                        const filaOriginal = itemExtracto.fila;
+                        if (!filaOriginal || !Array.isArray(filaOriginal)) continue;
+                        
+                        // IBK estructura ORIGINAL: A=vacío, B=Fecha op, C=Fecha proc, D=Nro op, E=Movimiento, F=Descripción, G=Canal, H=Cargo, I=Abono, J=Saldo
+                        const fechaExtracto = filaOriginal[1] || '';  // B=Fecha operación
+                        const nroOperacion = filaOriginal[3] || '';   // D=Nro operación  
+                        const cargo = this.normalizarMonto(filaOriginal[7] || '0'); // H=Cargo
+                        
+                        // ⭐ FILTRO IBK PASO 9: Solo registros con CARGO < 0 (igual que Paso 8)
+                        if (cargo >= 0) continue; // Saltar registros con cargo positivo o cero
+                        
+                        const cargoAbsoluto = Math.abs(cargo); // |CARGO|
+                        const fechaExtractoNormalizada = this.normalizarFecha(fechaExtracto);
+                        
+                        const fechaCoincide = fechaMayorNormalizada === fechaExtractoNormalizada;
+                        const montoCoincide = Math.abs(totalHaberPendiente - cargoAbsoluto) < 0.01;
+                        
+                        if (fechaCoincide && montoCoincide) {
+                            // Para IBK: usar Nro. de operación (columna D = índice 3 original)
+                            const refMayor = nroOperacion || `P9-${fechaMayorNormalizada}`;
+                            const primerComprob = grupo.filas[0]?.comprob || '';
+                            const refExtracto = `${grupo.filas[0]?.libro || ''}-${primerComprob}`;
+                            
+                            // Conciliar solo las filas pendientes del grupo
+                            for (const fila of filasPendientes) {
+                                estadosFilas.set(fila.indice, {
+                                    estado: 'P9 - Conciliada',
+                                    ref: refMayor
+                                });
+                                conciliados++;
+                            }
+                            
+                            estadosExtracto.set(j, {
+                                estado: 'P9 - Conciliada',
+                                ref: refExtracto
+                            });
+                            
+                            console.log(`✅ P9 CONCILIADO: Grupo "${numdoc}" (${filasPendientes.length} filas pendientes de ${grupo.filas.length} total) FDOC="${grupo.fdoc}" + TOTAL HABER=${totalHaberPendiente} ↔ Fecha="${fechaExtracto}" + |CARGO|=${cargoAbsoluto}`);
+                            break;
+                        }
+                    }
+                }
+                
+                console.log(`📈 RESUMEN IBK P9: ${conciliados} conciliados de ${totalCandidatos} candidatos en ${gruposFormados} grupos`);
+                
+                return {
+                    candidatos: totalCandidatos,
+                    grupos: gruposFormados,
+                    conciliados: conciliados,
+                    libro03: candidatosLibro03,
+                    libro09: candidatosLibro09,
+                    libro14: candidatosLibro14,
+                    libro15: candidatosLibro15
                 };
             },
      
