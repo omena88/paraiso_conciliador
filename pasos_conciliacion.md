@@ -3,8 +3,9 @@
 ## Descripción de Pasos
 
 ### PASO 1: Filtro por Cuenta Específica
-- **Objetivo**: Filtrar Mayor para incluir SOLO cuenta 1041501
-- **Acción**: En Mayor, mantener únicamente registros donde CUENTA = 1041501
+- **Objetivo**: Filtrar Mayor para incluir cuentas activas configuradas
+- **Acción**: En Mayor, mantener únicamente registros donde CUENTA = cuenta configurada como activa
+- **Cuentas activas**: 1041501 (BCP.01), 1041505 (BCP.02), 1041401 (SANT), 1041201 (BBVA), 1041301 (SBP)
 
 ### PASO 2: Omisiones Globales
 - **Objetivo**: Excluir operaciones de tarjetas de crédito y servicios específicos
@@ -25,26 +26,24 @@
 - **Tolerancia**: Coincidencia exacta (sin tolerancia)
 - **Cambio**: Estandarizado formato estado/ref y eliminada tolerancia
 
-### PASO 4: Operaciones BNA
-- **Objetivo**: Mapear operaciones bancarias específicas del libro 4 en dos etapas
-- **Etapas**:
+### PASO 4: Operaciones Específicas por Banco
+- **Objetivo**: Mapear operaciones bancarias específicas según el banco
+- **Estrategias por Banco**:
+
+  **BCP/SANT (GENERAL) - Operaciones BNA**:
+  - **ETAPA 4A - Mapeo con Extracto**: DES_TDOP = "Bna", LIBRO = "04" vs FECHA + MONTO
+  - **ETAPA 4B - Mapeo Interno**: LIBRO = "04" (DEBE) vs LIBRO = "09" (HABER)
   
-  **ETAPA 4A - Mapeo con Extracto Bancario**:
-  - **Criterios**: DES_TDOP = "Bna", LIBRO = "04", DEBE > 0, ESTADO = "Pendiente"
-  - **Mapeo**: FDOC (Mayor) + DEBE vs FECHA (Col A) + MONTO (Col D) del Extracto
-  - **Normalización**: Fechas y montos parseados automáticamente, coincidencia exacta
-  - **Estados**:
-    - Mayor: "P4 - Conciliada", #REF = [Operación - Número del Extracto]
-    - Extracto: "P4 - Conciliada", #REF = "[LIBRO]-[COMPROB]" del Mayor
+  **BBVA (CONTINENTAL) - Operaciones ABONO/CARGO CART**:
+  - **ETAPA 1**: DES_TDOP = "Bna" agrupado por FDOC vs "ABONO CART"/"CARGO CART" agrupado por F.Operación
+  - **ETAPA 2**: Mapeo interno BNA DEBE vs CUALQUIER HABER
   
-  **ETAPA 4B - Mapeo Interno Mayor (LIBRO 04 vs 09)**:
-  - **Criterios**: Filas pendientes LIBRO = "04" con DEBE > 0 vs LIBRO = "09" con HABER > 0
-  - **Mapeo**: Coincidencia por monto (DEBE del libro 04 = HABER del libro 09)
-  - **Tolerancia**: Coincidencia exacta (sin tolerancia)
-  - **Estados**:
-    - Ambas filas: "P4 - Conciliada"
-    - Libro 04: #REF = "09-[COMPROB del libro 09]"
-    - Libro 09: #REF = "04-[COMPROB del libro 04]"
+  **SBP (SCOTIABANK) - Operaciones PAGO DE LETRA**:
+  - **Mayor**: Filtrar DES_TDOP = "Bna" + ESTADO = "Pendiente", agrupar por FDOC + DEBE
+  - **Extracto**: Filtrar Movimiento inicia con "PAGO DE LETRA", agrupar por Fecha + |Importe|
+  - **Mapeo**: FDOC (Mayor) vs Fecha (Extracto), DEBE vs |Importe| por grupos
+  - **Estados**: "P4 - Conciliada" para registros mapeados
+  - **Referencias**: Mayor → Referencia del Extracto, Extracto → "LIBRO-COMPROB" del Mayor
 
 ### PASO 5: Operaciones PROT y DEV (Agrupación por Totales Diarios)
 - **Objetivo**: Conciliar protestos y devoluciones mediante agrupación por fecha

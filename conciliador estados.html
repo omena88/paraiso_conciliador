@@ -209,11 +209,11 @@
                                 Archivos cargados (<span x-text="files.length"></span>)
                             </h3>
                             
-                            <div class="grid grid-cols-2 gap-3 flex-1 overflow-y-auto">
+                            <div class="grid grid-cols-2 gap-2 flex-1 overflow-y-auto">
                 <template x-for="file in files" :key="file.id">
-                                    <div class="file-item flex items-center p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors duration-200 h-fit">
+                                    <div class="file-item flex items-center p-2 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors duration-200 h-fit">
                         
-                                        <div class="flex-shrink-0 w-6 h-6 rounded flex items-center justify-center mr-3 text-sm text-gray-600">
+                                        <div class="flex-shrink-0 w-5 h-5 rounded flex items-center justify-center mr-2 text-sm text-gray-600">
                             <i :class="getFileIcon(file.name)"></i>
     </div>
 
@@ -222,7 +222,7 @@
     </div>
 
                         <button @click="deleteFile(file.id)"
-                                                class="flex-shrink-0 text-red-500 hover:text-red-700 text-sm ml-2">
+                                                class="flex-shrink-0 text-red-500 hover:text-red-700 text-xs ml-1">
                                             <i class="fas fa-times"></i>
                             </button>
             </div>
@@ -396,6 +396,31 @@
                     estructuraEspecial: {
                         headerFila: 11, // Headers en fila 11 (índice 10)
                         dataInicio: 13   // Datos empiezan en fila 13 (índice 12), saltando fila 12
+                    },
+                    pasos: {
+                        paso3: 'anulaciones_standard',
+                        paso4: 'standard_operations',
+                        paso5: 'prot_dev_grouping',
+                        paso6: 'depositos_standard',
+                        paso7: 'libro03_operations',
+                        paso8: 'multi_libro_operations',
+                        paso9: 'multi_libro_grouped',
+                        paso10: 'cheques_operations',
+                        paso11: 'itf_operations',
+                        paso12: 'multi_criteria_progressive'
+                    }
+                },
+                '1041301': {
+                    codigo: '1041301',
+                    banco: 'SCOTIABANK M/N',
+                    alias: 'SBP',
+                    moneda: 'PEN',
+                    archivoPattern: /^sbp\.pen\.\d{6}/,
+                    pestañaExcel: 'SBP',
+                    activo: true, // ACTIVADO - Nueva cuenta Scotiabank
+                    estructuraEspecial: {
+                        headerFila: 8, // Headers en fila 8 (índice 7)
+                        dataInicio: 9   // Datos empiezan en fila 9 (índice 8)
                     },
                     pasos: {
                         paso3: 'anulaciones_standard',
@@ -1201,10 +1226,25 @@
         }
         
         const headersExtracto = datosExtracto.length > filaHeader ? datosExtracto[filaHeader] : [];
-                const indicesExtracto = this.buscarIndicesColumnas(headersExtracto, {
-            fecha: ['FECHA'], monto: ['MONTO', 'IMPORTE'], operacion: ['OPERACION', 'NUMERO'],
-            descripcion: ['DESCRIPCION OPERACION', 'DESCRIPCIÓN OPERACIÓN', 'DESCRIPCION', 'DESC']
-        });
+                // === MAPEO DINÁMICO DE COLUMNAS SEGÚN EL BANCO ===
+        let camposMapeados = {
+            fecha: ['FECHA'], 
+            monto: ['MONTO', 'IMPORTE'], 
+            operacion: ['OPERACION', 'NUMERO'],
+            descripcion: ['DESCRIPCION OPERACION', 'DESCRIPCIÓN OPERACIÓN', 'DESCRIPCION', 'DESC', 'MOVIMIENTO']
+        };
+        
+        // Ajustar mapeo específico para Scotiabank (SBP)
+        if (cuentaConfig && cuentaConfig.alias === 'SBP') {
+            camposMapeados = {
+                fecha: ['FECHA'],
+                monto: ['IMPORTE'],
+                operacion: ['REFERENCIA'],
+                descripcion: ['MOVIMIENTO']
+            };
+        }
+        
+        const indicesExtracto = this.buscarIndicesColumnas(headersExtracto, camposMapeados);
         
         // console.log(`📋 HEADERS EXTRACTO (${cuentaConfig?.alias || 'GENÉRICO'} - Fila ${filaHeader + 1}):`, headersExtracto);
         
@@ -1734,7 +1774,21 @@
         let datosExtractoHoja;
         if (datosExtracto.length > filaHeader) {
             // Header del extracto (dinámico según cuenta) + columnas ESTADO y #REF
-            const headerExtracto = datosExtracto[filaHeader] ? [...datosExtracto[filaHeader], 'ESTADO', '#REF'] : [];
+            let headerExtracto;
+            if (cuentaConfig && cuentaConfig.alias === 'SBP') {
+                // Para SBP: asegurar que ESTADO esté en columna I y #REF en columna J
+                const headerOriginal = datosExtracto[filaHeader] || [];
+                headerExtracto = [...headerOriginal];
+                // Rellenar hasta la columna I (8) si es necesario
+                while (headerExtracto.length < 8) {
+                    headerExtracto.push('');
+                }
+                headerExtracto[8] = 'ESTADO'; // Columna I
+                headerExtracto[9] = '#REF';   // Columna J
+            } else {
+                // Para otros bancos: añadir al final
+                headerExtracto = datosExtracto[filaHeader] ? [...datosExtracto[filaHeader], 'ESTADO', '#REF'] : [];
+            }
             
             // Verificar que extractoProcesable existe y es un array
             if (extractoProcesable && Array.isArray(extractoProcesable)) {
@@ -1755,11 +1809,22 @@
                     const estado = estadoInfo ? estadoInfo.estado : (tieneDatosReales ? 'Pendiente' : '');
                     const ref = estadoInfo ? estadoInfo.ref : '';
                     
-                    // ⭐ PARA SANT: CREAR NUEVA FILA PRESERVANDO COLUMNAS ORIGINALES
-                    // SANT tiene columnas A-K (11 columnas), añadir ESTADO y #REF al final
+                    // ⭐ PARA SANT/SBP: CREAR NUEVA FILA PRESERVANDO COLUMNAS ORIGINALES
                     const filaNueva = [...filaOriginal]; // Copia todas las columnas originales
-                    filaNueva.push(estado); // Añadir ESTADO como nueva columna L
-                    filaNueva.push(ref);    // Añadir #REF como nueva columna M
+                    
+                    // Para SBP: ESTADO en columna I (índice 8), #REF en columna J (índice 9)
+                    if (cuentaConfig && cuentaConfig.alias === 'SBP') {
+                        // SBP tiene 8 columnas (A-H), rellenar hasta la columna I (8) y J (9)
+                        while (filaNueva.length < 8) {
+                            filaNueva.push(''); // Rellenar columnas faltantes si es necesario
+                        }
+                        filaNueva[8] = estado; // ESTADO en columna I (índice 8)
+                        filaNueva[9] = ref;    // #REF en columna J (índice 9)
+                    } else {
+                        // SANT y otros bancos: añadir ESTADO y #REF al final
+                        filaNueva.push(estado); // Añadir ESTADO como nueva columna
+                        filaNueva.push(ref);    // Añadir #REF como nueva columna
+                    }
                     
                     return filaNueva;
                 });
@@ -1867,12 +1932,16 @@
                 - "P4 - Conciliada" para registros mapeados
                 */
                 
-                // ⭐ VERIFICAR SI ES BBVA PARA USAR LÓGICA ESPECÍFICA
+                // ⭐ VERIFICAR SI ES BBVA O SBP PARA USAR LÓGICA ESPECÍFICA
                 const esBBVA = cuentaConfig && cuentaConfig.codigo === '1041201';
+                const esSBP = cuentaConfig && cuentaConfig.alias === 'SBP';
                 
                 if (esBBVA) {
                     // console.log(`🏦 PASO 4 BBVA: Agrupación por FDOC en Mayor + mapeo ABONO/CARGO CART`);
                     return this.procesarPaso4BBVA(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto);
+                } else if (esSBP) {
+                    // console.log(`🏦 PASO 4 SBP: Agrupación específica para Scotiabank`);
+                    return this.procesarPaso4SBP(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto);
                 } else {
                     // console.log(`🏦 PASO 4 BCP: Operaciones BNA (Banco de la Nación)`);
                 }
@@ -2465,6 +2534,169 @@
                     conciliados: conciliados + conciliadosInternos,
                     etapa4a: conciliados, // Conciliados con extracto
                     etapa4b: conciliadosInternos // Conciliados internos (BNA DEBE vs CUALQUIER HABER)
+                };
+            },
+
+            procesarPaso4SBP(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto) {
+                /*
+                PASO 4 SBP (SCOTIABANK) - MAPEO ESPECÍFICO:
+                
+                Mayor: 
+                1. Filtrar por DES_TDOP = "Bna" + ESTADO = "Pendiente"
+                2. Agrupar por FDOC
+                3. FDOC + DEBE
+                
+                Extracto SBP:
+                1. Identificar en "Movimiento" (columna B) que INICIEN con "PAGO DE LETRA"
+                2. Agrupar por "Fecha" (columna A)  
+                3. "Fecha" + |Importe| (columna C, valor absoluto)
+                
+                ESTADOS RESULTANTES:
+                - "P4 - Conciliada" para registros mapeados
+                */
+                
+                // console.log(`\n🏦 *** SBP PASO 4 INICIADO *** - Agrupación por FDOC + mapeo PAGO DE LETRA`);
+                // console.log(`📋 Total registros Mayor disponibles: ${filasFiltradasMayor.length}`);
+                // console.log(`📋 Total registros Extracto disponibles: ${extractoProcesable.length}`);
+                // console.log(`📋 Estados ya procesados Mayor: ${estadosFilas.size}`);
+                // console.log(`📋 Estados ya procesados Extracto: ${estadosExtracto.size}`);
+                
+                let candidatosMayor = 0;
+                let candidatosExtracto = 0; 
+                let conciliados = 0;
+                let numeroGrupo = 1;
+                
+                // === ETAPA 1: AGRUPAR MAYOR POR FDOC ===
+                const gruposMayor = new Map();
+                
+                // Primera pasada: Identificar candidatos BNA y agrupar por FDOC
+                for (let i = 0; i < filasFiltradasMayor.length; i++) {
+                    if (estadosFilas.has(i)) continue; // Solo procesar pendientes
+                    
+                    const filaMayor = filasFiltradasMayor[i];
+                    const desTdop = (filaMayor[idxM.desTdop] || '').toString().trim().toUpperCase();
+                    const fdoc = filaMayor[idxM.fdoc] || '';
+                    const debe = this.normalizarMonto(filaMayor[idxM.debe] || '0');
+                    const comprob = filaMayor[idxM.comprob] || '';
+                    const libro = filaMayor[idxM.libro] || '';
+                    
+                    // Filtrar solo DES_TDOP = "BNA"
+                    if (desTdop === 'BNA' && debe > 0) {
+                        candidatosMayor++;
+                        
+                        const fdocNormalizado = this.normalizarFecha(fdoc);
+                        
+                        if (!gruposMayor.has(fdocNormalizado)) {
+                            gruposMayor.set(fdocNormalizado, {
+                                fecha: fdocNormalizado,
+                                fechaOriginal: fdoc,
+                                totalDebe: 0,
+                                filas: []
+                            });
+                        }
+                        
+                        const grupo = gruposMayor.get(fdocNormalizado);
+                        grupo.totalDebe += debe;
+                        grupo.filas.push({
+                            indice: i,
+                            fila: filaMayor,
+                            debe: debe,
+                            comprob: comprob,
+                            libro: libro
+                        });
+                    }
+                }
+                
+                // === ETAPA 2: AGRUPAR EXTRACTO POR FECHA ===
+                const gruposExtracto = new Map();
+                
+                // Segunda pasada: Identificar "PAGO DE LETRA" y agrupar por fecha
+                for (let j = 0; j < extractoProcesable.length; j++) {
+                    if (estadosExtracto.has(j)) continue; // Solo procesar pendientes
+                    
+                    const itemExtracto = extractoProcesable[j];
+                    const filaExtracto = itemExtracto.fila;
+                    const fecha = filaExtracto[0] || ''; // Columna A
+                    const movimiento = (filaExtracto[1] || '').toString().toUpperCase(); // Columna B
+                    const importe = this.normalizarMonto(filaExtracto[2] || '0'); // Columna C
+                    const referencia = filaExtracto[3] || ''; // Columna D
+                    
+                    // Filtrar solo "PAGO DE LETRA"
+                    if (movimiento.startsWith('PAGO DE LETRA') && importe > 0) {
+                        candidatosExtracto++;
+                        
+                        const fechaNormalizada = this.normalizarFecha(fecha);
+                        
+                        if (!gruposExtracto.has(fechaNormalizada)) {
+                            gruposExtracto.set(fechaNormalizada, {
+                                fecha: fechaNormalizada,
+                                fechaOriginal: fecha,
+                                totalImporte: 0,
+                                filas: []
+                            });
+                        }
+                        
+                        const grupo = gruposExtracto.get(fechaNormalizada);
+                        grupo.totalImporte += Math.abs(importe);
+                        grupo.filas.push({
+                            indice: j,
+                            fila: filaExtracto,
+                            importe: Math.abs(importe),
+                            referencia: referencia,
+                            movimiento: movimiento
+                        });
+                    }
+                }
+                
+                // === ETAPA 3: MAPEAR GRUPOS MAYOR vs EXTRACTO ===
+                // console.log(`📊 SBP - Grupos formados: ${gruposMayor.size} Mayor, ${gruposExtracto.size} Extracto`);
+                
+                for (const [fechaMayor, grupoMayor] of gruposMayor) {
+                    if (gruposExtracto.has(fechaMayor)) {
+                        const grupoExtracto = gruposExtracto.get(fechaMayor);
+                        
+                        // Verificar coincidencia de totales
+                        const diferencia = Math.abs(grupoMayor.totalDebe - grupoExtracto.totalImporte);
+                        
+                        if (diferencia < 0.01) { // Tolerancia mínima
+                            // ✅ MATCH ENCONTRADO - Procesar conciliación
+                            const refExtracto = grupoExtracto.filas.length > 0 ? grupoExtracto.filas[0].referencia : '';
+                            const refMayor = grupoMayor.filas.length > 0 ? `${grupoMayor.filas[0].libro}-${grupoMayor.filas[0].comprob}` : '';
+                            
+                            // Marcar todas las filas del Mayor como conciliadas
+                            grupoMayor.filas.forEach(item => {
+                                estadosFilas.set(item.indice, {
+                                    estado: 'P4 - Conciliada',
+                                    ref: refExtracto
+                                });
+                                conciliados++;
+                            });
+                            
+                            // Marcar todas las filas del Extracto como conciliadas
+                            grupoExtracto.filas.forEach(item => {
+                                estadosExtracto.set(item.indice, {
+                                    estado: 'P4 - Conciliada',
+                                    ref: refMayor
+                                });
+                                conciliados++;
+                            });
+                            
+                            // console.log(`✅ SBP Grupo ${numeroGrupo}: FECHA=${fechaMayor}, DEBE=${grupoMayor.totalDebe.toFixed(2)}, IMPORTE=${grupoExtracto.totalImporte.toFixed(2)}`);
+                            numeroGrupo++;
+                        }
+                    }
+                }
+                
+                // console.log(`📊 SBP PASO 4 COMPLETADO:`);
+                // console.log(`   📈 Candidatos Mayor (BNA): ${candidatosMayor}`);
+                // console.log(`   📈 Candidatos Extracto (PAGO DE LETRA): ${candidatosExtracto}`);
+                // console.log(`   🎯 Total conciliados: ${conciliados}`);
+                
+                return {
+                    candidatos: candidatosMayor + candidatosExtracto,
+                    conciliados: conciliados,
+                    etapa4a: conciliados,
+                    etapa4b: 0 // SBP no tiene etapa 4B
                 };
             },
 

@@ -77,6 +77,33 @@
 
 ---
 
+## Documento: SBP.PEN (Extracto Scotiabank)
+
+**Descripción**: Estado de cuenta bancario Scotiabank con movimientos de ingresos y egresos.
+
+⚠️ **IMPORTANTE**: El header inicia en la **fila 8** (skiprows=7 en pandas)
+
+### Estructura de Columnas:
+
+| Índice | Campo | Descripción |
+|--------|-------|-------------|
+| 0 | Fecha | Fecha de la Operación |
+| 1 | Movimiento | Tipo de Movimiento |
+| 2 | Importe | Importe de la Operación |
+| 3 | Referencia | Número de Referencia |
+| 4 | CDR | Código de Referencia |
+| 5 | Módulo | Código de Módulo |
+| 6 | Transac. | Código de Transacción |
+| 7 | Relación | Número de Relación |
+| 8 | ESTADO | Estado de Conciliación (columna I) |
+| 9 | #REF | Referencia de Conciliación (columna J) |
+
+**Campos Clave para Conciliación**: `Fecha`, `Importe`, `Referencia`, `Movimiento`
+
+⚠️ **IMPORTANTE**: Las columnas ESTADO y #REF se ubican en las posiciones I (8) y J (9) respectivamente.
+
+---
+
 ## Mapeo para Conciliación
 
 ### Campos Comunes Identificados:
