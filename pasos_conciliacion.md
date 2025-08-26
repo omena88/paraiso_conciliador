@@ -47,20 +47,23 @@
 
 ### PASO 5: Operaciones PROT y DEV (Agrupación por Totales Diarios)
 - **Objetivo**: Conciliar protestos y devoluciones mediante agrupación por fecha
-- **Criterios de Filtrado**:
-  - **LIBRO = "04"** + **GLOSA inicia con "PROT"** (Protestos)
-  - **LIBRO = "03"** + **GLOSA inicia con "DEV"** (Devoluciones)
-  - **ESTADO = "Pendiente"** (no procesados en pasos anteriores)
-- **Estrategia de Agrupación**:
-  1. **Agrupar por FDOC** (fecha) los registros que cumplen criterios
-  2. **Sumar TOTAL HABER** de cada grupo por fecha
-  3. **Mapear**: FDOC del grupo + TOTAL HABER ↔ FECHA + |MONTO| del Extracto
-- **Normalización**: Fechas y montos parseados automáticamente, **Math.abs()** para extracto
-- **Tolerancia**: Coincidencia exacta (sin tolerancia)
-- **Estados Resultantes**:
-  - **Todas las filas del grupo**: "P5 - Conciliada"
-  - **Mayor**: #REF = [Operación - Número del Extracto]
-  - **Extracto**: #REF = "LIBRO-COMPROB" del primer registro del grupo
+- **Estrategias por Banco**:
+
+  **BCP/SANT (GENERAL) - Operaciones PROT y DEV**:
+  - **Criterios**: LIBRO = "04" + GLOSA inicia con "PROT" / LIBRO = "03" + GLOSA inicia con "DEV"
+  - **Agrupación**: Por FDOC (fecha) + suma TOTAL HABER vs FECHA + |MONTO| del Extracto
+  
+  **BBVA (CONTINENTAL) - Operaciones DEV DOC COBRANZAS**:
+  - **Mayor**: Totales por día (PROT + DEV) agrupados por FDOC
+  - **Extracto**: Concepto="DEV DOC COBRANZAS" agrupado por F.Operación + |Importe|
+  
+  **SBP (SCOTIABANK) - Operaciones DEVOLUCION**:
+  - **Mayor**: LIBRO = "04" + GLOSA inicia con "PROT" / LIBRO = "03"/"09" + GLOSA inicia con "DEV"
+  - **Agrupación Mayor**: Por FDOC + suma HABER
+  - **Extracto**: Movimiento exactamente "DEVOLUCION" agrupado por Fecha + |Importe|
+  - **Mapeo**: FDOC (Mayor) vs Fecha (Extracto), HABER vs |Importe| por grupos
+  - **Estados**: "P5 - Conciliada" para registros mapeados
+  - **Referencias**: Mayor → Referencia del Extracto, Extracto → "LIBRO-COMPROB" del primer registro
 
 ### PASO 6 - Depósitos Bancarios**:
 - **Criterios**: LIBRO="01" + GLOSA contiene "DEPOSITO BANCARIO" + ESTADO="Pendiente"
@@ -128,15 +131,26 @@
     - Extracto → #REF = "libro - comprobante" (columnas L y M de saldo)
 
 ### PASO 11: ITF (Impuesto a las Transacciones Financieras)
-- **Criterios Mayor**: LIBRO="09" + GLOSA empieza con "ITF" + ESTADO="Pendiente"
-- **Criterios Extracto**: "Descripción operación" contiene "IMPUESTO ITF"
-- **Estrategia**: Agrupación global de todos los ITF por suma de totales
-- **Mapeo**: TOTAL MAYOR (DEBE+HABER) ↔ TOTAL EXTRACTO (|MONTO|)
-- **Normalización**: normalizarMonto() + Math.abs() para extracto
-- **Tolerancia**: Coincidencia exacta (sin tolerancia)
-- **Estados**: "P11 - Conciliada" para TODOS los registros ITF si totales coinciden
-- **Referencias**: Mayor → Operación-Número del primer extracto ITF, Extracto → "LIBRO-COMPROB" del primer mayor ITF
-- **Diferencia clave**: Conciliación por totales globales, no individual
+- **Objetivo**: Conciliar ITF mediante suma de totales globales
+- **Estrategias por Banco**:
+
+  **BCP/SANT (GENERAL) - IMPUESTO ITF**:
+  - **Mayor**: LIBRO="09" + GLOSA empieza con "ITF" + ESTADO="Pendiente"
+  - **Extracto**: "Descripción operación" contiene "IMPUESTO ITF"
+  - **Mapeo**: TOTAL MAYOR (DEBE+HABER) ↔ TOTAL EXTRACTO (|MONTO|)
+  
+  **BBVA (CONTINENTAL) - ITF**:
+  - **Mayor**: GLOSA contiene "ITF" + HABER
+  - **Extracto**: Concepto contiene "ITF", identificar total de operaciones
+  - **Mapeo**: Suma HABER (Mayor) vs suma |IMPORTE| (Extracto)
+  
+  **SBP (SCOTIABANK) - IMPUESTO**:
+  - **Mayor**: LIBRO="09" + GLOSA contiene "ITF" + ESTADO="Pendiente"
+  - **Extracto**: Movimiento contiene "IMPUESTO" - IDENTIFICAR TOTAL DE OPERACIONES
+  - **Mapeo**: Suma HABER (Mayor) vs suma |IMPORTE| (Extracto)
+  - **Estados**: "P11 - Conciliada" para TODOS los registros si totales coinciden
+  - **Referencias**: Mayor → Operación del primer extracto, Extracto → "LIBRO-COMPROB" del primer mayor ITF
+  - **Tolerancia**: Coincidencia exacta (sin tolerancia)
 
 ### PASO 12: Conciliación Multi-Criterio Progresiva
 - **Criterios**: Solo registros PENDIENTES de cualquier libro
