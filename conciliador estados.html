@@ -284,7 +284,7 @@
                 <button x-show="files.length === 0"
                         @click="loadTestFiles()"
                         class="inline-flex items-center px-4 py-3 border border-green-300 text-base font-medium rounded-md text-green-600 bg-white hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200 shadow-sm"
-                        title="Cargar archivos de prueba con nomenclatura: MAYOR.PEN/USD.MMAAAA, BCP.01/02/USD.PEN/USD.MMAAAA, SANT.PEN.MMAAAA, BBVA.PEN.MMAAAA, IBK.PEN.MMAAAA, SALDO.PEN.MMAAAA">
+                        title="Cargar archivos de prueba con nomenclatura: MAYOR.PEN/USD.MMAAAA, BCP.01/02/USD.PEN/USD.MMAAAA, SANT.PEN/USD.MMAAAA, BBVA.PEN.MMAAAA, IBK.PEN.MMAAAA, SALDO.PEN.MMAAAA">
                     <i class="fas fa-flask mr-2"></i>
                     Cargar Archivos de Prueba
                 </button>
@@ -378,6 +378,31 @@
                         paso8: 'multi_libro_operations',
                         paso9: 'multi_libro_grouped',
                         paso10: 'cheques_operations',
+                        paso11: 'itf_operations',
+                        paso12: 'multi_criteria_progressive'
+                    }
+                },
+                '1041402': {
+                    codigo: '1041402',
+                    banco: 'BCO. SANTANDER M/E',
+                    alias: 'SANT.USD',
+                    moneda: 'USD',
+                    archivoPattern: /^sant\.usd\.\d{6}/,
+                    pestañaExcel: 'SANT.USD',
+                    activo: true, // NUEVO - Cuenta Santander USD
+                    estructuraEspecial: {
+                        headerFila: 8, // Headers en fila 8 (índice 7) - igual que SANT.PEN
+                        dataInicio: 9   // Datos empiezan en fila 9 (índice 8)
+                    },
+                    pasos: {
+                        paso3: 'anulaciones_santander', // Misma lógica que SANT.PEN
+                        paso4: 'santander_operations',
+                        paso5: 'prot_dev_grouping',
+                        paso6: 'depositos_santander',
+                        paso7: 'libro03_operations',
+                        paso8: 'multi_libro_operations',
+                        paso9: 'multi_libro_grouped',
+                        paso10: 'cheques_santander',
                         paso11: 'itf_operations',
                         paso12: 'multi_criteria_progressive'
                     }
@@ -794,11 +819,11 @@
                 const hasExtracto = this.files.some(f => f.category === 'extracto');
                 
                 if (!hasMayor && !hasExtracto) {
-                    return 'Faltan archivos MAYOR.PEN/USD.MMAAAA y extractos bancarios (BCP.01/02/USD, SANT, BBVA, IBK)';
+                    return 'Faltan archivos MAYOR.PEN/USD.MMAAAA y extractos bancarios (BCP.01/02/USD, SANT.PEN/USD, BBVA, IBK)';
                 } else if (!hasMayor) {
                     return 'Falta archivo MAYOR.PEN/USD.MMAAAA';
                 } else if (!hasExtracto) {
-                    return 'Faltan archivos de extractos bancarios (BCP.01/02/USD, SANT, BBVA, IBK)';
+                    return 'Faltan archivos de extractos bancarios (BCP.01/02/USD, SANT.PEN/USD, BBVA, IBK)';
                 }
                 return 'Archivos incompletos';
             },
@@ -1234,8 +1259,8 @@
                     
                     // Seleccionar el archivo mayor apropiado según la cuenta
                     let datosMayorParaCuenta;
-                    if (codigoCuenta === '1041502' && datosMayorUSD) {
-                        // Cuenta USD: usar archivo MAYOR.USD
+                    if ((codigoCuenta === '1041502' || codigoCuenta === '1041402') && datosMayorUSD) {
+                        // Cuentas USD: usar archivo MAYOR.USD
                         datosMayorParaCuenta = datosMayorUSD;
                         console.log(`🏦 Usando MAYOR.USD para cuenta ${codigoCuenta} (${extractoInfo.config.alias})`);
                     } else {
@@ -1416,7 +1441,7 @@
                 
                 // Separar resultados por moneda
                 resultadosPorCuenta.forEach((valor, codigo) => {
-                    if (codigo === '1041502') {
+                    if (codigo === '1041502' || codigo === '1041402') {
                         resultadosUSD.set(codigo, valor);
                     } else {
                         resultadosPEN.set(codigo, valor);
@@ -1426,12 +1451,11 @@
                 // Consolidar MAYOR.PEN (solo cuentas PEN)
                 const datosMayorConsolidadoPEN = this.consolidarDatosMayorPorCuentas(resultadosPEN);
                 
-                // Usar directamente el resultado USD procesado si existe
+                // Consolidar MAYOR.USD de todas las cuentas USD procesadas
                 let datosMayorUSDFinal = null;
-                if (resultadosUSD.has('1041502')) {
-                    const resultadoUSD = resultadosUSD.get('1041502');
-                    datosMayorUSDFinal = resultadoUSD.resultado.datosMayor;
-                    console.log(`✅ MAYOR.USD procesado: ${datosMayorUSDFinal?.length || 0} filas`);
+                if (resultadosUSD.size > 0) {
+                    datosMayorUSDFinal = this.consolidarDatosMayorPorCuentas(resultadosUSD);
+                    console.log(`✅ MAYOR.USD consolidado: ${datosMayorUSDFinal?.length || 0} filas de ${resultadosUSD.size} cuenta(s) USD`);
                 } else if (datosMayorUSD) {
                     // Fallback: usar archivo USD original si no hay procesamiento
                     datosMayorUSDFinal = datosMayorUSD;
@@ -5763,11 +5787,20 @@
                 - Extracto: #REF = "GRUPO-[N]"
                 */
                 
-                // ⭐ VERIFICAR QUE ES SANTANDER
-                const esSantander = cuentaConfig && cuentaConfig.codigo === '1041401';
+                // ⭐ VERIFICAR QUE ES SANTANDER (PEN o USD)
+                const esSantander = cuentaConfig && (cuentaConfig.codigo === '1041401' || cuentaConfig.codigo === '1041402');
                 
                 if (!esSantander) {
                     return { candidatos: 0, grupos: 0, conciliados: 0 };
+                }
+                
+                // Diagnóstico específico para SANT.USD
+                const esSANTUSD = cuentaConfig && cuentaConfig.codigo === '1041402';
+                if (esSANTUSD) {
+                    console.log(`🏦 DIAGNÓSTICO SANT.USD - PASO 12:`);
+                    console.log(`   Total filas Mayor: ${filasFiltradasMayor.length}`);
+                    console.log(`   Cuenta configurada: ${cuentaConfig.codigo} (${cuentaConfig.alias})`);
+                    console.log(`   Estrategia: Agrupar por FECHA - FDOC (Mayor) vs FECHA (Extracto)`);
                 }
                 
                 // // console.log(`\n🏦 *** SANT PASO 12 INICIADO *** - Agrupación por FECHA (después de ITF)`);
@@ -6604,7 +6637,7 @@
                 // // // console.log(`🔍 Estados ya procesados: ${estadosFilas.size}`);
                 
                 // === VERIFICAR SI ES SANTANDER, BBVA, SBP, IBK O BN PARA MAPEO ESPECÍFICO ===
-                const esSantander = cuentaConfig && cuentaConfig.alias === 'SANT';
+                const esSantander = cuentaConfig && (cuentaConfig.alias === 'SANT' || cuentaConfig.alias === 'SANT.USD');
                 const esBBVA = cuentaConfig && cuentaConfig.codigo === '1041201';
                 const esIBK = cuentaConfig && cuentaConfig.alias === 'IBK';
                 const esSBP = cuentaConfig && cuentaConfig.alias === 'SBP';
@@ -6612,6 +6645,12 @@
                 
                 if (esSantander) {
                     // // console.log(`🏦 PASO 11 SANTANDER: Identificar ITF en GLOSA + CARGO POR ITF en Descripción`);
+                    const esSANTUSD = cuentaConfig && cuentaConfig.codigo === '1041402';
+                    if (esSANTUSD) {
+                        console.log(`🏦 DIAGNÓSTICO SANT.USD - PASO 11 ITF:`);
+                        console.log(`   Cuenta: ${cuentaConfig.codigo} (${cuentaConfig.alias})`);
+                        console.log(`   Buscando en extracto: "CARGO POR ITF" o "I.T.F."`);
+                    }
                     return this.procesarPaso11Santander(filasFiltradasMayor, extractoProcesable, idxM, estadosFilas, estadosExtracto);
                 } else if (esBBVA) {
                     return this.procesarPaso11BBVA(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto);
@@ -6940,14 +6979,14 @@
                     if (!filaExtracto || !Array.isArray(filaExtracto)) continue;
                     
                     // === MAPEO ESPECÍFICO SANTANDER ===
-                    // Columna D (índice 3): Descripción - buscar "CARGO POR ITF"
+                    // Columna E (índice 4): Descripción - buscar "CARGO POR ITF" o "I.T.F."
                     // Columna G (índice 6): Importe
                     const descripcionExtracto = (filaExtracto[4] || '').toString().toUpperCase(); // Columna E - Descripcion
                     const importeExtracto = filaExtracto[6] || '0'; // Columna G
                     const referenciaExtracto = filaExtracto[3] || ''; // Columna D - Referencia
                     
-                    // Verificar si contiene "CARGO POR ITF"
-                    const esCargoITF = descripcionExtracto.includes('CARGO POR ITF');
+                    // Verificar si contiene "CARGO POR ITF" o "I.T.F."
+                    const esCargoITF = descripcionExtracto.includes('CARGO POR ITF') || descripcionExtracto.includes('I.T.F.');
                     
                     if (esCargoITF) {
                         candidatosExtractoITF++;
