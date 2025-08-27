@@ -130,8 +130,10 @@
 ### Estrategia de Conciliación:
 
 1. **Mayor vs Saldo**: Comparar por `CUENTA`, `FDOC`, `NUMDOC`, `DEBE`, `HABER`
-2. **Mayor vs Extracto**: Comparar por fecha y monto (considerando DEBE/HABER vs Monto)
-3. **Saldo vs Extracto**: Comparar por fecha, monto y referencia bancaria
+2. **Mayor vs Extracto BCP/SANT/BBVA/SBP/IBK**: Comparar por fecha y monto (considerando DEBE/HABER vs Monto)
+3. **Mayor vs DET**: Comparar por fecha y monto (DEBE/HABER vs Cargo/Abono)
+4. **Mayor vs BN**: Estrategia pendiente según estructura específica de BN
+5. **Saldo vs Extracto**: Comparar por fecha, monto y referencia bancaria
 
 ### Notas Importantes:
 
@@ -174,6 +176,67 @@ def detectar_tipo_archivo(filename):
         return 'extracto', {'skiprows': 4}
     elif 'saldo' in filename_lower:
         return 'saldo', {}
+    elif 'det.pen' in filename_lower:
+        return 'det', {'skiprows': 0}  # Header en fila 1
+    elif 'bn.pen' in filename_lower:
+        return 'bn', {'skiprows': 0}   # Header en fila 1
     else:
         return 'desconocido', {}
 ```
+
+---
+
+## Documento: DET.PEN (Extracto Banco de la Nación - DET)
+
+**Descripción**: Estado de cuenta bancario del Banco de la Nación - modalidad DET.
+
+⚠️ **IMPORTANTE**: El header inicia en la **fila 1** (skiprows=0 en pandas)
+
+### Estructura de Columnas:
+
+| Índice | Campo | Descripción |
+|--------|-------|-------------|
+| 0 | Nro | Número de Operación |
+| 1 | Fecha | Fecha de la Operación |
+| 2 | Trans | Código de Transacción |
+| 3 | Documento | Número de Documento |
+| 4 | Oficina | Código de Oficina |
+| 5 | Cargo | Importe de Cargo (débito) |
+| 6 | Abono | Importe de Abono (crédito) |
+| 7 | Abono | Importe de Abono específico DET (columna H) |
+| 8 | ESTADO | Estado de Conciliación (nueva columna) |
+| 9 | #REF | Referencia de Conciliación (nueva columna) |
+
+**Campos Clave para Conciliación**: `Fecha` (formato aaaa.mm.dd), `Abono` (columna H), `Documento`, `Nro`
+
+⚠️ **IMPORTANTE**: 
+- DET usa columna H (índice 7) para Abono en conciliación
+- Las columnas ESTADO y #REF se ubican en las posiciones I (8) y J (9) respectivamente
+- Formato de fecha: aaaa.mm.dd
+
+---
+
+## Documento: BN.PEN (Extracto Banco de la Nación)
+
+**Descripción**: Estado de cuenta bancario del Banco de la Nación - modalidad estándar.
+
+⚠️ **IMPORTANTE**: El header inicia en la **fila 1** (skiprows=0 en pandas)
+
+### Estructura de Columnas:
+
+| Índice | Campo | Descripción |
+|--------|-------|-------------|
+| 0 | Nro | Número de Operación |
+| 1 | Fecha | Fecha de la Operación (formato aaaa.mm.dd) |
+| ... | ... | **PENDIENTE: DEFINIR COLUMNAS INTERMEDIAS** |
+| 6 | Abono | Importe de Abono (columna G) |
+| ... | ... | **PENDIENTE: DEFINIR COLUMNAS FINALES** |
+| -2 | ESTADO | Estado de Conciliación (penúltima columna) |
+| -1 | #REF | Referencia de Conciliación (última columna) |
+
+**Campos Clave para Conciliación**: `Fecha` (formato aaaa.mm.dd), `Abono` (columna G)
+
+⚠️ **IMPORTANTE**: 
+- BN usa columna G (índice 6) para Abono en conciliación
+- Formato de fecha: aaaa.mm.dd
+- Se requiere información completa sobre la estructura de columnas de BN.PEN
