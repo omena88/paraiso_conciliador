@@ -504,7 +504,7 @@
                         paso9: 'multi_libro_grouped',
                         paso10: 'cheques_operations',
                         paso11: 'itf_operations',
-                        paso12: 'multi_criteria_progressive'
+                        paso12: 'sbp_reprocess_paso4' // NUEVO - Reprocesar fase 1 del paso 4 para pendientes
                     }
                 },
                 '1041301': {
@@ -529,7 +529,7 @@
                         paso9: 'multi_libro_grouped',
                         paso10: 'cheques_operations',
                         paso11: 'itf_operations',
-                        paso12: 'multi_criteria_progressive'
+                        paso12: 'sbp_reprocess_paso4' // NUEVO - Reprocesar fase 1 del paso 4 para pendientes
                     }
                 },
                 '1041101': {
@@ -1034,11 +1034,11 @@
                             if (cuentaInfo.config.activo) {
                                 // Leer archivo con configuración específica (estructura especial si aplica)
                                 const datosExtracto = await this.readExcelFile(extractoFileObj.file, cuentaInfo.config);
-                                extractosPorCuenta.set(cuentaInfo.codigo, {
-                                    config: cuentaInfo.config,
-                                    datos: datosExtracto,
-                                    archivo: extractoFileObj.name
-                                });
+                            extractosPorCuenta.set(cuentaInfo.codigo, {
+                                config: cuentaInfo.config,
+                                datos: datosExtracto,
+                                archivo: extractoFileObj.name
+                            });
                                 if (cuentaInfo.codigo === '1041302') {
                                     console.log(`   📊 SBP.USD cargado: ${datosExtracto.length} filas`);
                                 }
@@ -1112,13 +1112,13 @@
                         console.log(`🔍 Buscando cuenta 1041302 en columna ${indicesMayorUSD.cuenta}`);
                         filasSBPUSD = mayorDataUSD.filter(fila => {
                             const cuenta = fila[indicesMayorUSD.cuenta] || '';
-                            const cuentaStr = cuenta.toString().trim();
-                            const contiene1041302 = cuentaStr.includes('1041302');
-                            if (contiene1041302) {
+                        const cuentaStr = cuenta.toString().trim();
+                        const contiene1041302 = cuentaStr.includes('1041302');
+                        if (contiene1041302) {
                                 console.log(`   ✅ Encontrada cuenta: "${cuentaStr}" en fila:`, fila);
-                            }
-                            return contiene1041302;
-                        });
+                        }
+                        return contiene1041302;
+                    });
                     } else {
                         // Fallback: buscar en todas las columnas
                         console.log(`🔍 FALLBACK: Buscando 1041302 en TODAS las columnas`);
@@ -1618,7 +1618,7 @@
                 
                 const resultadosPorCuenta = new Map();
                 
-                                    // Procesar cada cuenta por separado
+                // Procesar cada cuenta por separado
                 extractosPorCuenta.forEach((extractoInfo, codigoCuenta) => {
                     if (codigoCuenta === '1041302') {
                         console.log(`💰 SBP.USD INICIANDO PROCESAMIENTO: ${codigoCuenta} (${extractoInfo.config.alias})`);
@@ -1692,7 +1692,7 @@
                     if (indicesMayorUSD.cuenta !== -1) {
                         filasSBPUSD = datosMayorUSD.filter(fila => {
                             const cuenta = fila[indicesMayorUSD.cuenta] || '';
-                            const cuentaStr = cuenta.toString().trim();
+                        const cuentaStr = cuenta.toString().trim();
                             return cuentaStr.includes('1041302');
                         });
                     } else {
@@ -8733,8 +8733,9 @@
                 // Columna M (índice 12) para Comprobante
                 const comprobanteSaldo = filaSaldo[12] || filaSaldo[indicesSaldo.comprobante] || '';
                 
-                // Buscar por NUMDOC normalizado
-                if (numdocMayorNormalizado && numdocSaldoNormalizado && numdocMayorNormalizado === numdocSaldoNormalizado) {
+                // Buscar por NUMDOC normalizado (ORIGINAL + VARIANTES "A")
+                if (numdocMayorNormalizado && numdocSaldoNormalizado && 
+                    (numdocMayorNormalizado === numdocSaldoNormalizado || this.compararNumdocConVarianteA(numdocMayorNormalizado, numdocSaldoNormalizado))) {
                     // // console.log(`   🎯 MATCH NUMDOC encontrado en fila ${idx + 2} del saldo:`);
                     // // console.log(`      Mayor NUMDOC: "${numdoc}" → normalizado: "${numdocMayorNormalizado}"`);
                     // // console.log(`      Saldo NUMDOC: "${numdocSaldoRaw}" → normalizado: "${numdocSaldoNormalizado}"`);
@@ -8797,8 +8798,9 @@
             const otroComprob = otraFila[idxM.comprob] || '';
             const otraGlosa = otraFila[idxM.glosa] || '';
             
-            // Criterios: mismo NUMDOC normalizado
-            const coincidenNumdoc = numdocMayorNormalizado && otroNumdocNormalizado && (numdocMayorNormalizado === otroNumdocNormalizado);
+            // Criterios: mismo NUMDOC normalizado (ORIGINAL + VARIANTES "A")
+            const coincidenNumdoc = numdocMayorNormalizado && otroNumdocNormalizado && 
+                (numdocMayorNormalizado === otroNumdocNormalizado || this.compararNumdocConVarianteA(numdocMayorNormalizado, otroNumdocNormalizado));
             
             if (coincidenNumdoc) {
                 candidatosEncontrados++;
@@ -8888,6 +8890,37 @@
             estadoPareja: '',
             refPareja: ''
         };
+                        },
+
+            // === FUNCIÓN PARA COMPARAR NUMDOC SOLO CON VARIANTES "A" ===
+            compararNumdocConVarianteA(numdoc1, numdoc2) {
+                // Esta función SOLO maneja variantes "A", NO comparaciones exactas
+                const num1 = (numdoc1 || '').toString().trim().toUpperCase();
+                const num2 = (numdoc2 || '').toString().trim().toUpperCase();
+                
+                if (!num1 || !num2) return false;
+                
+                // Solo verificar variantes "A" (NO comparación exacta)
+                // Ejemplo: "25-85A" ↔ "25-85" o "25-85" ↔ "25-85A"
+                
+                // Verificar si num1 termina en "A" y num2 es su base
+                if (num1.endsWith('A')) {
+                    const baseNum1 = num1.slice(0, -1); // Remover la "A"
+                    if (baseNum1 === num2) {
+                        return true;
+                    }
+                }
+                
+                // Verificar si num2 termina en "A" y num1 es su base  
+                if (num2.endsWith('A')) {
+                    const baseNum2 = num2.slice(0, -1); // Remover la "A"
+                    if (baseNum2 === num1) {
+                        return true;
+                    }
+                }
+                
+                // Si no hay variante "A", retorna false
+                return false;
             },
      
             buscarIndicesColumnas(headers, mapeo) {
@@ -12593,6 +12626,418 @@
             candidatos: candidatosExtractoIBK + contadorCandidatosMayorBNA,
             conciliados: conciliados
         };
+    },
+
+    // === PASO 12 SBP - REPROCESAMIENTO COMPLETO DEL PASO 4 ===
+    procesarPaso12SBP: function(datosMayor, datosExtracto, indicesMayor, indicesExtracto, estadosFilas, estadosExtracto, cuentaConfig) {
+        if (!datosMayor || !Array.isArray(datosMayor) || datosMayor.length === 0) {
+            return { candidatos: 0, conciliados: 0 };
+        }
+
+        if (!datosExtracto || !Array.isArray(datosExtracto) || datosExtracto.length === 0) {
+            return { candidatos: 0, conciliados: 0 };
+        }
+
+        // Filtrar solo registros pendientes del Mayor
+        const filasFiltradasMayor = datosMayor.filter((fila, indice) => {
+            // Verificar si estadosFilas es un Map o un array
+            let estadoInfo;
+            if (estadosFilas instanceof Map) {
+                estadoInfo = estadosFilas.get(indice);
+            } else if (Array.isArray(estadosFilas)) {
+                estadoInfo = estadosFilas[indice];
+            } else {
+                // Si no es ni Map ni array, asumir que todos están pendientes
+                return true;
+            }
+            const estadoActual = estadoInfo ? estadoInfo.estado : 'Pendiente';
+            return estadoActual === 'Pendiente';
+        });
+
+        // Filtrar solo registros pendientes del Extracto
+        const extractoProcesable = datosExtracto.filter((item, indice) => {
+            const estadoActual = item.estado || '';
+            return estadoActual === 'Pendiente';
+        });
+
+        if (!extractoProcesable || !Array.isArray(extractoProcesable)) {
+            return { candidatos: 0, conciliados: 0 };
+        }
+
+        const esUSD = cuentaConfig.moneda === 'USD';
+        console.log(`\n🔄 === SBP PASO 12 - REPROCESAMIENTO DEL PASO 4 PARA REGISTROS PENDIENTES (${esUSD ? 'USD' : 'PEN'}) ===`);
+        console.log(`📊 Total filas Mayor pendientes: ${filasFiltradasMayor.length}`);
+        console.log(`📊 Total filas Extracto pendientes: ${extractoProcesable.length}`);
+        console.log(`📊 Criterio: Solo procesar registros con ESTADO = "Pendiente"`);
+
+        let candidatosExtractoSBP = 0;
+        let candidatosMayorSBP = 0;
+        let conciliados = 0;
+
+        // === FASE 1: BUSCAR CANDIDATOS DEL EXTRACTO SBP CON ESTADO "Pendiente" ===
+        const candidatosGrupoSBP = [];
+
+        for (let i = 0; i < extractoProcesable.length; i++) {
+            const item = extractoProcesable[i];
+            const fila = item.fila;
+            if (!fila || !Array.isArray(fila)) continue;
+
+            // Solo procesar registros con ESTADO = "Pendiente"
+            const estadoActual = item.estado || '';
+            if (estadoActual !== 'Pendiente') {
+                if (i < 5) console.log(`   ⏭️ Extracto[${i}] ignorado - Estado: "${estadoActual}" (no es Pendiente)`);
+                continue;
+            }
+
+            // SBP estructura: A=Fecha, B=Referencia, C=Descripción, D=Importe
+            const fecha = fila[0] || '';
+            const referencia = fila[1] || '';
+            const descripcion = (fila[2] || '').toString();
+            const importe = this.normalizarMonto(fila[3] || '0');
+
+            if (fecha && importe !== 0) {
+                candidatosExtractoSBP++;
+                candidatosGrupoSBP.push({
+                    indice: i,
+                    fecha: fecha,
+                    referencia: referencia,
+                    descripcion: descripcion,
+                    importe: importe,
+                    fila: fila
+                });
+            }
+        }
+
+        console.log(`📊 Candidatos extracto SBP encontrados: ${candidatosExtractoSBP}`);
+
+        // === FASE 2: AGRUPAR EXTRACTO POR CRITERIO ===
+        const gruposExtracto = new Map();
+
+        if (esUSD) {
+            // USD: Agrupa por FECHA
+            candidatosGrupoSBP.forEach(candidato => {
+                const fecha = candidato.fecha;
+                if (!gruposExtracto.has(fecha)) {
+                    gruposExtracto.set(fecha, {
+                        total: 0,
+                        registros: [],
+                        indices: []
+                    });
+                }
+                const grupo = gruposExtracto.get(fecha);
+                grupo.total += Math.abs(candidato.importe);
+                grupo.registros.push(candidato);
+                grupo.indices.push(candidato.indice);
+            });
+        } else {
+            // PEN: Agrupación anidada REFERENCIA → FECHA
+            const gruposPorReferencia = new Map();
+            
+            candidatosGrupoSBP.forEach(candidato => {
+                const referencia = candidato.referencia;
+                const fecha = candidato.fecha;
+                
+                if (!gruposPorReferencia.has(referencia)) {
+                    gruposPorReferencia.set(referencia, new Map());
+                }
+                
+                const grupoReferencia = gruposPorReferencia.get(referencia);
+                if (!grupoReferencia.has(fecha)) {
+                    grupoReferencia.set(fecha, {
+                        total: 0,
+                        registros: [],
+                        indices: []
+                    });
+                }
+                
+                const grupoFecha = grupoReferencia.get(fecha);
+                grupoFecha.total += Math.abs(candidato.importe);
+                grupoFecha.registros.push(candidato);
+                grupoFecha.indices.push(candidato.indice);
+            });
+            
+            // Convertir a formato plano para el mapeo
+            gruposPorReferencia.forEach((gruposFecha, referencia) => {
+                gruposFecha.forEach((grupoFecha, fecha) => {
+                    const clave = `${referencia}-${fecha}`;
+                    gruposExtracto.set(clave, grupoFecha);
+                });
+            });
+        }
+
+        console.log(`📊 Grupos extracto formados: ${gruposExtracto.size}`);
+
+        // === FASE 3: BUSCAR CANDIDATOS DEL MAYOR SBP CON ESTADO "Pendiente" ===
+        const candidatosMayorSBPList = [];
+        const gruposMayor = new Map(); // Para agrupación anidada
+
+        for (let i = 0; i < filasFiltradasMayor.length; i++) {
+            const filaMayor = filasFiltradasMayor[i];
+            
+            // Solo procesar registros con ESTADO = "Pendiente"
+            let estadoInfo;
+            if (estadosFilas instanceof Map) {
+                estadoInfo = estadosFilas.get(i);
+            } else if (Array.isArray(estadosFilas)) {
+                estadoInfo = estadosFilas[i];
+            } else {
+                estadoInfo = null;
+            }
+            const estadoActual = estadoInfo ? estadoInfo.estado : 'Pendiente';
+            if (estadoActual !== 'Pendiente') {
+                if (i < 5) console.log(`   ⏭️ Mayor[${i}] ignorado - Estado: "${estadoActual}" (no es Pendiente)`);
+                continue;
+            }
+
+            const libro = (filaMayor[indicesMayor.libro] || '').toString();
+            const debe = this.normalizarMonto(filaMayor[indicesMayor.debe] || '0');
+            const haber = this.normalizarMonto(filaMayor[indicesMayor.haber] || '0');
+            const fdoc = filaMayor[indicesMayor.fdoc] || '';
+            const comprob = filaMayor[indicesMayor.comprob] || '';
+
+            // Filtrar por libros permitidos: 02/03/09/14/15
+            if (['02', '03', '09', '14', '15'].includes(libro) && (debe > 0 || haber > 0)) {
+                candidatosMayorSBP++;
+                candidatosMayorSBPList.push({
+                    indice: i,
+                    libro: libro,
+                    debe: debe,
+                    haber: haber,
+                    fdoc: fdoc,
+                    comprob: comprob,
+                    fila: filaMayor
+                });
+
+                // Agrupación anidada COMPROB → FDOC
+                if (!gruposMayor.has(comprob)) {
+                    gruposMayor.set(comprob, new Map());
+                }
+                
+                const grupoComprob = gruposMayor.get(comprob);
+                if (!grupoComprob.has(fdoc)) {
+                    grupoComprob.set(fdoc, {
+                        total: 0,
+                        registros: [],
+                        indices: []
+                    });
+                }
+                
+                const grupoFDOC = grupoComprob.get(fdoc);
+                grupoFDOC.total += haber; // Usar HABER para el total
+                grupoFDOC.registros.push({
+                    indice: i,
+                    libro: libro,
+                    debe: debe,
+                    haber: haber,
+                    fdoc: fdoc,
+                    comprob: comprob,
+                    fila: filaMayor
+                });
+                grupoFDOC.indices.push(i);
+            }
+        }
+
+        console.log(`📊 Candidatos mayor SBP encontrados: ${candidatosMayorSBP}`);
+        console.log(`📊 Grupos mayor formados: ${gruposMayor.size}`);
+
+        // === FASE 4: MAPEO SEGÚN CRITERIO ===
+        console.log(`\n🔄 === FASE 4: INICIANDO MAPEO SEGÚN CRITERIO ${esUSD ? 'USD' : 'PEN'} ===`);
+
+        gruposExtracto.forEach((grupoExtracto, criterioExtracto) => {
+            console.log(`\n📅 Grupo Extracto - ${esUSD ? 'Fecha' : 'Referencia-Fecha'}: ${criterioExtracto}, Total: ${grupoExtracto.total.toFixed(2)}, Registros: [${grupoExtracto.indices.join(',')}]`);
+
+            if (esUSD) {
+                // USD: Mapea por FECHA + TOTAL IMPORTE
+                candidatosMayorSBPList.forEach(candidatoMayor => {
+                    const criterioMayor = candidatoMayor.fdoc;
+                    const totalMayor = candidatoMayor.haber;
+                    const tolerancia = 1.0;
+                    const montosCoinciden = Math.abs(totalMayor - grupoExtracto.total) <= tolerancia;
+                    const criteriosCoinciden = criterioMayor === criterioExtracto;
+
+                    console.log(`   🏛️ Candidato Mayor[${candidatoMayor.indice}] - FDOC: ${criterioMayor}, HABER: ${totalMayor.toFixed(2)}`);
+                    console.log(`      📊 Criterio coincide: ${criteriosCoinciden} | Monto coincide: ${montosCoinciden} (diff: ${Math.abs(totalMayor - grupoExtracto.total).toFixed(2)})`);
+
+                    if (criteriosCoinciden && montosCoinciden) {
+                        this.conciliarGrupoSBP(grupoExtracto, candidatoMayor, estadosFilas, estadosExtracto, esUSD, criterioExtracto);
+                        conciliados += 1;
+                    }
+                });
+            } else {
+                // PEN: Mapea por COMPROB-FDOC + TOTAL HABER vs REFERENCIA-FECHA + TOTAL IMPORTE
+                const [referenciaExtracto, fechaExtracto] = criterioExtracto.split('-');
+                
+                gruposMayor.forEach((gruposFDOC, comprob) => {
+                    gruposFDOC.forEach((grupoFDOC, fdoc) => {
+                        const criterioMayor = `${comprob}-${fdoc}`;
+                        const totalMayor = grupoFDOC.total;
+                        const tolerancia = 1.0;
+                        const montosCoinciden = Math.abs(totalMayor - grupoExtracto.total) <= tolerancia;
+                        const criteriosCoinciden = criterioMayor === criterioExtracto;
+
+                        console.log(`   🏛️ Grupo Mayor - ${criterioMayor}: Total HABER: ${totalMayor.toFixed(2)}`);
+                        console.log(`      📊 Criterio coincide: ${criteriosCoinciden} | Monto coincide: ${montosCoinciden} (diff: ${Math.abs(totalMayor - grupoExtracto.total).toFixed(2)})`);
+
+                        if (criteriosCoinciden && montosCoinciden) {
+                            this.conciliarGrupoSBP(grupoExtracto, grupoFDOC, estadosFilas, estadosExtracto, esUSD, criterioExtracto);
+                            conciliados += 1;
+                        }
+                    });
+                });
+            }
+        });
+
+        // === RESUMEN FINAL ===
+        console.log(`\n🏁 === RESUMEN PASO 12 SBP (${esUSD ? 'USD' : 'PEN'}) ===`);
+        console.log(`👥 Candidatos encontrados Extracto SBP: ${candidatosExtractoSBP}`);
+        console.log(`🏛️ Candidatos encontrados Mayor SBP: ${candidatosMayorSBP}`);
+        console.log(`✅ Total conciliaciones realizadas: ${conciliados}`);
+
+        // === ANÁLISIS DETALLADO ===
+        console.log(`\n🔍 === ANÁLISIS DETALLADO DE REGISTROS PENDIENTES ===`);
+        
+        // Analizar extracto pendientes
+        let pendientesExtracto = 0;
+        for (let i = 0; i < extractoProcesable.length; i++) {
+            const item = extractoProcesable[i];
+            const estadoActual = item.estado || '';
+            if (estadoActual === 'Pendiente') {
+                pendientesExtracto++;
+                if (pendientesExtracto <= 10) {
+                    const fila = item.fila || [];
+                    const fecha = fila[0] || '';
+                    const referencia = fila[1] || '';
+                    const importe = this.normalizarMonto(fila[3] || '0');
+                    console.log(`   📝 Extracto[${i}] PENDIENTE: FECHA="${fecha}" REF="${referencia}" IMPORTE=${importe}`);
+                }
+            }
+        }
+        console.log(`📊 Total registros PENDIENTES en extracto: ${pendientesExtracto}`);
+
+        // Analizar mayor pendientes
+        let pendientesMayor = 0;
+        for (let i = 0; i < filasFiltradasMayor.length; i++) {
+            let estadoInfo;
+            if (estadosFilas instanceof Map) {
+                estadoInfo = estadosFilas.get(i);
+            } else if (Array.isArray(estadosFilas)) {
+                estadoInfo = estadosFilas[i];
+            } else {
+                estadoInfo = null;
+            }
+            const estadoActual = estadoInfo ? estadoInfo.estado : 'Pendiente';
+            if (estadoActual === 'Pendiente') {
+                const filaMayor = filasFiltradasMayor[i];
+                const libro = (filaMayor[indicesMayor.libro] || '').toString();
+                const debe = this.normalizarMonto(filaMayor[indicesMayor.debe] || '0');
+                const haber = this.normalizarMonto(filaMayor[indicesMayor.haber] || '0');
+                if (['02', '03', '09', '14', '15'].includes(libro) && (debe > 0 || haber > 0)) {
+                    pendientesMayor++;
+                    if (pendientesMayor <= 10) {
+                        const fdoc = filaMayor[indicesMayor.fdoc] || '';
+                        const comprob = filaMayor[indicesMayor.comprob] || '';
+                        console.log(`   🏛️ Mayor[${i}] PENDIENTE SBP: LIBRO="${libro}" FDOC="${fdoc}" DEBE=${debe} HABER=${haber} COMPROB="${comprob}"`);
+                    }
+                }
+            }
+        }
+        console.log(`📊 Total registros PENDIENTES SBP en mayor: ${pendientesMayor}`);
+
+        // Mostrar grupos formados
+        console.log(`\n📅 === GRUPOS FORMADOS POR ${esUSD ? 'FECHA' : 'REFERENCIA'} ===`);
+        gruposExtracto.forEach((grupoExtracto, criterioExtracto) => {
+            console.log(`   📅 ${esUSD ? 'Fecha' : 'Referencia'}: ${criterioExtracto} | Total: ${grupoExtracto.total.toFixed(2)} | Registros: ${grupoExtracto.indices.length} [${grupoExtracto.indices.join(',')}]`);
+        });
+
+        // Mostrar candidatos mayor encontrados
+        console.log(`\n🏛️ === CANDIDATOS MAYOR SBP ENCONTRADOS ===`);
+        candidatosMayorSBPList.forEach((candidato, idx) => {
+            if (idx < 10) {
+                console.log(`   🏛️ [${idx}] Indice: ${candidato.indice} | LIBRO: ${candidato.libro} | FDOC: ${candidato.fdoc} | DEBE: ${candidato.debe.toFixed(2)} | HABER: ${candidato.haber.toFixed(2)}`);
+            }
+        });
+
+        console.log(`\n🔄 === FIN ANÁLISIS PASO 12 SBP (${esUSD ? 'USD' : 'PEN'}) ===`);
+
+        return {
+            candidatos: candidatosExtractoSBP + candidatosMayorSBP,
+            conciliados: conciliados
+        };
+    },
+
+    // === FUNCIÓN AUXILIAR PARA CONCILIAR GRUPOS SBP ===
+    conciliarGrupoSBP: function(grupoExtracto, grupoMayor, estadosFilas, estadosExtracto, esUSD, criterioExtracto) {
+        if (esUSD) {
+            // USD: Conciliar registro individual
+            const comprob = grupoMayor.fila[indicesMayor.comprob] || '';
+            const libro = grupoMayor.fila[indicesMayor.libro] || '';
+
+            // Marcar Mayor como conciliado
+            if (estadosFilas instanceof Map) {
+                estadosFilas.set(grupoMayor.indice, {
+                    estado: 'P12SBP - Conciliada',
+                    ref: `SBP-USD-${criterioExtracto}`
+                });
+            } else if (Array.isArray(estadosFilas)) {
+                estadosFilas[grupoMayor.indice] = {
+                    estado: 'P12SBP - Conciliada',
+                    ref: `SBP-USD-${criterioExtracto}`
+                };
+            }
+
+            // Marcar registros del extracto como conciliados
+            grupoExtracto.indices.forEach(idxExtracto => {
+                if (estadosExtracto instanceof Map) {
+                    estadosExtracto.set(idxExtracto, {
+                        estado: 'P12SBP - Conciliada',
+                        ref: `${libro}-${comprob}`
+                    });
+                } else if (Array.isArray(estadosExtracto)) {
+                    estadosExtracto[idxExtracto] = {
+                        estado: 'P12SBP - Conciliada',
+                        ref: `${libro}-${comprob}`
+                    };
+                }
+            });
+
+            console.log(`✅ MAPEO P12SBP USD EXITOSO: Mayor[${grupoMayor.indice}] FDOC=${grupoMayor.fdoc} HABER=${grupoMayor.haber.toFixed(2)} ↔ Extracto Fecha[${grupoExtracto.indices.join(',')}] Fecha=${criterioExtracto} TOTAL=${grupoExtracto.total.toFixed(2)}`);
+        } else {
+            // PEN: Conciliar grupo completo
+            const comprob = grupoMayor.registros[0].comprob || '';
+            const libro = grupoMayor.registros[0].libro || '';
+
+            // Marcar todos los registros del Mayor como conciliados
+            grupoMayor.indices.forEach(indiceMayor => {
+                if (estadosFilas instanceof Map) {
+                    estadosFilas.set(indiceMayor, {
+                        estado: 'P12SBP - Conciliada',
+                        ref: `SBP-PEN-${criterioExtracto}`
+                    });
+                } else if (Array.isArray(estadosFilas)) {
+                    estadosFilas[indiceMayor] = {
+                        estado: 'P12SBP - Conciliada',
+                        ref: `SBP-PEN-${criterioExtracto}`
+                    };
+                }
+            });
+
+            // Marcar registros del extracto como conciliados
+            grupoExtracto.indices.forEach(idxExtracto => {
+                if (estadosExtracto instanceof Map) {
+                    estadosExtracto.set(idxExtracto, {
+                        estado: 'P12SBP - Conciliada',
+                        ref: `${libro}-${comprob}`
+                    });
+                } else if (Array.isArray(estadosExtracto)) {
+                    estadosExtracto[idxExtracto] = {
+                        estado: 'P12SBP - Conciliada',
+                        ref: `${libro}-${comprob}`
+                    };
+                }
+            });
+
+            console.log(`✅ MAPEO P12SBP PEN EXITOSO: Mayor Grupo[${grupoMayor.indices.join(',')}] COMPROB-FDOC=${criterioExtracto} Total HABER=${grupoMayor.total.toFixed(2)} ↔ Extracto REFERENCIA-FECHA[${grupoExtracto.indices.join(',')}] ${criterioExtracto} TOTAL=${grupoExtracto.total.toFixed(2)}`);
+        }
     }
         }; // cierre del objeto return
     } // cierre de la función bancarioConciliador
