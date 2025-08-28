@@ -284,7 +284,7 @@
                 <button x-show="files.length === 0"
                         @click="loadTestFiles()"
                         class="inline-flex items-center px-4 py-3 border border-green-300 text-base font-medium rounded-md text-green-600 bg-white hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200 shadow-sm"
-                        title="Cargar archivos de prueba con nomenclatura: MAYOR.PEN/USD.MMAAAA, BCP.01/02/USD.PEN/USD.MMAAAA, SANT.PEN/USD.MMAAAA, BBVA.PEN.MMAAAA, IBK.PEN.MMAAAA, SALDO.PEN.MMAAAA">
+                        title="Cargar archivos de prueba con nomenclatura: MAYOR.PEN/USD.MMAAAA, BCP.01/02/USD.PEN/USD.MMAAAA, SANT.PEN/USD.MMAAAA, BBVA.PEN/USD.MMAAAA, SBP.PEN/USD.MMAAAA, IBK.PEN.MMAAAA, SALDO.PEN.MMAAAA">
                     <i class="fas fa-flask mr-2"></i>
                     Cargar Archivos de Prueba
                 </button>
@@ -432,6 +432,31 @@
                         paso12: 'multi_criteria_progressive'
                     }
                 },
+                '1041202': {
+                    codigo: '1041202',
+                    banco: 'CONTINENTAL M/E',
+                    alias: 'BBVA.USD',
+                    moneda: 'USD',
+                    archivoPattern: /^bbva\.usd\.\d{6}/,
+                    pestañaExcel: 'BBVA.USD',
+                    activo: true, // NUEVO - Cuenta BBVA USD
+                    estructuraEspecial: {
+                        headerFila: 11, // Headers en fila 11 (índice 10) - igual que BBVA.PEN
+                        dataInicio: 13   // Datos empiezan en fila 13 (índice 12), saltando fila 12
+                    },
+                    pasos: {
+                        paso3: 'anulaciones_standard',
+                        paso4: 'bbva_operations', // Misma lógica que BBVA.PEN
+                        paso5: 'prot_dev_grouping',
+                        paso6: 'depositos_bancarios',
+                        paso7: 'libro03_operations',
+                        paso8: 'multi_libro_operations',
+                        paso9: 'multi_libro_grouped',
+                        paso10: 'cheques_operations',
+                        paso11: 'itf_operations',
+                        paso12: 'multi_criteria_progressive'
+                    }
+                },
                 '1041201': {
                     codigo: '1041201',
                     banco: 'CONTINENTAL M/N',
@@ -449,6 +474,31 @@
                         paso4: 'standard_operations',
                         paso5: 'prot_dev_grouping',
                         paso6: 'depositos_standard',
+                        paso7: 'libro03_operations',
+                        paso8: 'multi_libro_operations',
+                        paso9: 'multi_libro_grouped',
+                        paso10: 'cheques_operations',
+                        paso11: 'itf_operations',
+                        paso12: 'multi_criteria_progressive'
+                    }
+                },
+                '1041302': {
+                    codigo: '1041302',
+                    banco: 'SCOTIABANK M/E',
+                    alias: 'SBP.USD',
+                    moneda: 'USD',
+                    archivoPattern: /^sbp\.usd\.\d{6}/,
+                    pestañaExcel: 'SBP.USD',
+                    activo: true, // NUEVO - Cuenta SBP USD
+                    estructuraEspecial: {
+                        headerFila: 8, // Headers en fila 8 (índice 7) - igual que SBP.PEN
+                        dataInicio: 9   // Datos empiezan en fila 9 (índice 8)
+                    },
+                    pasos: {
+                        paso3: 'anulaciones_standard',
+                        paso4: 'sbp_operations', // Misma lógica que SBP.PEN
+                        paso5: 'prot_dev_grouping',
+                        paso6: 'depositos_bancarios',
                         paso7: 'libro03_operations',
                         paso8: 'multi_libro_operations',
                         paso9: 'multi_libro_grouped',
@@ -616,11 +666,29 @@
             // Detectar cuenta por nombre de archivo
             detectarCuentaPorArchivo(fileName) {
                 const name = fileName.toLowerCase();
+                
+                // Diagnóstico específico para SBP.USD
+                if (name.includes('sbp.usd')) {
+                    console.log(`🔍 DIAGNÓSTICO SBP.USD DETECCIÓN:`);
+                    console.log(`   Archivo: "${fileName}" → normalizado: "${name}"`);
+                }
+                
                 for (const [codigo, config] of Object.entries(this.cuentasConfig)) {
                     if (config.archivoPattern.test(name)) {
+                        if (name.includes('sbp.usd')) {
+                            console.log(`   ✅ PATRÓN COINCIDE: ${codigo} (${config.alias})`);
+                            console.log(`   🔧 Patrón usado: ${config.archivoPattern}`);
+                        }
                         return { codigo, config };
+                    } else if (name.includes('sbp.usd')) {
+                        console.log(`   ❌ NO coincide con ${codigo} (${config.alias}): ${config.archivoPattern}`);
                     }
                 }
+                
+                if (name.includes('sbp.usd')) {
+                    console.log(`   🚨 SBP.USD NO DETECTADO POR NINGÚN PATRÓN`);
+                }
+                
                 return null;
             },
             
@@ -819,11 +887,11 @@
                 const hasExtracto = this.files.some(f => f.category === 'extracto');
                 
                 if (!hasMayor && !hasExtracto) {
-                    return 'Faltan archivos MAYOR.PEN/USD.MMAAAA y extractos bancarios (BCP.01/02/USD, SANT.PEN/USD, BBVA, IBK)';
+                    return 'Faltan archivos MAYOR.PEN/USD.MMAAAA y extractos bancarios (BCP.01/02/USD, SANT.PEN/USD, BBVA.PEN/USD, SBP.PEN/USD, IBK)';
                 } else if (!hasMayor) {
                     return 'Falta archivo MAYOR.PEN/USD.MMAAAA';
                 } else if (!hasExtracto) {
-                    return 'Faltan archivos de extractos bancarios (BCP.01/02/USD, SANT.PEN/USD, BBVA, IBK)';
+                    return 'Faltan archivos de extractos bancarios (BCP.01/02/USD, SANT.PEN/USD, BBVA.PEN/USD, SBP.PEN/USD, IBK)';
                 }
                 return 'Archivos incompletos';
             },
@@ -851,18 +919,52 @@
                     const extractosPorCuenta = new Map();
                     
                     // Procesar cada archivo de extracto por cuenta específica
+                    console.log(`🔍 DIAGNÓSTICO ARCHIVOS EXTRACTO: ${extractoFiles.length} archivos encontrados`);
                     for (const extractoFileObj of extractoFiles) {
+                        console.log(`   📁 Procesando: ${extractoFileObj.name}`);
                         const cuentaInfo = this.detectarCuentaPorArchivo(extractoFileObj.name);
-                        if (cuentaInfo && cuentaInfo.config.activo) {
-                            const datosExtracto = await this.readExcelFile(extractoFileObj.file);
-                            extractosPorCuenta.set(cuentaInfo.codigo, {
-                                config: cuentaInfo.config,
-                                datos: datosExtracto,
-                                archivo: extractoFileObj.name
-                            });
-                            // // console.log(`📂 Extracto ${cuentaInfo.config.alias}: ${datosExtracto.length} filas`);
+                        if (cuentaInfo) {
+                            console.log(`   ✅ Detectado: ${cuentaInfo.codigo} (${cuentaInfo.config.alias}) - Activo: ${cuentaInfo.config.activo}`);
+                            if (cuentaInfo.config.activo) {
+                                // Leer archivo con configuración específica (estructura especial si aplica)
+                                const datosExtracto = await this.readExcelFile(extractoFileObj.file, cuentaInfo.config);
+                                extractosPorCuenta.set(cuentaInfo.codigo, {
+                                    config: cuentaInfo.config,
+                                    datos: datosExtracto,
+                                    archivo: extractoFileObj.name
+                                });
+                                console.log(`   📊 ${cuentaInfo.config.alias} cargado: ${datosExtracto.length} filas`);
+                                
+                                // Diagnóstico especial para SBP.USD
+                                if (cuentaInfo.codigo === '1041302') {
+                                    console.log(`   🔍 SBP.USD DATOS CARGADOS:`);
+                                    console.log(`      📁 Archivo: ${extractoFileObj.name}`);
+                                    console.log(`      📊 Total filas: ${datosExtracto.length}`);
+                                    console.log(`      🏗️ Estructura especial: ${!!cuentaInfo.config.estructuraEspecial}`);
+                                    if (cuentaInfo.config.estructuraEspecial) {
+                                        console.log(`      📋 Header fila: ${cuentaInfo.config.estructuraEspecial.headerFila}`);
+                                        console.log(`      📊 Datos desde fila: ${cuentaInfo.config.estructuraEspecial.dataInicio}`);
+                                    }
+                                    // Mostrar primeras filas para verificar
+                                    if (datosExtracto.length > 0) {
+                                        console.log(`      📋 Primera fila:`, datosExtracto[0]);
+                                        if (datosExtracto.length > 1) {
+                                            console.log(`      📋 Segunda fila:`, datosExtracto[1]);
+                                        }
+                                    }
+                                }
+                            } else {
+                                console.log(`   ⚠️ ${cuentaInfo.config.alias} inactivo, saltando`);
+                            }
+                        } else {
+                            console.log(`   ❌ No detectado como cuenta conocida: ${extractoFileObj.name}`);
                         }
                     }
+                    
+                    console.log(`📋 RESUMEN EXTRACTOS CARGADOS: ${extractosPorCuenta.size} cuentas`);
+                    extractosPorCuenta.forEach((info, codigo) => {
+                        console.log(`   ${codigo} (${info.config.alias}): ${info.datos.length} filas desde ${info.archivo}`);
+                    });
                     
                     if (extractosPorCuenta.size === 0 || !mayorFile) {
                         throw new Error('No se encontraron los archivos necesarios');
@@ -874,11 +976,45 @@
                     const mayorDataPEN = await this.readExcelFile(mayorFile);
                     
                     // Cargar MAYOR.USD si existe
-                    let mayorDataUSD = null;
-                    if (mayorFileUSD) {
-                        mayorDataUSD = await this.readExcelFile(mayorFileUSD);
-                        console.log(`📋 MAYOR.USD cargado: ${mayorDataUSD.length} filas`);
+                                    let mayorDataUSD = null;
+                if (mayorFileUSD) {
+                    mayorDataUSD = await this.readExcelFile(mayorFileUSD);
+                    console.log(`📋 MAYOR.USD cargado: ${mayorDataUSD.length} filas`);
+                    
+                    // Verificar datos de SBP.USD específicamente
+                    console.log(`🔍 Buscando cuenta 1041302 en columna H (índice 7)`);
+                    const filasSBPUSD = mayorDataUSD.filter(fila => {
+                        const cuenta = fila[7] || ''; // Columna H = índice 7
+                        const cuentaStr = cuenta.toString().trim();
+                        const contiene1041302 = cuentaStr.includes('1041302');
+                        if (contiene1041302) {
+                            console.log(`   ✅ Encontrada cuenta: "${cuentaStr}"`);
+                        }
+                        return contiene1041302;
+                    });
+                    console.log(`🔍 SBP.USD en MAYOR.USD: ${filasSBPUSD.length} filas`);
+                    
+                    // Si no encontramos, revisar todas las cuentas para diagnosticar
+                    if (filasSBPUSD.length === 0 && mayorDataUSD.length > 0) {
+                        console.log(`🔍 Revisando primeras 5 filas para diagnóstico:`);
+                        mayorDataUSD.slice(0, 5).forEach((fila, idx) => {
+                            const cuenta = fila[7] || ''; // Columna H = índice 7
+                            console.log(`   Fila ${idx}: cuenta="${cuenta}" (columna H)`);
+                        });
+                        
+                        // Buscar cualquier cuenta que empiece con 1041
+                        const cuentas1041 = mayorDataUSD.filter(fila => {
+                            const cuenta = fila[7] || ''; // Columna H = índice 7
+                            return cuenta.toString().startsWith('1041');
+                        });
+                        const cuentasUnicas = [...new Set(cuentas1041.map(fila => fila[7]))];
+                        console.log(`🔍 Cuentas 1041* encontradas:`, cuentasUnicas);
                     }
+                    
+                    if (filasSBPUSD.length > 0) {
+                        console.log(`📊 Primera fila SBP.USD:`, filasSBPUSD[0]);
+                    }
+                }
                     
                     // Cargar archivo de saldo si está disponible
                     let saldoData = null;
@@ -997,7 +1133,7 @@
                 }
             },
 
-            readExcelFile(file) {
+            readExcelFile(file, cuentaConfig = null) {
          return new Promise((resolve, reject) => {
              const reader = new FileReader();
              reader.onload = function(e) {
@@ -1006,7 +1142,94 @@
                      const workbook = XLSX.read(data, { type: 'array' });
                      const sheetName = workbook.SheetNames[0];
                      const worksheet = workbook.Sheets[sheetName];
-                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+                    let jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+                    
+                                // DIAGNÓSTICO: Verificar cuentaConfig recibido
+            console.log(`🔧 DEBUG readExcelFile - cuentaConfig recibido:`, cuentaConfig ? cuentaConfig.alias : 'NULL');
+            if (cuentaConfig) {
+                console.log(`   📋 Config completo:`, cuentaConfig);
+                console.log(`   🏗️ Tiene estructuraEspecial:`, !!cuentaConfig.estructuraEspecial);
+                if (cuentaConfig.estructuraEspecial) {
+                    console.log(`   📊 Estructura:`, cuentaConfig.estructuraEspecial);
+                }
+            }
+            
+            // Aplicar estructura especial si está configurada
+            if (cuentaConfig && cuentaConfig.estructuraEspecial) {
+                        const estructura = cuentaConfig.estructuraEspecial;
+                        console.log(`🏗️ Aplicando estructura especial para ${cuentaConfig.alias}:`);
+                        console.log(`   📋 Original: ${jsonData.length} filas`);
+                        console.log(`   🔧 Header en fila: ${estructura.headerFila}`);
+                        console.log(`   📊 Datos desde fila: ${estructura.dataInicio}`);
+                        
+                        // Extraer header y datos según configuración
+                        const headerFila = jsonData[estructura.headerFila - 1] || []; // Convertir a índice base 0
+                        const datosDesde = estructura.dataInicio - 1; // Convertir a índice base 0
+                        
+                        console.log(`   🔍 Header extraído original:`, headerFila);
+                        console.log(`   🔍 Primera fila de datos:`, jsonData[datosDesde]);
+                        
+                        // VALIDAR QUE EL HEADER SEA REALMENTE UN HEADER (no datos)
+                        console.log(`   🧪 VALIDANDO HEADER para ${cuentaConfig.alias}:`);
+                        headerFila.forEach((col, idx) => {
+                            const esString = typeof col === 'string';
+                            const colStr = col ? col.toString().toUpperCase() : '';
+                            const contieneTerminos = colStr.includes('FECHA') || colStr.includes('IMPORTE') || 
+                                                   colStr.includes('MONTO') || colStr.includes('DESCRIPCION') || 
+                                                   colStr.includes('REFERENCIA') || colStr.includes('MOVIMIENTO');
+                            console.log(`      Col[${idx}]: "${col}" (tipo: ${typeof col}, string: ${esString}, términos: ${contieneTerminos})`);
+                        });
+                        
+                        const esHeaderValido = headerFila.some(col => 
+                            col && typeof col === 'string' && 
+                            (col.toUpperCase().includes('FECHA') || 
+                             col.toUpperCase().includes('IMPORTE') || 
+                             col.toUpperCase().includes('MONTO') ||
+                             col.toUpperCase().includes('DESCRIPCION') ||
+                             col.toUpperCase().includes('REFERENCIA') ||
+                             col.toUpperCase().includes('MOVIMIENTO'))
+                        );
+                        
+                        console.log(`   📊 Header válido: ${esHeaderValido}`);
+                        
+                        if (!esHeaderValido) {
+                            console.log(`   ⚠️ Header no válido detectado, usando header por defecto para ${cuentaConfig.alias}`);
+                            // Generar header por defecto según el banco
+                            let headerPorDefecto;
+                            if (cuentaConfig.alias === 'SBP' || cuentaConfig.alias === 'SBP.USD') {
+                                headerPorDefecto = ['Fecha', 'Movimiento', 'Importe', 'Referencia', 'CDR', 'Módulo', 'Transac.', 'Relación'];
+                            } else if (cuentaConfig.alias === 'SANT' || cuentaConfig.alias === 'SANT.USD') {
+                                headerPorDefecto = ['Fecha', 'Fecha valuta', 'Descripción operación', 'Monto', 'Saldo', 'Sucursal', 'Operación - Número', 'Operación - Hora', 'Usuario', 'UTC', 'Referencia2'];
+                            } else if (cuentaConfig.alias === 'BBVA' || cuentaConfig.alias === 'BBVA.USD') {
+                                headerPorDefecto = ['F. Operación', 'F. Valor', 'Concepto', 'Número', 'Descripción', 'Importe', 'Saldo'];
+                            } else if (cuentaConfig.alias === 'IBK') {
+                                headerPorDefecto = ['Fecha', 'Fecha Valor', 'Número', 'Concepto', 'Descripción', 'Cód. Aux', 'Monto', 'Vencimiento', 'Saldo'];
+                            } else {
+                                headerPorDefecto = ['Fecha', 'Descripción', 'Monto', 'Referencia', 'Saldo'];
+                            }
+                            
+                            // Crear nueva estructura: [header por defecto, ...datos desde dataInicio]
+                            const datosEstructurados = [headerPorDefecto];
+                            for (let i = datosDesde; i < jsonData.length; i++) {
+                                datosEstructurados.push(jsonData[i]);
+                            }
+                            
+                            console.log(`   ✅ Reestructurado con header por defecto: ${datosEstructurados.length} filas`);
+                            console.log(`   📋 Header por defecto:`, headerPorDefecto);
+                            jsonData = datosEstructurados;
+                        } else {
+                            // Header válido, usar estructura normal
+                            const datosEstructurados = [headerFila];
+                            for (let i = datosDesde; i < jsonData.length; i++) {
+                                datosEstructurados.push(jsonData[i]);
+                            }
+                            
+                            console.log(`   ✅ Reestructurado con header original: ${datosEstructurados.length} filas`);
+                            console.log(`   📋 Header extraído:`, headerFila);
+                            jsonData = datosEstructurados;
+                        }
+                    }
+                    
                      resolve(jsonData);
                  } catch (error) {
                      reject(error);
@@ -1259,10 +1482,10 @@
                     
                     // Seleccionar el archivo mayor apropiado según la cuenta
                     let datosMayorParaCuenta;
-                    if ((codigoCuenta === '1041502' || codigoCuenta === '1041402') && datosMayorUSD) {
+                    if ((codigoCuenta === '1041502' || codigoCuenta === '1041402' || codigoCuenta === '1041202' || codigoCuenta === '1041302') && datosMayorUSD) {
                         // Cuentas USD: usar archivo MAYOR.USD
                         datosMayorParaCuenta = datosMayorUSD;
-                        console.log(`🏦 Usando MAYOR.USD para cuenta ${codigoCuenta} (${extractoInfo.config.alias})`);
+                        // console.log(`🏦 Usando MAYOR.USD para cuenta ${codigoCuenta} (${extractoInfo.config.alias})`);
                     } else {
                         // Cuentas PEN: usar archivo MAYOR.PEN
                         datosMayorParaCuenta = datosMayorPEN;
@@ -1283,6 +1506,46 @@
                         archivo: extractoInfo.archivo
                     });
                 });
+                
+                // === VERIFICAR SBP.USD (DIAGNÓSTICO MEJORADO) ===
+                console.log(`🔍 DIAGNÓSTICO SBP.USD FINAL:`);
+                console.log(`   datosMayorUSD existe: ${!!datosMayorUSD}`);
+                console.log(`   extractosPorCuenta tiene 1041302: ${extractosPorCuenta.has('1041302')}`);
+                console.log(`   Config 1041302 existe: ${!!this.cuentasConfig['1041302']}`);
+                console.log(`   Config 1041302 activo: ${this.cuentasConfig['1041302']?.activo}`);
+                
+                if (extractosPorCuenta.has('1041302')) {
+                    const sbpInfo = extractosPorCuenta.get('1041302');
+                    console.log(`✅ SBP.USD YA DETECTADO Y CARGADO:`);
+                    console.log(`   📁 Archivo: ${sbpInfo.archivo}`);
+                    console.log(`   📊 Datos: ${sbpInfo.datos.length} filas`);
+                    console.log(`   🏦 Config: ${sbpInfo.config.alias} (${sbpInfo.config.codigo})`);
+                    console.log(`   ⚡ NO NECESITA FORZADO - archivo extracto detectado correctamente`);
+                } else if (datosMayorUSD && this.cuentasConfig['1041302'] && this.cuentasConfig['1041302'].activo) {
+                    // Solo forzar si NO se detectó archivo de extracto
+                    console.log(`⚠️ SBP.USD NO DETECTADO - Iniciando forzado desde MAYOR.USD`);
+                    const filasSBPUSD = datosMayorUSD.filter(fila => {
+                        const cuenta = fila[7] || ''; // Columna H = índice 7
+                        const cuentaStr = cuenta.toString().trim();
+                        return cuentaStr.includes('1041302');
+                    });
+                    
+                    console.log(`📋 Filas SBP.USD encontradas en MAYOR.USD: ${filasSBPUSD.length}`);
+                    
+                    if (filasSBPUSD.length > 0) {
+                        console.log(`🔧 FORZANDO SBP.USD desde MAYOR.USD (fallback sin extracto)`);
+                        extractosPorCuenta.set('1041302', {
+                            config: this.cuentasConfig['1041302'],
+                            datos: [], // Sin datos de extracto - solo fallback
+                            archivo: 'FORZADO_MAYOR_USD'
+                        });
+                        console.log(`✅ SBP.USD forzado agregado. Total cuentas: ${extractosPorCuenta.size}`);
+                    } else {
+                        console.log(`❌ No se encontraron filas SBP.USD en MAYOR.USD para forzar`);
+                    }
+                } else {
+                    console.log(`❌ SBP.USD: condiciones no cumplidas (no hay MAYOR.USD o cuenta inactiva)`);
+                }
                 
                 // Consolidar resultados
                 return this.consolidarResultadosMultiCuenta(resultadosPorCuenta, datosMayorPEN, datosSaldo, datosMayorUSD);
@@ -1440,39 +1703,72 @@
                 const resultadosUSD = new Map();
                 
                 // Separar resultados por moneda
+                console.log(`🔍 Separando resultados por moneda. Total cuentas: ${resultadosPorCuenta.size}`);
                 resultadosPorCuenta.forEach((valor, codigo) => {
-                    if (codigo === '1041502' || codigo === '1041402') {
+                    if (codigo === '1041502' || codigo === '1041402' || codigo === '1041202' || codigo === '1041302') {
                         resultadosUSD.set(codigo, valor);
+                        console.log(`   USD: ${codigo} (${valor.config?.alias || 'sin alias'})`);
                     } else {
                         resultadosPEN.set(codigo, valor);
+                        console.log(`   PEN: ${codigo} (${valor.config?.alias || 'sin alias'})`);
                     }
                 });
+                console.log(`📊 Resultados USD: ${resultadosUSD.size} cuentas, PEN: ${resultadosPEN.size} cuentas`);
                 
                 // Consolidar MAYOR.PEN (solo cuentas PEN)
                 const datosMayorConsolidadoPEN = this.consolidarDatosMayorPorCuentas(resultadosPEN);
                 
                 // Consolidar MAYOR.USD de todas las cuentas USD procesadas
                 let datosMayorUSDFinal = null;
+                
+                // Consolidar MAYOR.USD usando los mismos datos procesados que las otras cuentas
                 if (resultadosUSD.size > 0) {
+                    const cuentasUSD = Array.from(resultadosUSD.keys()).join(', ');
+                    console.log(`🔗 Consolidando MAYOR.USD de cuentas: ${cuentasUSD}`);
                     datosMayorUSDFinal = this.consolidarDatosMayorPorCuentas(resultadosUSD);
                     console.log(`✅ MAYOR.USD consolidado: ${datosMayorUSDFinal?.length || 0} filas de ${resultadosUSD.size} cuenta(s) USD`);
                 } else if (datosMayorUSD) {
-                    // Fallback: usar archivo USD original si no hay procesamiento
-                    datosMayorUSDFinal = datosMayorUSD;
-                    console.log(`⚠️ Usando MAYOR.USD original: ${datosMayorUSDFinal.length} filas`);
+                    // Fallback: usar archivo USD original filtrando solo cuentas USD conocidas
+                    const cuentasUSDConocidas = ['1041502', '1041402', '1041202', '1041302']; // BCP, SANT, BBVA, SBP
+                    const datosMayorUSDBase = this.filtrarMayorPorCuentas(datosMayorUSD, cuentasUSDConocidas);
+                    // Agregar columnas ESTADO y #REF como 'Pendiente' y ''
+                    datosMayorUSDFinal = datosMayorUSDBase.map(fila => [...fila, 'Pendiente', '']);
+                    // console.log(`⚠️ Usando MAYOR.USD original con estados: ${datosMayorUSDFinal.length} filas`);
                 }
                 
                 // Preparar extractos por cuenta
                 const extractosPorCuentaResultado = new Map();
                 
                 resultadosPorCuenta.forEach((cuentaInfo, codigoCuenta) => {
+                    console.log(`🔍 CONSOLIDANDO ${codigoCuenta} (${cuentaInfo.config.alias}):`);
+                    console.log(`   📁 Archivo: ${cuentaInfo.archivo}`);
+                    console.log(`   📊 Resultado existe: ${!!cuentaInfo.resultado}`);
+                    console.log(`   📋 datosExtracto existe: ${!!(cuentaInfo.resultado && cuentaInfo.resultado.datosExtracto)}`);
+                    
                     if (cuentaInfo.resultado && cuentaInfo.resultado.datosExtracto) {
+                        console.log(`   📊 datosExtracto longitud: ${cuentaInfo.resultado.datosExtracto.length}`);
+                        if (cuentaInfo.resultado.datosExtracto.length > 0) {
+                            console.log(`   📋 Primera fila (header):`, cuentaInfo.resultado.datosExtracto[0]);
+                        }
+                        
                         extractosPorCuentaResultado.set(codigoCuenta, {
                             config: cuentaInfo.config,
-                            datosExtracto: cuentaInfo.resultado.datosExtracto,
+                            datosExtracto: cuentaInfo.resultado.datosExtracto, // ✅ DEBE INCLUIR HEADERS
                             archivo: cuentaInfo.archivo
                         });
                         totalProcesados += cuentaInfo.resultado.totalProcesados || 0;
+                        console.log(`   ✅ Agregado a extractosPorCuentaResultado`);
+                    } else if (cuentaInfo.archivo === 'MAYOR_USD_ONLY' || cuentaInfo.archivo === 'FORZADO_MAYOR_USD') {
+                        // Para cuentas USD sin extracto real, crear entrada vacía
+                        extractosPorCuentaResultado.set(codigoCuenta, {
+                            config: cuentaInfo.config,
+                            datosExtracto: [], // Sin datos de extracto
+                            archivo: cuentaInfo.archivo
+                        });
+                        console.log(`📋 ${codigoCuenta} (${cuentaInfo.config.alias}): Pestaña preparada desde ${cuentaInfo.archivo}`);
+                        totalProcesados += cuentaInfo.resultado?.totalProcesados || 0;
+                    } else {
+                        console.log(`   ❌ No se pudo procesar: resultado o datosExtracto faltante`);
                     }
                 });
                 
@@ -1491,6 +1787,16 @@
 
     // --- Lógica de Conciliación Principal (mantenida del código original) ---
             procesarConciliacion(datosExtracto, datosMayor, datosSaldo = null, cuentaConfig = null) {
+        // === LOGS DE DIAGNÓSTICO DE ENTRADA ===
+        console.log(`🚀 INICIANDO procesarConciliacion para ${cuentaConfig ? cuentaConfig.alias : 'SIN_CONFIG'}`);
+        console.log(`📊 datosExtracto recibido: ${datosExtracto?.length || 0} filas`);
+        if (datosExtracto && datosExtracto.length > 0) {
+            console.log(`🔍 PRIMERA FILA ENTRADA (debería ser header):`, datosExtracto[0]);
+            if (datosExtracto.length > 1) {
+                console.log(`🔍 SEGUNDA FILA ENTRADA (debería ser datos):`, datosExtracto[1]);
+            }
+        }
+        
         // // console.log("=== INICIANDO CONCILIACIÓN ===");
         // // // console.log(`📊 Extracto: ${datosExtracto.length} filas | Mayor: ${datosMayor.length} filas`);
 
@@ -1511,9 +1817,12 @@
         let filaDataInicio = 5; // Por defecto fila 6 (índice 5) para BCP
         
         if (cuentaConfig && cuentaConfig.estructuraEspecial) {
-            filaHeader = cuentaConfig.estructuraEspecial.headerFila - 1; // Convertir a índice base 0
-            filaDataInicio = cuentaConfig.estructuraEspecial.dataInicio - 1;
-            // // console.log(`🏦 Estructura especial para ${cuentaConfig.alias}: Header en fila ${cuentaConfig.estructuraEspecial.headerFila}, datos desde fila ${cuentaConfig.estructuraEspecial.dataInicio}`);
+            // IMPORTANTE: Si readExcelFile aplicó estructuraEspecial, los datos YA están reestructurados
+            // con header en fila 0 y datos desde fila 1. NO recalcular las posiciones.
+            console.log(`🔧 NOTA: ${cuentaConfig.alias} tiene estructuraEspecial - readExcelFile ya reestructuró los datos`);
+            console.log(`   ➜ Header ya está en fila 0, datos desde fila 1`);
+            filaHeader = 0; // Header ya reestructurado en fila 0 por readExcelFile
+            filaDataInicio = 1; // Datos ya reestructurados desde fila 1 por readExcelFile
         }
         
         const headersExtracto = datosExtracto.length > filaHeader ? datosExtracto[filaHeader] : [];
@@ -1525,13 +1834,27 @@
             descripcion: ['DESCRIPCION OPERACION', 'DESCRIPCIÓN OPERACIÓN', 'DESCRIPCION', 'DESC', 'MOVIMIENTO']
         };
         
-        // Ajustar mapeo específico para Scotiabank (SBP)
-        if (cuentaConfig && cuentaConfig.alias === 'SBP') {
+        // Ajustar mapeo específico por banco
+        if (cuentaConfig && (cuentaConfig.alias === 'SBP' || cuentaConfig.alias === 'SBP.USD')) {
             camposMapeados = {
                 fecha: ['FECHA'],
                 monto: ['IMPORTE'],
                 operacion: ['REFERENCIA'],
                 descripcion: ['MOVIMIENTO']
+            };
+        } else if (cuentaConfig && (cuentaConfig.alias === 'SANT' || cuentaConfig.alias === 'SANT.USD')) {
+            camposMapeados = {
+                fecha: ['FECHA'],
+                monto: ['IMPORTE', 'MONTO'],
+                operacion: ['REFERENCIA', 'NUMERO'],
+                descripcion: ['DESCRIPCION', 'CONCEPTO']
+            };
+        } else if (cuentaConfig && (cuentaConfig.alias === 'BBVA' || cuentaConfig.alias === 'BBVA.USD')) {
+            camposMapeados = {
+                fecha: ['F. OPERACION', 'FECHA'],
+                monto: ['IMPORTE', 'MONTO'],
+                operacion: ['NUMERO', 'REFERENCIA'],
+                descripcion: ['CONCEPTO', 'DESCRIPCION']
             };
         }
         
@@ -1837,8 +2160,8 @@
         // // console.log(`   📋 Extracto procesable: ${extractoProcesable.length} filas disponibles`);
         
         // Detectar banco específico para lógica especializada
-        const esBBVA = cuentaConfig && cuentaConfig.codigo === '1041201';
-        const esSBP = cuentaConfig && cuentaConfig.alias === 'SBP';
+        const esBBVA = cuentaConfig && (cuentaConfig.codigo === '1041201' || cuentaConfig.codigo === '1041202');
+        const esSBP = cuentaConfig && (cuentaConfig.alias === 'SBP' || cuentaConfig.alias === 'SBP.USD');
         const esBCP = cuentaConfig && (cuentaConfig.codigo === '1041501' || cuentaConfig.codigo === '1041505' || cuentaConfig.codigo === '1041502');
         
         let resultadosPaso12;
@@ -2089,8 +2412,24 @@
                 const headersIBK = headerOriginal.slice(1, 10); // B12 hasta J12
                 headerExtracto = [...headersIBK, 'ESTADO', '#REF']; // Reorganizar en A1-K1
             } else {
-                // Para otros bancos: añadir al final
-                headerExtracto = datosExtracto[filaHeader] ? [...datosExtracto[filaHeader], 'ESTADO', '#REF'] : [];
+                // Para otros bancos (SANT, BBVA, etc.): extraer header y añadir columnas adicionales
+                const headerOriginal = datosExtracto[filaHeader] || [];
+                
+                // Headers por defecto si no se pueden extraer del archivo
+                const headersDefault = ['Fecha', 'Fecha valuta', 'Descripción operación', 'Monto', 'Saldo', 'Sucursal - agencia', 'Operación - Número', 'Operación - Hora', 'Usuario', 'UTC', 'Referencia2'];
+                
+                if (headerOriginal.length > 0) {
+                    // Si hay header en el archivo, usarlo
+                    headerExtracto = [...headerOriginal, 'ESTADO', '#REF'];
+                } else {
+                    // Si no hay header, usar headers por defecto
+                    console.log(`⚠️ No se encontró header en fila ${filaHeader + 1} para ${cuentaConfig?.alias || 'cuenta desconocida'}, usando headers por defecto`);
+                    headerExtracto = [...headersDefault, 'ESTADO', '#REF'];
+                }
+                
+                console.log(`📋 Header procesado para ${cuentaConfig?.alias || 'GENÉRICO'}:`, headerExtracto);
+                console.log(`   📊 Total columnas header: ${headerExtracto.length}`);
+                console.log(`   🔧 Estructura extracto: filaHeader=${filaHeader}, datosDisponibles=${datosExtracto.length}`);
             }
             
             // Verificar que extractoProcesable existe y es un array
@@ -2176,6 +2515,7 @@
                 });
                 
                 datosExtractoHoja = [headerExtracto, ...datosExtractoSinHeader];
+                console.log(`✅ datosExtractoHoja generada: ${datosExtractoHoja.length} filas (1 header + ${datosExtractoSinHeader.length} datos)`);
             } else {
                 console.error('⚠️ extractoProcesable no está disponible, usando datos básicos del extracto');
                 // Fallback: usar datos básicos del extracto (dinámico según cuenta)
@@ -2213,9 +2553,26 @@
                 ]);
                 }
                 datosExtractoHoja = [headerExtracto, ...datosExtractoSinHeader];
+                console.log(`✅ datosExtractoHoja fallback generada: ${datosExtractoHoja.length} filas`);
             }
         } else {
-            datosExtractoHoja = [['Fecha', 'Fecha valuta', 'Descripción operación', 'Monto', 'Saldo', 'Sucursal - agencia', 'Operación - Número', 'Operación - Hora', 'Usuario', 'UTC', 'Referencia2', 'ESTADO', '#REF']];
+            // Fallback: generar header por defecto según el banco
+            let headerFallback;
+            if (cuentaConfig && (cuentaConfig.alias === 'SBP' || cuentaConfig.alias === 'SBP.USD')) {
+                headerFallback = ['Fecha', 'Movimiento', 'Importe', 'Referencia', 'CDR', 'Módulo', 'Transac.', 'Relación', 'ESTADO', '#REF'];
+            } else if (cuentaConfig && cuentaConfig.alias === 'IBK') {
+                headerFallback = ['Fecha', 'Concepto', 'Número', 'Descripción', 'Monto', 'Cód. Aux', 'Vencimiento', 'Relac.', 'Agencia', 'ESTADO', '#REF'];
+            } else if (cuentaConfig && (cuentaConfig.alias === 'SANT' || cuentaConfig.alias === 'SANT.USD')) {
+                headerFallback = ['Fecha', 'Importe', 'Descripción', 'Referencia', 'Saldo', 'Sucursal', 'Número', 'Hora', 'Usuario', 'ESTADO', '#REF'];
+            } else if (cuentaConfig && (cuentaConfig.alias === 'BBVA' || cuentaConfig.alias === 'BBVA.USD')) {
+                headerFallback = ['F. Operación', 'Concepto', 'Importe', 'Número', 'Descripción', 'Saldo', 'Sucursal', 'Hora', 'Referencia', 'ESTADO', '#REF'];
+            } else {
+                // BCP y otros bancos estándar
+                headerFallback = ['Fecha', 'Fecha valuta', 'Descripción operación', 'Monto', 'Saldo', 'Sucursal - agencia', 'Operación - Número', 'Operación - Hora', 'Usuario', 'UTC', 'Referencia2', 'ESTADO', '#REF'];
+            }
+            
+            console.log(`⚠️ No hay datos de extracto para ${cuentaConfig?.alias || 'cuenta desconocida'}, usando header fallback:`, headerFallback);
+            datosExtractoHoja = [headerFallback];
         }
         
         // HOJA 3: SALDO (usar datos reales si están disponibles + agregar ESTADO y #REF en columna P)
@@ -2271,9 +2628,15 @@
         // // console.log(`   📋 Extracto: ${datosExtractoHoja.length} filas (incluye header)`);
         // // console.log(`   📋 Saldo: ${datosSaldoHoja.length} filas ${datosSaldo ? '(datos reales)' : '(solo header simulado)'}`);
 
+        console.log(`✅ RESULTADO PROCESARCONCILIACION:`);
+        console.log(`   📊 datosMayorHoja: ${datosMayorHoja.length} filas`);
+        console.log(`   📊 datosExtractoHoja: ${datosExtractoHoja.length} filas (con headers)`);
+        console.log(`   📋 Header extracto:`, datosExtractoHoja[0]);
+        console.log(`   📊 datosSaldoHoja: ${datosSaldoHoja.length} filas`);
+
         return {
             datosMayor: datosMayorHoja,
-            datosExtracto: datosExtractoHoja,
+            datosExtracto: datosExtractoHoja, // ✅ INCLUYE HEADERS
             datosSaldo: datosSaldoHoja,
             totalProcesados: filasFiltradasMayor.length
         };
@@ -2311,8 +2674,8 @@
                 */
                 
                 // ⭐ VERIFICAR SI ES BBVA, SBP O IBK PARA USAR LÓGICA ESPECÍFICA
-                const esBBVA = cuentaConfig && cuentaConfig.codigo === '1041201';
-                const esSBP = cuentaConfig && cuentaConfig.alias === 'SBP';
+                const esBBVA = cuentaConfig && (cuentaConfig.codigo === '1041201' || cuentaConfig.codigo === '1041202');
+                const esSBP = cuentaConfig && (cuentaConfig.alias === 'SBP' || cuentaConfig.alias === 'SBP.USD');
                 const esIBK = cuentaConfig && cuentaConfig.alias === 'IBK';
                 const esBCPUSD = cuentaConfig && cuentaConfig.codigo === '1041502';
                 
@@ -2374,8 +2737,8 @@
                     }
                     
                     // Verificar criterios del PASO 4
-                    const esBNA = desTdop.trim().toUpperCase() === 'BNA';
-                    const esLibro4 = libro.trim() === '04';
+                    const esBNA = String(desTdop || '').trim().toUpperCase() === 'BNA';
+                    const esLibro4 = String(libro || '').trim() === '04';
                     
                     // Contar cuántas filas cumplen cada criterio
                     if (esBNA) filasConBNA++;
@@ -2445,7 +2808,7 @@
                     const comprob = filaMayor[idxM.comprob] || '';
                     
                     // Solo filas con LIBRO="04" y DEBE > 0
-                    if (libro.trim() === '04' && debe > 0) {
+                    if (String(libro || '').trim() === '04' && debe > 0) {
                         candidatosLibro04++;
                         
                         if (candidatosLibro04 <= 5) {
@@ -2461,7 +2824,7 @@
                             const otroHaber = this.normalizarMonto(otraFila[idxM.haber] || '0');
                             const otroComprob = otraFila[idxM.comprob] || '';
                             
-                            if (otroLibro.trim() === '09' && otroHaber > 0) {
+                            if (String(otroLibro || '').trim() === '09' && otroHaber > 0) {
                                 candidatosLibro09++;
                                 
                                                 // Verificar coincidencia de montos (exacto)
@@ -2587,7 +2950,7 @@
                     const debe = this.normalizarMonto(filaMayor[idxM.debe] || '0');
                     
                     // FILTRO ESPECÍFICO BBVA: DES_TDOP = "Bna" + DEBE > 0
-                    if (desTdop.trim().toLowerCase() === 'bna' && debe > 0) {
+                    if (String(desTdop || '').trim().toLowerCase() === 'bna' && debe > 0) {
                         candidatosMayor++;
                         
                         const fechaNormalizada = this.normalizarFecha(fdoc);
@@ -2840,7 +3203,7 @@
                     const numdoc = filaMayor[idxM.numdoc] || '';
                     
                     // Solo registros con DES_TDOP="Bna" y DEBE > 0
-                    if (desTdop.trim().toLowerCase() === 'bna' && debe > 0) {
+                    if (String(desTdop || '').trim().toLowerCase() === 'bna' && debe > 0) {
                         candidatosBnaDebe++;
                         candidatosBna.push({
                             indice: i,
@@ -3140,9 +3503,9 @@
                 */
                 
                 // Verificar si es cuenta BBVA, SBP o IBK para usar lógica específica
-                if (cuentaConfig && cuentaConfig.codigo === '1041201') {
+                if (cuentaConfig && (cuentaConfig.codigo === '1041201' || cuentaConfig.codigo === '1041202')) {
                     return this.procesarPaso5BBVA(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto);
-                } else if (cuentaConfig && cuentaConfig.alias === 'SBP') {
+                } else if (cuentaConfig && (cuentaConfig.alias === 'SBP' || cuentaConfig.alias === 'SBP.USD')) {
                     return this.procesarPaso5SBP(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto);
                 } else if (cuentaConfig && cuentaConfig.alias === 'IBK') {
                     return this.procesarPaso5IBK(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto);
@@ -3173,8 +3536,8 @@
                     const comprob = filaMayor[idxM.comprob] || '';
                     
                     // Verificar criterios del PASO 5
-                    const esPROT = libro.trim() === '04' && glosa.startsWith('PROT');
-                    const esDEV = (libro.trim() === '03' || libro.trim() === '09') && glosa.startsWith('DEV');
+                    const esPROT = String(libro || '').trim() === '04' && glosa.startsWith('PROT');
+                    const esDEV = (String(libro || '').trim() === '03' || String(libro || '').trim() === '09') && glosa.startsWith('DEV');
                     
                     if (esPROT || esDEV) {
                         if (esPROT) candidatosPROT++;
@@ -3324,8 +3687,8 @@
                     const comprob = filaMayor[idxM.comprob] || '';
                     
                     // Verificar criterios del PASO 5 BBVA
-                    const esPROT = libro.trim() === '04' && glosa.startsWith('PROT');
-                    const esDEV = (libro.trim() === '03' || libro.trim() === '09') && glosa.startsWith('DEV');
+                    const esPROT = String(libro || '').trim() === '04' && glosa.startsWith('PROT');
+                    const esDEV = (String(libro || '').trim() === '03' || String(libro || '').trim() === '09') && glosa.startsWith('DEV');
                     
                     if (esPROT || esDEV) {
                         if (esPROT) candidatosPROT++;
@@ -3568,8 +3931,8 @@
                     const comprob = filaMayor[idxM.comprob] || '';
                     
                     // Verificar criterios del PASO 5 - SBP específico
-                    const esPROT = libro.trim() === '04' && (glosa.startsWith('PROT') || glosa.includes('PROT'));
-                    const esDEV = (libro.trim() === '03' || libro.trim() === '09') && (glosa.startsWith('DEV') || glosa.includes('DEV'));
+                    const esPROT = String(libro || '').trim() === '04' && (glosa.startsWith('PROT') || glosa.includes('PROT'));
+                    const esDEV = (String(libro || '').trim() === '03' || String(libro || '').trim() === '09') && (glosa.startsWith('DEV') || glosa.includes('DEV'));
                     
                     // Log de los primeros 10 registros para debug
                     if (i < 10) {
@@ -3961,7 +4324,7 @@
                 // Verificar si es cuenta BBVA, IBK, DET o BN
                 // // console.log(`🏛️ PASO 6: Procesando cuenta ${cuentaConfig?.alias || 'desconocida'} (${cuentaConfig?.codigo || 'sin código'})`);
                 
-                if (cuentaConfig && cuentaConfig.codigo === '1041201') {
+                if (cuentaConfig && (cuentaConfig.codigo === '1041201' || cuentaConfig.codigo === '1041202')) {
                     // // console.log(`🔀 Redirigiendo a procesarPaso6BBVA`);
                     return this.procesarPaso6BBVA(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto);
                 } else if (cuentaConfig && cuentaConfig.alias === 'IBK') {
@@ -3998,7 +4361,7 @@
                     const glosa = (filaMayor[idxM.glosa] || '').toString().toUpperCase();
                     
                     // Verificar criterios del PASO 6
-                    const esLibro01 = libro.trim() === '01';
+                    const esLibro01 = String(libro || '').trim() === '01';
                     const esDepositoBancario = glosa.includes('DEPOSITO BANCARIO');
                     
                     if (esLibro01 && esDepositoBancario) {
@@ -4496,7 +4859,7 @@
                 */
                 
                 // Verificar si es cuenta BBVA o IBK
-                if (cuentaConfig && cuentaConfig.codigo === '1041201') {
+                if (cuentaConfig && (cuentaConfig.codigo === '1041201' || cuentaConfig.codigo === '1041202')) {
                     return this.procesarPaso7BBVA(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto);
                 } else if (cuentaConfig && cuentaConfig.alias === 'IBK') {
                     return this.procesarPaso7IBK(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto);
@@ -4520,7 +4883,7 @@
                     const libro = filaMayor[idxM.libro] || '';
                     
                     // Verificar criterios del PASO 7
-                    const esLibro03 = libro.trim() === '03';
+                    const esLibro03 = String(libro || '').trim() === '03';
                     
                     if (esLibro03) {
                         candidatosLibro3++;
@@ -4616,7 +4979,7 @@
                 */
                 
                 // ⭐ VERIFICAR SI ES BBVA, IBK O DET PARA USAR LÓGICA ESPECÍFICA
-                const esBBVA = cuentaConfig && cuentaConfig.codigo === '1041201';
+                const esBBVA = cuentaConfig && (cuentaConfig.codigo === '1041201' || cuentaConfig.codigo === '1041202');
                 const esIBK = cuentaConfig && cuentaConfig.alias === 'IBK';
                 const esDET = cuentaConfig && cuentaConfig.alias === 'DET';
                 
@@ -4655,14 +5018,14 @@
                     const libro = filaMayor[idxM.libro] || '';
                     
                     // Verificar criterios del PASO 8
-                    const esLibroObjetivo = librosObjetivo.includes(libro.trim());
+                    const esLibroObjetivo = librosObjetivo.includes(String(libro || '').trim());
                     
                     if (esLibroObjetivo) {
                         // Contar por libro
-                        if (libro.trim() === '03') candidatosLibro03++;
-                        else if (libro.trim() === '09') candidatosLibro09++;
-                        else if (libro.trim() === '14') candidatosLibro14++;
-                        else if (libro.trim() === '15') candidatosLibro15++;
+                        if (String(libro || '').trim() === '03') candidatosLibro03++;
+                        else if (String(libro || '').trim() === '09') candidatosLibro09++;
+                        else if (String(libro || '').trim() === '14') candidatosLibro14++;
+                        else if (String(libro || '').trim() === '15') candidatosLibro15++;
                         
                         const fdoc = filaMayor[idxM.fdoc] || '';
                         const haber = this.normalizarMonto(filaMayor[idxM.haber] || '0');
@@ -4942,14 +5305,14 @@
                     const libro = filaMayor[idxM.libro] || '';
                     
                     // Verificar criterios del PASO 8 BBVA
-                    const esLibroObjetivo = librosObjetivo.includes(libro.trim());
+                    const esLibroObjetivo = librosObjetivo.includes(String(libro || '').trim());
                     
                     if (esLibroObjetivo) {
                         // Contar por libro
-                        if (libro.trim() === '03') candidatosLibro03++;
-                        else if (libro.trim() === '09') candidatosLibro09++;
-                        else if (libro.trim() === '14') candidatosLibro14++;
-                        else if (libro.trim() === '15') candidatosLibro15++;
+                        if (String(libro || '').trim() === '03') candidatosLibro03++;
+                        else if (String(libro || '').trim() === '09') candidatosLibro09++;
+                        else if (String(libro || '').trim() === '14') candidatosLibro14++;
+                        else if (String(libro || '').trim() === '15') candidatosLibro15++;
                         
                         const fdoc = filaMayor[idxM.fdoc] || '';
                         const haber = this.normalizarMonto(filaMayor[idxM.haber] || '0');
@@ -5065,7 +5428,7 @@
                 
                 // === VERIFICAR SI ES SANTANDER, BBVA O IBK PARA MAPEO ESPECÍFICO ===
                 const esSantander = cuentaConfig && cuentaConfig.alias === 'SANT';
-                const esBBVA = cuentaConfig && cuentaConfig.codigo === '1041201';
+                const esBBVA = cuentaConfig && (cuentaConfig.codigo === '1041201' || cuentaConfig.codigo === '1041202');
                 const esIBK = cuentaConfig && cuentaConfig.alias === 'IBK';
                 
                 // === DEBUG: Bank Detection ===
@@ -5122,14 +5485,14 @@
                     const comprob = filaMayor[idxM.comprob] || '';
                     
                     // Verificar criterios del PASO 9
-                    const esLibroObjetivo = librosObjetivo.includes(libro.trim());
+                    const esLibroObjetivo = librosObjetivo.includes(String(libro || '').trim());
                     
                     if (esLibroObjetivo) {
                         // Contar por libro
-                        if (libro.trim() === '03') candidatosLibro03++;
-                        else if (libro.trim() === '09') candidatosLibro09++;
-                        else if (libro.trim() === '14') candidatosLibro14++;
-                        else if (libro.trim() === '15') candidatosLibro15++;
+                        if (String(libro || '').trim() === '03') candidatosLibro03++;
+                        else if (String(libro || '').trim() === '09') candidatosLibro09++;
+                        else if (String(libro || '').trim() === '14') candidatosLibro14++;
+                        else if (String(libro || '').trim() === '15') candidatosLibro15++;
                         
                         // Debug: Mostrar los primeros 5 candidatos
                         // if ((candidatosLibro03 + candidatosLibro09 + candidatosLibro14 + candidatosLibro15) <= 10) {
@@ -5429,7 +5792,7 @@
                     const comprob = filaMayor[idxM.comprob] || '';
                     
                     // ⭐ VERIFICAR ESTADO = "Pendiente" O VACÍO (INICIAL)
-                    const estadoCol = filaMayor[filaMayor.length - 2] || ''; // Columna ESTADO
+                    const estadoCol = String(filaMayor[filaMayor.length - 2] || ''); // Convertir a string
                     const esPendiente = estadoCol.trim() === 'Pendiente' || estadoCol.trim() === '';
                     
                     if (!esPendiente) {
@@ -5447,14 +5810,14 @@
                     }
                     
                     // Verificar criterios del PASO 9
-                    const esLibroObjetivo = librosObjetivo.includes(libro.trim());
+                    const esLibroObjetivo = librosObjetivo.includes(String(libro || '').trim());
                     
                     if (esLibroObjetivo) {
                         // Contar por libro
-                        if (libro.trim() === '03') candidatosLibro03++;
-                        else if (libro.trim() === '09') candidatosLibro09++;
-                        else if (libro.trim() === '14') candidatosLibro14++;
-                        else if (libro.trim() === '15') candidatosLibro15++;
+                        if (String(libro || '').trim() === '03') candidatosLibro03++;
+                        else if (String(libro || '').trim() === '09') candidatosLibro09++;
+                        else if (String(libro || '').trim() === '14') candidatosLibro14++;
+                        else if (String(libro || '').trim() === '15') candidatosLibro15++;
                         
                         // ⭐ AGRUPAR POR FECHA (FDOC) - CORRECCIÓN PRINCIPAL
                         const fechaMayorNormalizada = this.normalizarFecha(fdoc);
@@ -5886,7 +6249,7 @@
                     const comprob = filaMayor[idxM.comprob] || '';
                     
                     // ⭐ VERIFICAR ESTADO = "Pendiente" O VACÍO (INICIAL)
-                    const estadoCol = filaMayor[filaMayor.length - 2] || ''; // Columna ESTADO
+                    const estadoCol = String(filaMayor[filaMayor.length - 2] || ''); // Convertir a string
                     const esPendiente = estadoCol.trim() === 'Pendiente' || estadoCol.trim() === '';
                     
                     if (!esPendiente) {
@@ -5894,17 +6257,17 @@
                     }
                     
                     // Verificar criterios SANTANDER: LIBRO en 03, 09, 14, 15
-                    const esLibroObjetivo = ['03', '09', '14', '15'].includes(libro.trim());
+                    const esLibroObjetivo = ['03', '09', '14', '15'].includes(String(libro || '').trim());
                     
                     if (!esLibroObjetivo) continue;
                     
                     totalCandidatos++;
                     
                     // Contadores por libro
-                    if (libro.trim() === '03') candidatosLibro03++;
-                    else if (libro.trim() === '09') candidatosLibro09++;
-                    else if (libro.trim() === '14') candidatosLibro14++;
-                    else if (libro.trim() === '15') candidatosLibro15++;
+                    if (String(libro || '').trim() === '03') candidatosLibro03++;
+                    else if (String(libro || '').trim() === '09') candidatosLibro09++;
+                    else if (String(libro || '').trim() === '14') candidatosLibro14++;
+                    else if (String(libro || '').trim() === '15') candidatosLibro15++;
                     
                     // Normalizar fecha para agrupación
                     const fechaNormalizada = this.normalizarFecha(fdoc);
@@ -6321,7 +6684,7 @@
                     const libro = filaMayor[idxM.libro] || '';
                     
                     // Verificar criterios del PASO 10A
-                    const esLibro02 = libro.trim() === '02';
+                    const esLibro02 = String(libro || '').trim() === '02';
                     
                     if (esLibro02) {
                         candidatosLibro02++;
@@ -6638,9 +7001,9 @@
                 
                 // === VERIFICAR SI ES SANTANDER, BBVA, SBP, IBK O BN PARA MAPEO ESPECÍFICO ===
                 const esSantander = cuentaConfig && (cuentaConfig.alias === 'SANT' || cuentaConfig.alias === 'SANT.USD');
-                const esBBVA = cuentaConfig && cuentaConfig.codigo === '1041201';
+                const esBBVA = cuentaConfig && (cuentaConfig.codigo === '1041201' || cuentaConfig.codigo === '1041202');
                 const esIBK = cuentaConfig && cuentaConfig.alias === 'IBK';
-                const esSBP = cuentaConfig && cuentaConfig.alias === 'SBP';
+                const esSBP = cuentaConfig && (cuentaConfig.alias === 'SBP' || cuentaConfig.alias === 'SBP.USD');
                 const esBN = cuentaConfig && cuentaConfig.alias === 'BN';
                 
                 if (esSantander) {
@@ -6653,11 +7016,23 @@
                     }
                     return this.procesarPaso11Santander(filasFiltradasMayor, extractoProcesable, idxM, estadosFilas, estadosExtracto);
                 } else if (esBBVA) {
+                    const esBBVAUSD = cuentaConfig && cuentaConfig.codigo === '1041202';
+                    if (esBBVAUSD) {
+                        console.log(`🏦 DIAGNÓSTICO BBVA.USD - PASO 11 ITF:`);
+                        console.log(`   Cuenta: ${cuentaConfig.codigo} (${cuentaConfig.alias})`);
+                        console.log(`   Estrategia: Misma lógica que BBVA.PEN`);
+                    }
                     return this.procesarPaso11BBVA(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto);
                 } else if (esIBK) {
                     // // console.log(`🏦 PASO 11 IBK: ITF en Movimiento + valor absoluto de Abono`);
                     return this.procesarPaso11IBK(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto);
                 } else if (esSBP) {
+                    const esSBPUSD = cuentaConfig && cuentaConfig.codigo === '1041302';
+                    if (esSBPUSD) {
+                        console.log(`🏦 DIAGNÓSTICO SBP.USD - PASO 11 ITF:`);
+                        console.log(`   Cuenta: ${cuentaConfig.codigo} (${cuentaConfig.alias})`);
+                        console.log(`   Estrategia: Misma lógica que SBP.PEN`);
+                    }
                     return this.procesarPaso11SBP(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto);
                 } else if (esBN) {
                     console.log(`🔀 Redirigiendo a procesarPaso11BN`);
@@ -6693,7 +7068,7 @@
                     const cuentaMayor = (filaMayor[idxM.cuenta] || '').toString();
                     
                     // Verificar criterios del PASO 11 + FILTRO POR CUENTA ESPECÍFICA
-                    const esLibro09 = libro.trim() === '09';
+                    const esLibro09 = String(libro || '').trim() === '09';
                     const esGlosaITF = glosa.startsWith('ITF');
                     const esCuentaEspecifica = codigoCuentaEspecifica ? (cuentaMayor === codigoCuentaEspecifica) : true;
                     
@@ -6934,7 +7309,7 @@
                     const glosa = (filaMayor[idxM.glosa] || '').toString().toUpperCase();
                     
                     // Verificar criterios SANT PASO 11: LIBRO "09" + GLOSA contiene "ITF"
-                    const esLibro09 = libro.trim() === '09';
+                    const esLibro09 = String(libro || '').trim() === '09';
                     const esGlosaITF = glosa.includes('ITF');
                     
                     if (esLibro09 && esGlosaITF) {
@@ -7282,7 +7657,7 @@
                 }
                     
                     // Verificar criterios ITF: LIBRO = "09" + GLOSA contiene "ITF"
-                    const esITF = libro.trim() === '09' && glosa.includes('ITF') && haber > 0;
+                    const esITF = String(libro || '').trim() === '09' && glosa.includes('ITF') && haber > 0;
                     
                     if (esITF) {
                         candidatosMayorITF++;
@@ -8647,110 +9022,80 @@
 
             procesarPaso12BBVA(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto, cuentaConfig = null) {
                 /*
-                PASO 12 BBVA - AGRUPACIÓN POR LIBROS MÚLTIPLES:
+                PASO 12 BBVA USD - MAPEO DIRECTO POR MONTOS:
                 
-                CRITERIOS DE FILTRADO:
-                - LIBRO = "03", "09", "14", "15" (Mayor)
-                - ESTADO = "Pendiente" (no procesados en pasos anteriores)
+                ESTRATEGIA SIMPLIFICADA:
+                1. Tomar todos los pendientes del Mayor (cualquier DEBE o HABER no cero)
+                2. Tomar todos los pendientes del Extracto BBVA
+                3. Mapear: MONTO Mayor (DEBE o HABER) ↔ |Monto| Extracto BBVA
                 
-                ESTRATEGIA:
-                1. Agrupar por FDOC en Mayor (libros 3/9/14/15)
-                2. Agrupar por F. Operación en BBVA Extracto
-                3. Comparar: FDOC + TOTAL HABER vs F. Operación + |Importe|
-                
-                MAPEO:
-                - FDOC + TOTAL HABER (Mayor) ↔ F. Operación + |Total importe| (BBVA Extracto)
+                CRITERIO:
+                - Coincidencia exacta de montos (con tolerancia mínima)
                 
                 ESTADOS RESULTANTES:
                 - "P12 - Conciliada" para ambos registros
-                - Mayor: #REF = [Operación - Número del Extracto]
+                - Mayor: #REF = Número del Extracto
                 - Extracto: #REF = "LIBRO-COMPROB" del Mayor
                 */
                 
-                // // console.log(`🏦 PASO 12 BBVA: Iniciando procesamiento de libros múltiples`);
-                // // console.log(`🔍 Total filas Mayor a revisar: ${filasFiltradasMayor.length}`);
-                // // console.log(`🔍 Total filas Extracto BBVA a revisar: ${extractoProcesable.length}`);
+                const esBBVAUSD = cuentaConfig && cuentaConfig.codigo === '1041202';
+                if (esBBVAUSD) {
+                    console.log(`🏦 PASO 12 BBVA.USD: Mapeo directo por montos`);
+                    console.log(`🔍 Total filas Mayor a revisar: ${filasFiltradasMayor.length}`);
+                    console.log(`🔍 Total filas Extracto BBVA a revisar: ${extractoProcesable.length}`);
+                }
                 
-                let candidatosLibros = 0;
-                let gruposMayorFormados = 0;
-                let gruposExtractoFormados = 0;
+                let candidatosMayor = 0;
+                let candidatosExtracto = 0;
                 let conciliados = 0;
                 
-                // Libros objetivo del Paso 12
-                const librosObjetivo = ['03', '09', '14', '15'];
-                
-                // === 1. AGRUPAR POR FDOC EN MAYOR ===
-                const gruposPorFdocMayor = new Map();
+                // === 1. RECOPILAR PENDIENTES DEL MAYOR ===
+                const pendientesMayor = [];
                 
                 for (let i = 0; i < filasFiltradasMayor.length; i++) {
                     // Solo procesar filas pendientes
                     if (estadosFilas.has(i)) continue;
                     
                     const filaMayor = filasFiltradasMayor[i];
-                    const libro = filaMayor[idxM.libro] || '';
-                    const fdoc = filaMayor[idxM.fdoc] || '';
+                    const debe = this.normalizarMonto(filaMayor[idxM.debe] || '0');
                     const haber = this.normalizarMonto(filaMayor[idxM.haber] || '0');
                     const comprob = filaMayor[idxM.comprob] || '';
+                    const libro = filaMayor[idxM.libro] || '';
                     
-                    // Verificar si es un libro objetivo
-                    const esLibroObjetivo = librosObjetivo.includes(libro.trim());
+                    // Tomar el monto no cero (DEBE o HABER)
+                    let montoMayor = 0;
+                    if (debe !== 0) montoMayor = debe;
+                    else if (haber !== 0) montoMayor = haber;
                     
-                    if (esLibroObjetivo) {
-                        candidatosLibros++;
+                    if (montoMayor !== 0) {
+                        candidatosMayor++;
                         
-                        // Debug: Mostrar los primeros 3 candidatos del Mayor
-                        if (candidatosLibros <= 3) {
-                            // // console.log(`🔍 Mayor Candidato ${candidatosLibros}: LIBRO="${libro}", FDOC="${fdoc}", HABER=${haber}, COMPROB="${comprob}"`);
-                        }
-                        
-                        // Crear clave de agrupación solo por FDOC (no por monto individual)
-                        const fechaNormalizada = this.normalizarFecha(fdoc);
-                        const claveGrupo = fechaNormalizada;
-                        
-                        if (!gruposPorFdocMayor.has(claveGrupo)) {
-                            gruposPorFdocMayor.set(claveGrupo, {
-                                fecha: fechaNormalizada,
-                                fechaOriginal: fdoc,
-                                totalHaber: 0,
-                                filas: []
-                            });
-                        }
-                        
-                        const grupo = gruposPorFdocMayor.get(claveGrupo);
-                        grupo.totalHaber += haber;
-                        grupo.filas.push({
+                        pendientesMayor.push({
                             indice: i,
                             fila: filaMayor,
+                            monto: montoMayor,
+                            comprob: comprob,
                             libro: libro,
-                            fdoc: fdoc,
-                            haber: haber,
-                            comprob: comprob
+                            tipo: debe !== 0 ? 'DEBE' : 'HABER'
                         });
+                        
+                        if (esBBVAUSD && candidatosMayor <= 5) {
+                            console.log(`🔍 Mayor[${i}]: ${montoMayor.toFixed(2)} (${debe !== 0 ? 'DEBE' : 'HABER'}) - LIBRO="${libro}", COMPROB="${comprob}"`);
+                        }
                     }
                 }
                 
-                gruposMayorFormados = gruposPorFdocMayor.size;
-                
-                // // console.log(`📊 PASO 12 BBVA - AGRUPACIÓN MAYOR:`);
-                // // console.log(`   💰 Candidatos libros múltiples: ${candidatosLibros}`);
-                // // console.log(`   🔗 Grupos formados: ${gruposMayorFormados}`);
-                
-                // Debug: Mostrar los primeros 3 grupos formados en el mayor
-                let grupoNumMayor = 1;
-                for (const [fecha, grupo] of gruposPorFdocMayor.entries()) {
-                    if (grupoNumMayor <= 3) {
-                        // // console.log(`   📅 Grupo ${grupoNumMayor}: Fecha="${fecha}", Total=${grupo.totalHaber.toFixed(2)}, Registros=${grupo.filas.length}`);
-                    }
-                    grupoNumMayor++;
+                if (esBBVAUSD) {
+                    console.log(`📊 Mayor: ${candidatosMayor} candidatos encontrados`);
                 }
                 
-                if (gruposMayorFormados === 0) {
-                    // // console.log(`⚠️ No se encontraron grupos en Mayor para PASO 12 BBVA`);
+                if (candidatosMayor === 0) {
+                    if (esBBVAUSD) console.log(`⚠️ No se encontraron candidatos en Mayor para PASO 12 BBVA.USD`);
                     return { candidatos: 0, grupos: 0, conciliados: 0 };
                 }
                 
-                // === 2. AGRUPAR POR F. OPERACIÓN EN EXTRACTO BBVA ===
-                const gruposPorFOperacionExtracto = new Map();
+                // === 2. RECOPILAR PENDIENTES DEL EXTRACTO ===
+                const pendientesExtracto = [];
                 
                 for (let i = 0; i < extractoProcesable.length; i++) {
                     // Solo revisar filas no procesadas del extracto
@@ -8761,124 +9106,260 @@
                     
                     if (!filaExtracto || !Array.isArray(filaExtracto)) continue;
                     
-                    // === MAPEO ESPECÍFICO BBVA CORREGIDO ===
-                    // Columna A (índice 0): F. Operación
                     // Columna F (índice 5): Importe
                     // Columna D (índice 3): Nº. Doc.
-                    const fechaOperacion = filaExtracto[0] || '';
-                    const importe = filaExtracto[5] || '0'; // Índice 5 - Importe
-                    const operacionNumero = filaExtracto[3] || ''; // Índice 3 - Nº. Doc.
+                    const importe = filaExtracto[5] || '0';
+                    const operacionNumero = filaExtracto[3] || '';
                     
-                    const fechaNormalizada = this.normalizarFecha(fechaOperacion);
-                    const montoOriginal = this.normalizarMonto(importe); // SIN valor absoluto aún
+                    const montoOriginal = this.normalizarMonto(importe);
+                    const montoAbsoluto = Math.abs(montoOriginal);
                     
-                    // Debug: Mostrar estructura y primeros 3 candidatos del extracto BBVA
-                    if (gruposPorFOperacionExtracto.size < 3) {
-                        // // console.log(`🔍 Extracto BBVA Candidato ${gruposPorFOperacionExtracto.size + 1}:`);
-                        // // console.log(`   ESTRUCTURA: [${filaExtracto.slice(0, 8).map((col, idx) => `${idx}:"${col}"`).join(', ')}]`);
-                        // // console.log(`   F.Operación[0]="${fechaOperacion}"→"${fechaNormalizada}", Importe[5]="${importe}"→${montoOriginal}`);
-                    }
-                    
-                    // Crear clave de agrupación solo por FECHA (no por monto individual)
-                    const claveGrupo = fechaNormalizada;
-                    
-                    if (!gruposPorFOperacionExtracto.has(claveGrupo)) {
-                        gruposPorFOperacionExtracto.set(claveGrupo, {
-                            fecha: fechaNormalizada,
-                            fechaOriginal: fechaOperacion,
-                            totalImporte: 0, // Suma directa SIN valor absoluto
-                            filas: []
+                    if (montoAbsoluto !== 0) {
+                        candidatosExtracto++;
+                        
+                        pendientesExtracto.push({
+                            indice: i,
+                            fila: filaExtracto,
+                            montoOriginal: montoOriginal,
+                            montoAbsoluto: montoAbsoluto,
+                            operacionNumero: operacionNumero
                         });
-                    }
-                    
-                    const grupo = gruposPorFOperacionExtracto.get(claveGrupo);
-                    grupo.totalImporte += montoOriginal; // Sumar con signo original
-                    grupo.filas.push({
-                        indice: i,
-                        fila: filaExtracto,
-                        fecha: fechaOperacion,
-                        importe: importe,
-                        montoOriginal: montoOriginal,
-                        operacionNumero: operacionNumero
-                    });
-                }
-                
-                gruposExtractoFormados = gruposPorFOperacionExtracto.size;
-                
-                // // console.log(`📊 PASO 12 BBVA - AGRUPACIÓN EXTRACTO:`);
-                // // console.log(`   🔗 Grupos formados: ${gruposExtractoFormados}`);
-                
-                // Debug: Mostrar los primeros 3 grupos formados en el extracto
-                let grupoNum = 1;
-                for (const [fecha, grupo] of gruposPorFOperacionExtracto.entries()) {
-                    if (grupoNum <= 3) {
-                        // // console.log(`   📅 Grupo ${grupoNum}: Fecha="${fecha}", Total=${grupo.totalImporte.toFixed(2)}, |Total|=${Math.abs(grupo.totalImporte).toFixed(2)}, Registros=${grupo.filas.length}`);
-                    }
-                    grupoNum++;
-                }
-                
-                if (gruposExtractoFormados === 0) {
-                    // // console.log(`⚠️ No se encontraron grupos en Extracto BBVA para PASO 12`);
-                    return { candidatos: candidatosLibros, grupos: gruposMayorFormados, conciliados: 0 };
-                }
-                
-                // === 3. COMPARAR GRUPOS Y CONCILIAR ===
-                // // console.log(`\n🔍 PASO 12 BBVA - COMPARACIÓN DE GRUPOS:`);
-                
-                for (const [claveMayor, grupoMayor] of gruposPorFdocMayor.entries()) {
-                    // Buscar grupo correspondiente en extracto
-                    const grupoExtracto = gruposPorFOperacionExtracto.get(claveMayor);
-                    
-                    if (grupoExtracto) {
-                        // PASO 3: Comparar aplicando valor absoluto AL TOTAL del extracto
-                        const totalMayor = grupoMayor.totalHaber;
-                        const totalExtractoAbsoluto = Math.abs(grupoExtracto.totalImporte);
-                        const diferenciaMonto = Math.abs(totalMayor - totalExtractoAbsoluto);
-                        const montosCoinciden = diferenciaMonto === 0;
                         
-                        // // console.log(`🔍 Comparando grupo fecha "${claveMayor}": Mayor=${totalMayor.toFixed(2)} vs |BBVA|=${totalExtractoAbsoluto.toFixed(2)} (original: ${grupoExtracto.totalImporte.toFixed(2)}), Diferencia=${diferenciaMonto.toFixed(4)}`);
-                        
-                        if (montosCoinciden) {
-                            // CONCILIACIÓN EXITOSA: Asignar estados a TODOS los registros de ambos grupos
-                            const refMayor = grupoExtracto.filas.length > 0 ? grupoExtracto.filas[0].operacionNumero : 'LIBROS-GLOBAL';
-                            const refExtracto = grupoMayor.filas.length > 0 ? `${grupoMayor.filas[0].libro}-${grupoMayor.filas[0].comprob}` : 'LIBROS-MAYOR';
-                            
-                            // Asignar estados a TODOS los registros del mayor
-                            grupoMayor.filas.forEach((item, idx) => {
-                                estadosFilas.set(item.indice, {
-                                    estado: 'P12 - Conciliada',
-                                    ref: refMayor
-                                });
-                                
-                                // // console.log(`   ✅ Mayor ${idx + 1}/${grupoMayor.filas.length}: Índice ${item.indice}, LIBRO="${item.libro}", FDOC="${item.fdoc}", HABER=${item.haber} → REF="${refMayor}"`);
-                            });
-                            
-                            // Asignar estados a TODOS los registros del extracto
-                            grupoExtracto.filas.forEach((item, idx) => {
-                                estadosExtracto.set(item.indice, {
-                                    estado: 'P12 - Conciliada',
-                                    ref: refExtracto
-                                });
-                                
-                                // // console.log(`   ✅ Extracto ${idx + 1}/${grupoExtracto.filas.length}: Índice ${item.indice}, F.Operación="${item.fecha}", IMPORTE=${item.montoOriginal} → REF="${refExtracto}"`);
-                            });
-                            
-                            conciliados += grupoMayor.filas.length + grupoExtracto.filas.length;
-                            
-                            // // console.log(`✅ GRUPO CONCILIADO: FECHA="${grupoMayor.fecha}", TOTAL Mayor=${totalMayor.toFixed(2)}, TOTAL |Extracto|=${totalExtractoAbsoluto.toFixed(2)} (original: ${grupoExtracto.totalImporte.toFixed(2)})`);
+                        if (esBBVAUSD && candidatosExtracto <= 5) {
+                            console.log(`🔍 Extracto[${i}]: ${montoAbsoluto.toFixed(2)} (orig: ${montoOriginal.toFixed(2)}) - DOC="${operacionNumero}"`);
                         }
                     }
                 }
                 
-                // // console.log(`\n📊 PASO 12 BBVA - RESUMEN FINAL:`);
-                // // console.log(`   💰 Total candidatos libros múltiples: ${candidatosLibros}`);
-                // // console.log(`   🔗 Grupos Mayor formados: ${gruposMayorFormados}`);
-                // // console.log(`   🔗 Grupos Extracto formados: ${gruposExtractoFormados}`);
-                // // console.log(`   ✅ Total registros conciliados: ${conciliados}`);
+                if (esBBVAUSD) {
+                    console.log(`📊 Extracto: ${candidatosExtracto} candidatos encontrados`);
+                }
+                
+                if (candidatosExtracto === 0) {
+                    if (esBBVAUSD) console.log(`⚠️ No se encontraron candidatos en Extracto para PASO 12 BBVA.USD`);
+                    return { candidatos: candidatosMayor, grupos: 0, conciliados: 0 };
+                }
+                
+                // === 3. MAPEO DIRECTO POR MONTOS ===
+                if (esBBVAUSD) {
+                    console.log(`\n🔍 PASO 12 BBVA.USD - MAPEO DIRECTO:`);
+                    console.log(`📊 ${pendientesMayor.length} pendientes Mayor vs ${pendientesExtracto.length} pendientes Extracto`);
+                }
+                
+                const usadosExtracto = new Set();
+                
+                for (const pendienteMayor of pendientesMayor) {
+                    const montoMayor = pendienteMayor.monto;
+                    
+                    // Buscar coincidencia en extracto
+                    for (const pendienteExtracto of pendientesExtracto) {
+                        if (usadosExtracto.has(pendienteExtracto.indice)) continue;
+                        
+                        const montoExtracto = pendienteExtracto.montoAbsoluto;
+                        const diferencia = Math.abs(montoMayor - montoExtracto);
+                        
+                        if (diferencia < 0.01) { // Tolerancia de 1 centavo
+                            // CONCILIACIÓN DIRECTA EXITOSA
+                            const refMayor = pendienteExtracto.operacionNumero || 'BBVA-DIRECTO';
+                            const refExtracto = `${pendienteMayor.libro}-${pendienteMayor.comprob}` || 'MAYOR-DIRECTO';
+                            
+                            // Asignar estados
+                            estadosFilas.set(pendienteMayor.indice, {
+                                estado: 'P12 - Conciliada',
+                                ref: refMayor
+                            });
+                            
+                            estadosExtracto.set(pendienteExtracto.indice, {
+                                estado: 'P12 - Conciliada',
+                                ref: refExtracto
+                            });
+                            
+                            usadosExtracto.add(pendienteExtracto.indice);
+                            conciliados += 2;
+                            
+                            if (esBBVAUSD) {
+                                console.log(`✅ MAPEO: Mayor[${pendienteMayor.indice}] ${montoMayor.toFixed(2)} (${pendienteMayor.tipo}) ↔ Extracto[${pendienteExtracto.indice}] ${montoExtracto.toFixed(2)} (diff: ${diferencia.toFixed(2)})`);
+                            }
+                            break;
+                        }
+                    }
+                }
+                
+                if (esBBVAUSD) {
+                    console.log(`\n📊 PASO 12 BBVA.USD - RESUMEN FINAL:`);
+                    console.log(`   💰 Candidatos Mayor: ${candidatosMayor}`);
+                    console.log(`   💰 Candidatos Extracto: ${candidatosExtracto}`);
+                    console.log(`   🎯 Total registros conciliados: ${conciliados}`);
+                }
                 
                 return {
-                    candidatos: candidatosLibros,
-                    grupos: gruposMayorFormados,
+                    candidatos: candidatosMayor + candidatosExtracto,
+                    grupos: 0, // No usamos grupos en la versión simplificada
+                    conciliados: conciliados
+                };
+            },
+
+            procesarPaso12SBPDirecto(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto, cuentaConfig = null) {
+                /*
+                PASO 12 SBP.USD - MAPEO DIRECTO POR MONTOS:
+                
+                ESTRATEGIA SIMPLIFICADA:
+                1. Tomar todos los pendientes del Mayor (cualquier DEBE o HABER no cero)
+                2. Tomar todos los pendientes del Extracto SBP
+                3. Mapear: MONTO Mayor (DEBE o HABER) ↔ |Monto| Extracto SBP
+                
+                CRITERIO:
+                - Coincidencia exacta de montos (tolerancia 0.01)
+                
+                ESTADOS RESULTANTES:
+                - "P12 - Conciliada" para ambos registros
+                - Mayor: #REF = Referencia del Extracto
+                - Extracto: #REF = "LIBRO-COMPROB" del Mayor
+                */
+                
+                console.log(`🏦 PASO 12 SBP.USD: Mapeo directo por montos`);
+                console.log(`🔍 Total filas Mayor a revisar: ${filasFiltradasMayor.length}`);
+                console.log(`🔍 Total filas Extracto SBP a revisar: ${extractoProcesable.length}`);
+                
+                let candidatosMayor = 0;
+                let candidatosExtracto = 0;
+                let conciliados = 0;
+                
+                // === 1. RECOPILAR PENDIENTES DEL MAYOR ===
+                const pendientesMayor = [];
+                
+                for (let i = 0; i < filasFiltradasMayor.length; i++) {
+                    // Solo procesar filas pendientes
+                    if (estadosFilas.has(i)) continue;
+                    
+                    const filaMayor = filasFiltradasMayor[i];
+                    const debe = this.normalizarMonto(filaMayor[idxM.debe] || '0');
+                    const haber = this.normalizarMonto(filaMayor[idxM.haber] || '0');
+                    const comprob = filaMayor[idxM.comprob] || '';
+                    const libro = filaMayor[idxM.libro] || '';
+                    
+                    // Tomar el monto no cero (DEBE o HABER)
+                    let montoMayor = 0;
+                    if (debe !== 0) montoMayor = debe;
+                    else if (haber !== 0) montoMayor = haber;
+                    
+                    if (montoMayor !== 0) {
+                        candidatosMayor++;
+                        
+                        pendientesMayor.push({
+                        indice: i,
+                            fila: filaMayor,
+                            monto: montoMayor,
+                            comprob: comprob,
+                            libro: libro,
+                            tipo: debe !== 0 ? 'DEBE' : 'HABER'
+                        });
+                        
+                        if (candidatosMayor <= 5) {
+                            console.log(`🔍 Mayor[${i}]: ${montoMayor.toFixed(2)} (${debe !== 0 ? 'DEBE' : 'HABER'}) - LIBRO="${libro}", COMPROB="${comprob}"`);
+                        }
+                    }
+                }
+                
+                console.log(`📊 Mayor: ${candidatosMayor} candidatos encontrados`);
+                
+                if (candidatosMayor === 0) {
+                    console.log(`⚠️ No se encontraron candidatos en Mayor para PASO 12 SBP.USD`);
+                    return { candidatos: 0, grupos: 0, conciliados: 0 };
+                }
+                
+                // === 2. RECOPILAR PENDIENTES DEL EXTRACTO ===
+                const pendientesExtracto = [];
+                
+                for (let i = 0; i < extractoProcesable.length; i++) {
+                    // Solo revisar filas no procesadas del extracto
+                    if (estadosExtracto.has(i)) continue;
+                    
+                    const itemExtracto = extractoProcesable[i];
+                    const filaExtracto = itemExtracto.fila;
+                    
+                    if (!filaExtracto || !Array.isArray(filaExtracto)) continue;
+                    
+                    // Para SBP: Importe suele estar en columna E (índice 4)
+                    const importe = filaExtracto[4] || '0';
+                    const referencia = filaExtracto[3] || ''; // Referencia en columna D (índice 3)
+                    
+                    const montoOriginal = this.normalizarMonto(importe);
+                    const montoAbsoluto = Math.abs(montoOriginal);
+                    
+                    if (montoAbsoluto !== 0) {
+                        candidatosExtracto++;
+                        
+                        pendientesExtracto.push({
+                            indice: i,
+                            fila: filaExtracto,
+                            montoOriginal: montoOriginal,
+                            montoAbsoluto: montoAbsoluto,
+                            referencia: referencia
+                        });
+                        
+                        if (candidatosExtracto <= 5) {
+                            console.log(`🔍 Extracto[${i}]: ${montoAbsoluto.toFixed(2)} (orig: ${montoOriginal.toFixed(2)}) - REF="${referencia}"`);
+                        }
+                    }
+                }
+                
+                console.log(`📊 Extracto: ${candidatosExtracto} candidatos encontrados`);
+                
+                if (candidatosExtracto === 0) {
+                    console.log(`⚠️ No se encontraron candidatos en Extracto para PASO 12 SBP.USD`);
+                    return { candidatos: candidatosMayor, grupos: 0, conciliados: 0 };
+                }
+                
+                // === 3. MAPEO DIRECTO POR MONTOS ===
+                console.log(`\n🔍 PASO 12 SBP.USD - MAPEO DIRECTO:`);
+                console.log(`📊 ${pendientesMayor.length} pendientes Mayor vs ${pendientesExtracto.length} pendientes Extracto`);
+                
+                const usadosExtracto = new Set();
+                
+                for (const pendienteMayor of pendientesMayor) {
+                    const montoMayor = pendienteMayor.monto;
+                    
+                    // Buscar coincidencia en extracto
+                    for (const pendienteExtracto of pendientesExtracto) {
+                        if (usadosExtracto.has(pendienteExtracto.indice)) continue;
+                        
+                        const montoExtracto = pendienteExtracto.montoAbsoluto;
+                        const diferencia = Math.abs(montoMayor - montoExtracto);
+                        
+                        if (diferencia < 0.01) { // Tolerancia de 1 centavo
+                            // CONCILIACIÓN DIRECTA EXITOSA
+                            const refMayor = pendienteExtracto.referencia || 'SBP-DIRECTO';
+                            const refExtracto = `${pendienteMayor.libro}-${pendienteMayor.comprob}` || 'MAYOR-DIRECTO';
+                            
+                            // Asignar estados
+                            estadosFilas.set(pendienteMayor.indice, {
+                                    estado: 'P12 - Conciliada',
+                                    ref: refMayor
+                                });
+                                
+                            estadosExtracto.set(pendienteExtracto.indice, {
+                                    estado: 'P12 - Conciliada',
+                                    ref: refExtracto
+                                });
+                                
+                            usadosExtracto.add(pendienteExtracto.indice);
+                            conciliados += 2;
+                            
+                            console.log(`✅ MAPEO: Mayor[${pendienteMayor.indice}] ${montoMayor.toFixed(2)} (${pendienteMayor.tipo}) ↔ Extracto[${pendienteExtracto.indice}] ${montoExtracto.toFixed(2)} (diff: ${diferencia.toFixed(4)})`);
+                            break;
+                        }
+                    }
+                }
+                
+                console.log(`\n📊 PASO 12 SBP.USD - RESUMEN FINAL:`);
+                console.log(`   💰 Candidatos Mayor: ${candidatosMayor}`);
+                console.log(`   💰 Candidatos Extracto: ${candidatosExtracto}`);
+                console.log(`   🎯 Total registros conciliados: ${conciliados}`);
+                
+                return {
+                    candidatos: candidatosMayor + candidatosExtracto,
+                    grupos: 0, // No usamos grupos en la versión simplificada
                     conciliados: conciliados
                 };
             },
@@ -9088,7 +9569,7 @@
                     const haber = this.normalizarMonto(filaMayor[idxM.haber] || '0');
                     
                     // FILTRO MAYOR IBK ESTÁNDAR: DES_TDOP="Bna" Y LIBRO="04" (igual que BCP/SANT)
-                    if (desTdop.trim().toLowerCase() === 'bna' && libro.trim() === '04') {
+                    if (String(desTdop || '').trim().toLowerCase() === 'bna' && String(libro || '').trim() === '04') {
                         candidatosMayor++;
                         const fechaNormalizada = this.normalizarFecha(fdoc);
                         const importeMayor = debe; // Para IBK usar DEBE como importe principal (corregido)
@@ -9270,7 +9751,7 @@
                     const fdoc = filaMayor[idxM.fdoc] || '';
                     
                     // Solo filas con LIBRO="04" y DEBE > 0
-                    if (libro.trim() === '04' && debe > 0) {
+                    if (String(libro || '').trim() === '04' && debe > 0) {
                         candidatosLibro04++;
                         
                         if (candidatosLibro04 <= 3) {
@@ -9287,7 +9768,7 @@
                             const otroComprob = otraFila[idxM.comprob] || '';
                             const otroFdoc = otraFila[idxM.fdoc] || '';
                             
-                            if (otroLibro.trim() === '09' && otroHaber > 0) {
+                            if (String(otroLibro || '').trim() === '09' && otroHaber > 0) {
                                 candidatosLibro09++;
                                 
                                 // Verificar coincidencia de montos (exacto) y misma fecha
@@ -9454,8 +9935,8 @@
                     const comprob = filaMayor[idxM.comprob] || '';
                     
                     // Criterios estándar P5: PROT (L04) + DEV (L03/L09)
-                    const esPROT = libro.trim() === '04' && (glosa.startsWith('PROT') || glosa.includes('PROT'));
-                    const esDEV = (libro.trim() === '03' || libro.trim() === '09') && (glosa.startsWith('DEV') || glosa.includes('DEV'));
+                    const esPROT = String(libro || '').trim() === '04' && (glosa.startsWith('PROT') || glosa.includes('PROT'));
+                    const esDEV = (String(libro || '').trim() === '03' || String(libro || '').trim() === '09') && (glosa.startsWith('DEV') || glosa.includes('DEV'));
                     
                     if ((esPROT || esDEV) && haber > 0) {
                         if (esPROT) candidatosPROT++;
@@ -9600,7 +10081,7 @@
                     const libro = filaMayor[idxM.libro] || '';
                     const glosa = (filaMayor[idxM.glosa] || '').toString().toUpperCase();
                     
-                    const esLibro01 = libro.trim() === '01';
+                    const esLibro01 = String(libro || '').trim() === '01';
                     const esDepositoBancario = glosa.includes('DEPOSITO BANCARIO');
                     
                     if (esLibro01 && esDepositoBancario) {
@@ -9761,7 +10242,7 @@
                     const libro = filaMayor[idxM.libro] || '';
                     const glosa = (filaMayor[idxM.glosa] || '').toString().toUpperCase();
                     
-                    const esLibro01 = libro.trim() === '01';
+                    const esLibro01 = String(libro || '').trim() === '01';
                     const esDepositoBancario = glosa.includes('DEPOSITO BANCARIO');
                     
                     if (esLibro01 && esDepositoBancario) {
@@ -9897,7 +10378,7 @@
                     const filaMayor = filasFiltradasMayor[i];
                     const libro = filaMayor[idxM.libro] || '';
                     
-                    if (librosObjetivo.includes(libro.trim())) {
+                    if (librosObjetivo.includes(String(libro || '').trim())) {
                         candidatosEncontrados++;
                         const fdoc = filaMayor[idxM.fdoc] || '';
                         const haber = this.normalizarMonto(filaMayor[idxM.haber] || '0');
@@ -10035,7 +10516,7 @@
                     const haber = this.normalizarMonto(filaMayor[idxM.haber] || '0');
                     
                     // Criterios: LIBRO = "09" + GLOSA contiene "ITF" + HABER > 0
-                    const esLibro09 = libro.trim() === '09';
+                    const esLibro09 = String(libro || '').trim() === '09';
                     const contieneITF = glosa.includes('ITF');
                     const tieneHaber = haber > 0;
                     
@@ -10201,7 +10682,7 @@
                     const libro = filaMayor[idxM.libro] || '';
                     const glosa = (filaMayor[idxM.glosa] || '').toString().toUpperCase();
                     
-                    const esLibro01 = libro.trim() === '01';
+                    const esLibro01 = String(libro || '').trim() === '01';
                     const esDepositoBancario = glosa.includes('DEPOSITO BANCARIO');
                     
                     if (esLibro01 && esDepositoBancario) {
@@ -10320,7 +10801,7 @@
                     const filaMayor = filasFiltradasMayor[i];
                     const libro = filaMayor[idxM.libro] || '';
                     
-                    const esLibro03 = libro.trim() === '03';
+                    const esLibro03 = String(libro || '').trim() === '03';
                     
                     if (esLibro03) {
                         const fdoc = filaMayor[idxM.fdoc] || '';
@@ -10458,7 +10939,7 @@
                     const comprob = filaMayor[idxM.comprob] || '';
                     
                     // Verificar criterios: LIBRO=09 + GLOSA contiene ITF + HABER > 0
-                    const esLibro09 = libro.trim() === '09';
+                    const esLibro09 = String(libro || '').trim() === '09';
                     const contieneITF = glosa.includes('ITF');
                     const tieneHaber = haber > 0;
                     
@@ -10637,7 +11118,7 @@
                     const filaMayor = filasFiltradasMayor[i];
                     const libro = filaMayor[idxM.libro] || '';
                     
-                    const esLibroObjetivo = librosObjetivo.includes(libro.trim());
+                    const esLibroObjetivo = librosObjetivo.includes(String(libro || '').trim());
                     
                     if (esLibroObjetivo) {
                         const fdoc = filaMayor[idxM.fdoc] || '';
@@ -10647,10 +11128,10 @@
                         // ⭐ FILTRO IBK PASO 8: Solo registros con HABER > 0 (salidas de dinero)
                         if (haber > 0) {
                             // Contar por libro
-                            if (libro.trim() === '03') candidatosLibro03++;
-                            else if (libro.trim() === '09') candidatosLibro09++;
-                            else if (libro.trim() === '14') candidatosLibro14++;
-                            else if (libro.trim() === '15') candidatosLibro15++;
+                            if (String(libro || '').trim() === '03') candidatosLibro03++;
+                            else if (String(libro || '').trim() === '09') candidatosLibro09++;
+                            else if (String(libro || '').trim() === '14') candidatosLibro14++;
+                            else if (String(libro || '').trim() === '15') candidatosLibro15++;
                             
                             candidatosPaso8.push({
                                 indice: i,
@@ -10896,16 +11377,16 @@
                     const haber = this.normalizarMonto(filaMayor[idxM.haber] || '0');
                     const comprob = filaMayor[idxM.comprob] || '';
                     
-                    const esLibroObjetivo = librosObjetivo.includes(libro.trim());
+                    const esLibroObjetivo = librosObjetivo.includes(String(libro || '').trim());
                     
                     if (esLibroObjetivo) {
                         // ⭐ FILTRO IBK PASO 9: Solo registros con HABER > 0 (igual que Paso 8)
                         if (haber > 0) {
                             // Contar por libro
-                            if (libro.trim() === '03') candidatosLibro03++;
-                            else if (libro.trim() === '09') candidatosLibro09++;
-                            else if (libro.trim() === '14') candidatosLibro14++;
-                            else if (libro.trim() === '15') candidatosLibro15++;
+                            if (String(libro || '').trim() === '03') candidatosLibro03++;
+                            else if (String(libro || '').trim() === '09') candidatosLibro09++;
+                            else if (String(libro || '').trim() === '14') candidatosLibro14++;
+                            else if (String(libro || '').trim() === '15') candidatosLibro15++;
                             
                             // ⭐ AGRUPAR POR NUMDOC + FECHA (evitar mezclar fechas diferentes)
                             const numdocNormalizado = this.normalizarTexto(numdoc);
@@ -11047,13 +11528,24 @@
                     
                     // HOJAS DE EXTRACTOS DINÁMICAS (una por cuenta con sus datos específicos)
                     if (datosCompletos.extractosPorCuenta) {
+                        console.log(`🔍 GENERANDO PESTAÑAS EXTRACTO: ${datosCompletos.extractosPorCuenta.size} cuentas`);
                         datosCompletos.extractosPorCuenta.forEach((extractoInfo, codigoCuenta) => {
+                            console.log(`📋 Procesando pestaña ${codigoCuenta} (${extractoInfo.config.pestañaExcel}):`);
+                            console.log(`   📊 datosExtracto existe: ${!!extractoInfo.datosExtracto}`);
+                            console.log(`   📊 datosExtracto longitud: ${extractoInfo.datosExtracto?.length || 0}`);
+                            
                             if (extractoInfo.datosExtracto && extractoInfo.datosExtracto.length > 0) {
+                                console.log(`   📋 Primera fila (header):`, extractoInfo.datosExtracto[0]);
                                 const wsExtracto = XLSX.utils.aoa_to_sheet(extractoInfo.datosExtracto);
                                 XLSX.utils.book_append_sheet(wb, wsExtracto, extractoInfo.config.pestañaExcel);
-                                // // console.log(`   📋 Hoja '${extractoInfo.config.pestañaExcel}': ${extractoInfo.datosExtracto.length} filas`);
+                                console.log(`   ✅ Pestaña '${extractoInfo.config.pestañaExcel}' agregada: ${extractoInfo.datosExtracto.length} filas`);
+                            } else {
+                                console.log(`   ⚠️ No se agregó pestaña '${extractoInfo.config.pestañaExcel}': sin datos`);
                             }
                         });
+                        
+                        // SBP.USD y otras cuentas USD ya están manejadas por la lógica normal de extractosPorCuenta
+                        // No necesitamos lógica especial aquí
                     } else {
                         // Fallback para compatibilidad con estructura anterior
                         const cuentasActivas = this.getCuentasActivas();
@@ -11093,7 +11585,7 @@
             console.error("❌ Error generando Excel:", error);
             throw error;
         }
-                },
+    },
 
             procesarPaso12BCP(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto, cuentaConfig = null) {
                 /*
@@ -11109,11 +11601,11 @@
                 - BCP usa FDOC para agrupación en lugar de solo fecha
                 - Los montos se comparan con tolerancia de centavos
                 - Referencia usa formato "BCP-FDOC-[fecha]"
-                
-                ESTADOS RESULTANTES:
-                - "P12 - Conciliada" para registros mapeados
-                */
-                
+        
+        ESTADOS RESULTANTES:
+        - "P12 - Conciliada" para registros mapeados
+        */
+        
                 // ⭐ VERIFICAR QUE ES BCP
                 const esBCP = cuentaConfig && (cuentaConfig.codigo === '1041501' || cuentaConfig.codigo === '1041505' || cuentaConfig.codigo === '1041502');
                 
@@ -11241,29 +11733,26 @@
 
             procesarPaso12SBP(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto, cuentaConfig = null) {
         /*
-        PASO 12 SBP (SCOTIABANK) - AGRUPACIÓN ESPECÍFICA:
+        PASO 12 SBP - LÓGICA DUAL:
         
-        Mayor (LIBROS ESPECÍFICOS):
-        - Filtrar solo libros: 2, 3, 9, 14, 15
-        - Agrupar por COMPROB (agrupación clave)
-        - Mapear por FDOC + TOTAL HABER
+        SBP.USD (1041302): MAPEO DIRECTO POR MONTOS
+        - Estrategia simple: MONTO Mayor (DEBE o HABER) ↔ |Monto| Extracto
+        - Solo coincidencias exactas con tolerancia 0.01
         
-        Extracto SBP:
-        - Agrupar por Referencia (agrupación clave)
-        - Mapear por Fecha + |Total importe|
-        
-        ESTRATEGIA:
-        1. Crear grupos del Mayor por COMPROB (libros 2/3/9/14/15)
-        2. Crear grupos del Extracto por Referencia
-        3. Comparar grupos: FDOC+TOTAL_HABER vs Fecha+|TOTAL_IMPORTE|
-        
-        ESTADOS RESULTANTES:
-        - "P12 - Conciliada" para registros mapeados
+        SBP.PEN (1041301): AGRUPACIÓN TRADICIONAL
+        - Mayor: Libros 2/3/9/14/15 agrupados por COMPROB
+        - Extracto: Agrupado por Referencia
+        - Comparación: FDOC+TOTAL_HABER vs Fecha+|TOTAL_IMPORTE|
         */
         
-        // Paso 12 SBP agrupación
-        // Estadísticas iniciales Paso 12
+        const esSBPUSD = cuentaConfig && cuentaConfig.codigo === '1041302';
         
+        // Para SBP.USD usar mapeo directo simple
+        if (esSBPUSD) {
+            return this.procesarPaso12SBPDirecto(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto, cuentaConfig);
+        }
+        
+        // Para SBP.PEN continuar con lógica tradicional de agrupación
         let gruposMayorCreados = 0;
         let gruposExtractoCreados = 0;
         let conciliados = 0;
