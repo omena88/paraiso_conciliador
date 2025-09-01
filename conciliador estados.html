@@ -3585,10 +3585,11 @@
 
             procesarPaso4SBP(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto) {
                 /*
-                PASO 4 SBP (SCOTIABANK) - MAPEO ESPECÍFICO:
+                PASO 4 SBP (SCOTIABANK) - OPERACIONES PAGO DE LETRA (2 ETAPAS):
                 
+                ETAPA 4A - MAPEO CON EXTRACTO:
                 Mayor: 
-                1. Filtrar por DES_TDOP = "Bna" + ESTADO = "Pendiente"
+                1. Filtrar por DES_TDOP = "Bna" + LIBRO = "04" + ESTADO = "Pendiente"
                 2. Agrupar por FDOC
                 3. FDOC + DEBE
                 
@@ -3597,22 +3598,37 @@
                 2. Agrupar por "Fecha" (columna A)  
                 3. "Fecha" + |Importe| (columna C, valor absoluto)
                 
+                ETAPA 4B - MAPEO INTERNO:
+                Mayor pendiente:
+                1. Filtrar LIBRO = "04" (DEBE) vs LIBRO = "09" (HABER)
+                2. Mapear por coincidencia de montos
+                
                 ESTADOS RESULTANTES:
-                - "P4 - Conciliada" para registros mapeados
+                - "P4 - Conciliada" para registros mapeados en ambas etapas
                 */
                 
-                // // console.log(`\n🏦 *** SBP PASO 4 INICIADO *** - Agrupación por FDOC + mapeo PAGO DE LETRA`);
+                // // console.log(`\n🏦 *** SBP PASO 4 INICIADO *** - Operaciones PAGO DE LETRA (2 ETAPAS)`);
                 // // console.log(`📋 Total registros Mayor disponibles: ${filasFiltradasMayor.length}`);
                 // // console.log(`📋 Total registros Extracto disponibles: ${extractoProcesable.length}`);
                 // // console.log(`📋 Estados ya procesados Mayor: ${estadosFilas.size}`);
                 // // console.log(`📋 Estados ya procesados Extracto: ${estadosExtracto.size}`);
                 
-                let candidatosMayor = 0;
+                // ETAPA 4A - Contadores
+                let candidatosMayor4A = 0;
                 let candidatosExtracto = 0; 
-                let conciliados = 0;
+                let conciliados4A = 0;
                 let numeroGrupo = 1;
                 
-                // === ETAPA 1: AGRUPAR MAYOR POR FDOC ===
+                // ETAPA 4B - Contadores
+                let candidatosLibro04 = 0;
+                let candidatosLibro09 = 0;
+                let conciliados4B = 0;
+                
+                // =======================================================
+                // ETAPA 4A: MAPEO CON EXTRACTO BANCARIO (BNA + LIBRO 04)
+                // =======================================================
+                // // console.log(`\n🅰️ ETAPA 4A: Mapeo BNA con Extracto Bancario`);
+                
                 const gruposMayor = new Map();
                 
                 // Primera pasada: Identificar candidatos BNA y agrupar por FDOC
@@ -3626,9 +3642,9 @@
                     const comprob = filaMayor[idxM.comprob] || '';
                     const libro = filaMayor[idxM.libro] || '';
                     
-                    // Filtrar solo DES_TDOP = "BNA"
-                    if (desTdop === 'BNA' && debe > 0) {
-                        candidatosMayor++;
+                    // Filtrar por DES_TDOP = "BNA" + LIBRO = "04"
+                    if (desTdop === 'BNA' && libro === '04' && debe > 0) {
+                        candidatosMayor4A++;
                         
                         const fdocNormalizado = this.normalizarFecha(fdoc);
                         
@@ -3715,7 +3731,7 @@
                                     estado: 'P4 - Conciliada',
                                     ref: refExtracto
                                 });
-                                conciliados++;
+                                conciliados4A++;
                             });
                             
                             // Marcar todas las filas del Extracto como conciliadas
@@ -3724,7 +3740,7 @@
                                     estado: 'P4 - Conciliada',
                                     ref: refMayor
                                 });
-                                conciliados++;
+                                conciliados4A++;
                             });
                             
                             // // console.log(`✅ SBP Grupo ${numeroGrupo}: FECHA=${fechaMayor}, DEBE=${grupoMayor.totalDebe.toFixed(2)}, IMPORTE=${grupoExtracto.totalImporte.toFixed(2)}`);
@@ -3733,16 +3749,116 @@
                     }
                 }
                 
-                // // console.log(`📊 SBP PASO 4 COMPLETADO:`);
-                // // console.log(`   📈 Candidatos Mayor (BNA): ${candidatosMayor}`);
-                // // console.log(`   📈 Candidatos Extracto (PAGO DE LETRA): ${candidatosExtracto}`);
-                // // console.log(`   🎯 Total conciliados: ${conciliados}`);
+                // =======================================================
+                // ETAPA 4B: MAPEO INTERNO MAYOR (LIBRO 04 vs LIBRO 09)
+                // =======================================================
+                // // console.log(`\n🅱️ ETAPA 4B: Mapeo Interno Mayor - Agrupación por FDOC`);
+                
+                // Agrupar registros LIBRO 04 por FDOC
+                const gruposLibro04 = new Map();
+                for (let i = 0; i < filasFiltradasMayor.length; i++) {
+                    if (estadosFilas.has(i)) continue;
+                    
+                    const fila = filasFiltradasMayor[i];
+                    const libro = fila[idxM.libro] || '';
+                    const debe = this.normalizarMonto(fila[idxM.debe] || '0');
+                    const fdoc = fila[idxM.fdoc] || '';
+                    
+                    if (libro === '04' && debe > 0) {
+                        candidatosLibro04++;
+                        
+                        const fdocNormalizado = this.normalizarFecha(fdoc);
+                        
+                        if (!gruposLibro04.has(fdocNormalizado)) {
+                            gruposLibro04.set(fdocNormalizado, {
+                                fecha: fdocNormalizado,
+                                totalDebe: 0,
+                                filas: []
+                            });
+                        }
+                        
+                        const grupo = gruposLibro04.get(fdocNormalizado);
+                        grupo.totalDebe += debe;
+                        grupo.filas.push({ indice: i, fila, debe });
+                    }
+                }
+                
+                // Agrupar registros LIBRO 09 por FDOC
+                const gruposLibro09 = new Map();
+                for (let i = 0; i < filasFiltradasMayor.length; i++) {
+                    if (estadosFilas.has(i)) continue;
+                    
+                    const fila = filasFiltradasMayor[i];
+                    const libro = fila[idxM.libro] || '';
+                    const haber = this.normalizarMonto(fila[idxM.haber] || '0');
+                    const fdoc = fila[idxM.fdoc] || '';
+                    
+                    if (libro === '09' && haber > 0) {
+                        candidatosLibro09++;
+                        
+                        const fdocNormalizado = this.normalizarFecha(fdoc);
+                        
+                        if (!gruposLibro09.has(fdocNormalizado)) {
+                            gruposLibro09.set(fdocNormalizado, {
+                                fecha: fdocNormalizado,
+                                totalHaber: 0,
+                                filas: []
+                            });
+                        }
+                        
+                        const grupo = gruposLibro09.get(fdocNormalizado);
+                        grupo.totalHaber += haber;
+                        grupo.filas.push({ indice: i, fila, haber });
+                    }
+                }
+                
+                // Mapear grupos por FDOC y coincidencia de totales
+                for (const [fdoc, grupo04] of gruposLibro04) {
+                    if (gruposLibro09.has(fdoc)) {
+                        const grupo09 = gruposLibro09.get(fdoc);
+                        
+                        const diferencia = Math.abs(grupo04.totalDebe - grupo09.totalHaber);
+                        
+                        if (diferencia < 0.01) { // Tolerancia mínima
+                            // Marcar todas las filas del grupo LIBRO 04
+                            grupo04.filas.forEach(item => {
+                                const ref09 = grupo09.filas.length > 0 ? `L09-${grupo09.filas[0].fila[idxM.comprob] || ''}` : 'L09';
+                                estadosFilas.set(item.indice, {
+                                    estado: 'P4 - Conciliada',
+                                    ref: ref09
+                                });
+                                conciliados4B++;
+                            });
+                            
+                            // Marcar todas las filas del grupo LIBRO 09
+                            grupo09.filas.forEach(item => {
+                                const ref04 = grupo04.filas.length > 0 ? `L04-${grupo04.filas[0].fila[idxM.comprob] || ''}` : 'L04';
+                                estadosFilas.set(item.indice, {
+                                    estado: 'P4 - Conciliada',
+                                    ref: ref04
+                                });
+                                conciliados4B++;
+                            });
+                        }
+                    }
+                }
+                
+                const totalConciliados = conciliados4A + conciliados4B;
+                
+                // // console.log(`📊 SBP PASO 4 COMPLETADO (2 ETAPAS):`);
+                // // console.log(`   📈 ETAPA 4A - Candidatos Mayor (BNA+L04): ${candidatosMayor4A}`);
+                // // console.log(`   📈 ETAPA 4A - Candidatos Extracto (PAGO DE LETRA): ${candidatosExtracto}`);
+                // // console.log(`   🎯 ETAPA 4A - Conciliados: ${conciliados4A}`);
+                // // console.log(`   📈 ETAPA 4B - Candidatos Libro 04: ${candidatosLibro04}`);
+                // // console.log(`   📈 ETAPA 4B - Candidatos Libro 09: ${candidatosLibro09}`);
+                // // console.log(`   🎯 ETAPA 4B - Conciliados: ${conciliados4B}`);
+                // // console.log(`   🎯 TOTAL CONCILIADOS: ${totalConciliados}`);
                 
                 return {
-                    candidatos: candidatosMayor + candidatosExtracto,
-                    conciliados: conciliados,
-                    etapa4a: conciliados,
-                    etapa4b: 0 // SBP no tiene etapa 4B
+                    candidatos: candidatosMayor4A + candidatosExtracto + candidatosLibro04 + candidatosLibro09,
+                    conciliados: totalConciliados,
+                    etapa4a: conciliados4A,
+                    etapa4b: conciliados4B
                 };
             },
 
@@ -5269,6 +5385,7 @@
                 // // // console.log(`🔍 Total filas a revisar: ${filasFiltradasMayor.length}`);
                 // // // console.log(`🔍 Estados ya procesados: ${estadosFilas.size}`);
                 
+                let candidatosLibro02 = 0;
                 let candidatosLibro03 = 0;
                 let candidatosLibro09 = 0;
                 let candidatosLibro14 = 0;
@@ -5276,7 +5393,7 @@
                 let conciliados = 0;
                 
                 // Libros objetivo del Paso 8
-                const librosObjetivo = ['03', '09', '14', '15'];
+                const librosObjetivo = ['02', '03', '09', '14', '15'];
                 
                 // Identificar candidatos de múltiples libros
                 const candidatosPaso8 = [];
@@ -5293,7 +5410,8 @@
                     
                     if (esLibroObjetivo) {
                         // Contar por libro
-                        if (String(libro || '').trim() === '03') candidatosLibro03++;
+                        if (String(libro || '').trim() === '02') candidatosLibro02++;
+                        else if (String(libro || '').trim() === '03') candidatosLibro03++;
                         else if (String(libro || '').trim() === '09') candidatosLibro09++;
                         else if (String(libro || '').trim() === '14') candidatosLibro14++;
                         else if (String(libro || '').trim() === '15') candidatosLibro15++;
@@ -5321,6 +5439,7 @@
                 const totalCandidatos = candidatosPaso8.length;
                 
                 // // // console.log(`📊 PASO 8 - FILTRADO:`);
+                // // // console.log(`   📄 Candidatos LIBRO 02: ${candidatosLibro02}`);
                 // // // console.log(`   📋 Candidatos LIBRO 03: ${candidatosLibro03}`);
                 // // // console.log(`   📗 Candidatos LIBRO 09: ${candidatosLibro09}`);
                 // // // console.log(`   📘 Candidatos LIBRO 14: ${candidatosLibro14}`);
@@ -5563,7 +5682,7 @@
                 let conciliados = 0;
                 
                 // Libros objetivo del Paso 8 BBVA
-                const librosObjetivo = ['03', '09', '14', '15'];
+                const librosObjetivo = ['02', '03', '09', '14', '15'];
                 
                 // Identificar candidatos de múltiples libros
                 const candidatosPaso8 = [];
@@ -5580,7 +5699,8 @@
                     
                     if (esLibroObjetivo) {
                         // Contar por libro
-                        if (String(libro || '').trim() === '03') candidatosLibro03++;
+                        if (String(libro || '').trim() === '02') candidatosLibro02++;
+                        else if (String(libro || '').trim() === '03') candidatosLibro03++;
                         else if (String(libro || '').trim() === '09') candidatosLibro09++;
                         else if (String(libro || '').trim() === '14') candidatosLibro14++;
                         else if (String(libro || '').trim() === '15') candidatosLibro15++;
@@ -5608,6 +5728,7 @@
                 const totalCandidatos = candidatosPaso8.length;
                 
                 // // console.log(`📊 PASO 8 BBVA - FILTRADO:`);
+                // // console.log(`   📄 Candidatos LIBRO 02: ${candidatosLibro02}`);
                 // // console.log(`   📋 Candidatos LIBRO 03: ${candidatosLibro03}`);
                 // // console.log(`   📗 Candidatos LIBRO 09: ${candidatosLibro09}`);
                 // // console.log(`   📘 Candidatos LIBRO 14: ${candidatosLibro14}`);
@@ -5730,6 +5851,7 @@
                     // // console.log(`🏦 PASO 9 BCP: Agrupación por NUMDOC en mayor + mapeo FDOC+HABER vs FECHA+MONTO`);
                 }
                 
+                let candidatosLibro02 = 0;
                 let candidatosLibro03 = 0;
                 let candidatosLibro09 = 0;
                 let candidatosLibro14 = 0;
@@ -5738,7 +5860,7 @@
                 let conciliados = 0;
                 
                 // Libros objetivo del Paso 9
-                const librosObjetivo = ['03', '09', '14', '15'];
+                const librosObjetivo = ['02', '03', '09', '14', '15'];
                 
                 // Agrupar filas por NUMDOC que cumplan criterios
                 const gruposPorNUMDOC = new Map();
@@ -5760,7 +5882,8 @@
                     
                     if (esLibroObjetivo) {
                         // Contar por libro
-                        if (String(libro || '').trim() === '03') candidatosLibro03++;
+                        if (String(libro || '').trim() === '02') candidatosLibro02++;
+                        else if (String(libro || '').trim() === '03') candidatosLibro03++;
                         else if (String(libro || '').trim() === '09') candidatosLibro09++;
                         else if (String(libro || '').trim() === '14') candidatosLibro14++;
                         else if (String(libro || '').trim() === '15') candidatosLibro15++;
@@ -5801,9 +5924,10 @@
                 }
                 
                 gruposFormados = gruposPorNUMDOC.size;
-                const totalCandidatos = candidatosLibro03 + candidatosLibro09 + candidatosLibro14 + candidatosLibro15;
+                const totalCandidatos = candidatosLibro02 + candidatosLibro03 + candidatosLibro09 + candidatosLibro14 + candidatosLibro15;
                 
                 // // console.log(`📊 PASO 9 - AGRUPACIÓN:`);
+                // // console.log(`   📄 Candidatos LIBRO 02: ${candidatosLibro02}`);
                 // // console.log(`   📋 Candidatos LIBRO 03: ${candidatosLibro03}`);
                 // // console.log(`   📗 Candidatos LIBRO 09: ${candidatosLibro09}`);
                 // // console.log(`   📘 Candidatos LIBRO 14: ${candidatosLibro14}`);
@@ -6047,7 +6171,7 @@
                 let conciliados = 0;
                 
                 // Libros objetivo del Paso 9
-                const librosObjetivo = ['03', '09', '14', '15'];
+                const librosObjetivo = ['02', '03', '09', '14', '15'];
                 
                 // === 1. AGRUPAR POR FECHA EN MAYOR ===
                 const gruposPorFechaMayor = new Map();
@@ -6085,7 +6209,8 @@
                     
                     if (esLibroObjetivo) {
                         // Contar por libro
-                        if (String(libro || '').trim() === '03') candidatosLibro03++;
+                        if (String(libro || '').trim() === '02') candidatosLibro02++;
+                        else if (String(libro || '').trim() === '03') candidatosLibro03++;
                         else if (String(libro || '').trim() === '09') candidatosLibro09++;
                         else if (String(libro || '').trim() === '14') candidatosLibro14++;
                         else if (String(libro || '').trim() === '15') candidatosLibro15++;
@@ -6125,7 +6250,7 @@
                 }
                 
                 const gruposMayorFormados = gruposPorFechaMayor.size;
-                const totalCandidatos = candidatosLibro03 + candidatosLibro09 + candidatosLibro14 + candidatosLibro15;
+                const totalCandidatos = candidatosLibro02 + candidatosLibro03 + candidatosLibro09 + candidatosLibro14 + candidatosLibro15;
                 
                 // // console.log(`🏦 SANT PASO 9 - AGRUPACIÓN MAYOR: ${gruposMayorFormados} grupos por FECHA formados`);
                 
@@ -8041,35 +8166,41 @@
 
             procesarPaso12(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto) {
                 /*
-                PASO 12 - CONCILIACIÓN MULTI-CRITERIO PROGRESIVA:
+                PASO 12 - CONCILIACIÓN POR AGRUPACIÓN DE MONEDAS:
                 
-                ESTRATEGIA PROGRESIVA:
-                - Etapa 12A: Tolerancia Ampliada (±5.0) - FECHA exacta + MONTO flexible
-                - Etapa 12B: Fechas Aproximadas (±2 días) - MONTO exacto + FECHA flexible
-                - Etapa 12C: Solo Montos Exactos - Ignorar fechas completamente
+                ESTRATEGIA:
+                - Etapa 12A: FECHA exacta + MONTO exacto (tolerancia exacta)
+                - Etapa 12B: Agrupación por moneda (PEN/USD)
+                
+                ETAPA 12B - CRITERIOS POR MONEDA:
+                
+                PEN (Soles):
+                - Mayor: Agrupa por COMPROB, mapea por FDOC + TOTAL HABER
+                - Extracto: Agrupa por Referencia, mapea por Fecha + |Total importe|
+                
+                USD (Dólares):
+                - Mayor: Agrupa por FDOC, mapea por FDOC + TOTAL HABER
+                - Extracto: Agrupa por Fecha, mapea por Fecha + |Total importe|
                 
                 CRITERIOS:
                 - Solo registros PENDIENTES de cualquier libro
-                - Cada etapa toma lo que la anterior no pudo conciliar
                 - Normalización completa de fechas y montos
                 
                 ESTADOS RESULTANTES:
-                - "P12 - Conciliación A" (tolerancia ampliada)
-                - "P12 - Conciliación B" (fechas aproximadas)
-                - "P12 - Conciliación C" (solo montos exactos)
+                - "P12 - Conciliación A" (tolerancia exacta)
+                - "P12 - Conciliación B" (agrupación por moneda)
                 
                 REFERENCIAS:
                 - Mayor: #REF = [Operación - Número del Extracto]
                 - Extracto: #REF = "LIBRO-COMPROB" del Mayor
                 */
                 
-                // // // console.log(`📈 PASO 12: Iniciando conciliación MULTI-CRITERIO PROGRESIVA`);
+                // // // console.log(`📈 PASO 12: Iniciando conciliación POR AGRUPACIÓN DE MONEDAS`);
                 // // console.log(`🔍 Total filas a revisar: ${filasFiltradasMayor.length}`);
                 // // console.log(`🔍 Estados ya procesados: ${estadosFilas.size}`);
                 
                 let conciliadosEtapa12A = 0;
                 let conciliadosEtapa12B = 0;
-                let conciliadosEtapa12C = 0;
                 
                 // Identificar candidatos PENDIENTES (cualquier libro)
                 const candidatosPendientes = [];
@@ -8107,47 +8238,40 @@
                 
                 if (candidatosPendientes.length === 0) {
                     // // // console.log(`⚠️ No se encontraron registros pendientes para PASO 12`);
-                    return { etapa12a: 0, etapa12b: 0, etapa12c: 0, totalConciliados: 0 };
+                    return { etapa12a: 0, etapa12b: 0, totalConciliados: 0 };
                 }
                 
-                // ETAPA 12A: Tolerancia Ampliada (±5.0)
-                // // console.log(`\n🎯 ETAPA 12A: Tolerancia Ampliada (±5.0)`);
+                // ETAPA 12A: Tolerancia Exacta
+                // // console.log(`\n🎯 ETAPA 12A: Tolerancia Exacta`);
                 conciliadosEtapa12A = this.procesarEtapa12A(candidatosPendientes, extractoProcesable, idxE, estadosFilas, estadosExtracto);
-                // // console.log(`   ✅ Etapa 12A: ${conciliadosEtapa12A} conciliaciones con tolerancia ampliada`);
+                // // console.log(`   ✅ Etapa 12A: ${conciliadosEtapa12A} conciliaciones con tolerancia exacta`);
                 
-                // ETAPA 12B: Fechas Aproximadas (±2 días)
-                // // console.log(`\n🎯 ETAPA 12B: Fechas Aproximadas (±2 días)`);
+                // ETAPA 12B: Agrupación por Moneda (PEN/USD)
+                // // console.log(`\n🎯 ETAPA 12B: Agrupación por Moneda (PEN/USD)`);
                 conciliadosEtapa12B = this.procesarEtapa12B(candidatosPendientes, extractoProcesable, idxE, estadosFilas, estadosExtracto);
-                // // console.log(`   ✅ Etapa 12B: ${conciliadosEtapa12B} conciliaciones con fechas aproximadas`);
+                // // console.log(`   ✅ Etapa 12B: ${conciliadosEtapa12B} conciliaciones por agrupación de moneda`);
                 
-                // ETAPA 12C: Solo Montos Exactos
-                // // console.log(`\n🎯 ETAPA 12C: Solo Montos Exactos (ignorar fechas)`);
-                conciliadosEtapa12C = this.procesarEtapa12C(candidatosPendientes, extractoProcesable, idxE, estadosFilas, estadosExtracto);
-                // // console.log(`   ✅ Etapa 12C: ${conciliadosEtapa12C} conciliaciones por montos exactos`);
-                
-                const totalConciliados = conciliadosEtapa12A + conciliadosEtapa12B + conciliadosEtapa12C;
+                const totalConciliados = conciliadosEtapa12A + conciliadosEtapa12B;
                 
                 // // // console.log(`📊 PASO 12 - RESUMEN COMPLETO:`);
                 // // console.log(`   🎯 Registros pendientes iniciales: ${candidatosPendientes.length}`);
-                // // console.log(`   🅰️ Etapa 12A (Tolerancia ±5.0): ${conciliadosEtapa12A} conciliaciones`);
-                // // console.log(`   🅱️ Etapa 12B (Fechas ±2 días): ${conciliadosEtapa12B} conciliaciones`);
-                // // console.log(`   🅲 Etapa 12C (Solo montos): ${conciliadosEtapa12C} conciliaciones`);
+                // // console.log(`   🅰️ Etapa 12A (Tolerancia Exacta): ${conciliadosEtapa12A} conciliaciones`);
+                // // console.log(`   🅱️ Etapa 12B (Agrupación Moneda): ${conciliadosEtapa12B} conciliaciones`);
                 // // console.log(`   📈 TOTAL conciliado: ${totalConciliados} registros`);
-                // // console.log(`   💰 Estrategia: Conciliación progresiva multi-criterio`);
+                // // console.log(`   💰 Estrategia: Conciliación por agrupación de monedas`);
                 
                 return {
                     candidatos: candidatosPendientes.length,
                     etapa12a: conciliadosEtapa12A,
                     etapa12b: conciliadosEtapa12B,
-                    etapa12c: conciliadosEtapa12C,
                     totalConciliados: totalConciliados
                 };
             },
 
             procesarEtapa12A(candidatosPendientes, extractoProcesable, idxE, estadosFilas, estadosExtracto) {
                 /*
-                ETAPA 12A - TOLERANCIA AMPLIADA:
-                - FECHA exacta + MONTO con tolerancia ±5.0
+                ETAPA 12A - TOLERANCIA EXACTA:
+                - FECHA exacta + MONTO exacto (sin tolerancia)
                 - Estado: "P12 - Conciliación A"
                 */
                 let conciliados = 0;
@@ -8156,7 +8280,7 @@
                     // Saltar si ya fue procesado
                     if (estadosFilas.has(candidato.indice)) continue;
                     
-                    const match = this.buscarMatchPorToleranciaAmpliada(candidato.fdoc, candidato.montoPrincipal, extractoProcesable, idxE, estadosExtracto);
+                    const match = this.buscarMatchPorToleranciaExacta(candidato.fdoc, candidato.montoPrincipal, extractoProcesable, idxE, estadosExtracto);
                     
                     if (match.encontrado) {
                         const refMayor = match.operacionNumero;
@@ -8183,87 +8307,321 @@
                 
                 return conciliados;
             },
+            
+            agruparExtractoPorReferencia(extractoProcesable, idxE, estadosExtracto) {
+                /*
+                Agrupa registros del extracto por Referencia para PEN
+                */
+                const grupos = new Map();
+                
+                for (let i = 0; i < extractoProcesable.length; i++) {
+                    if (estadosExtracto.has(i)) continue; // Saltar si ya está procesado
+                    
+                    const fila = extractoProcesable[i];
+                    const referencia = fila[idxE.referencia] || '';
+                    const fecha = fila[idxE.fecha] || '';
+                    const monto = Math.abs(parseFloat(fila[idxE.monto]) || 0);
+                    
+                    if (!grupos.has(referencia)) {
+                        grupos.set(referencia, {
+                            indices: [],
+                            fecha: fecha,
+                            totalImporte: 0
+                        });
+                    }
+                    
+                    grupos.get(referencia).indices.push(i);
+                    grupos.get(referencia).totalImporte += monto;
+                }
+                
+                return grupos;
+            },
+            
+            agruparExtractoPorFecha(extractoProcesable, idxE, estadosExtracto) {
+                /*
+                Agrupa registros del extracto por Fecha para USD
+                */
+                const grupos = new Map();
+                
+                for (let i = 0; i < extractoProcesable.length; i++) {
+                    if (estadosExtracto.has(i)) continue; // Saltar si ya está procesado
+                    
+                    const fila = extractoProcesable[i];
+                    const fecha = fila[idxE.fecha] || '';
+                    const monto = Math.abs(parseFloat(fila[idxE.monto]) || 0);
+                    
+                    if (!grupos.has(fecha)) {
+                        grupos.set(fecha, {
+                            indices: [],
+                            totalImporte: 0
+                        });
+                    }
+                    
+                    grupos.get(fecha).indices.push(i);
+                    grupos.get(fecha).totalImporte += monto;
+                }
+                
+                return grupos;
+            },
+            
+            buscarMatchGrupoExtractoPEN(fdoc, totalHaber, gruposExtracto) {
+                /*
+                Busca coincidencia para PEN: FDOC + TOTAL HABER vs Fecha + |Total importe|
+                */
+                for (const [referencia, grupo] of gruposExtracto) {
+                    // Mapear FDOC con Fecha y TOTAL HABER con |Total importe|
+                    if (fdoc === grupo.fecha && Math.abs(totalHaber - grupo.totalImporte) < 0.01) {
+                        return {
+                            encontrado: true,
+                            referencia: referencia,
+                            indices: grupo.indices
+                        };
+                    }
+                }
+                
+                return { encontrado: false };
+            },
+            
+            buscarMatchGrupoExtractoUSD(fdoc, totalHaber, gruposExtracto) {
+                /*
+                Busca coincidencia para USD: FDOC + TOTAL HABER vs Fecha + |Total importe|
+                */
+                for (const [fecha, grupo] of gruposExtracto) {
+                    // Mapear FDOC con Fecha y TOTAL HABER con |Total importe|
+                    if (fdoc === fecha && Math.abs(totalHaber - grupo.totalImporte) < 0.01) {
+                        return {
+                            encontrado: true,
+                            fecha: fecha,
+                            indices: grupo.indices
+                        };
+                    }
+                }
+                
+                return { encontrado: false };
+            },
 
             procesarEtapa12B(candidatosPendientes, extractoProcesable, idxE, estadosFilas, estadosExtracto) {
                 /*
-                ETAPA 12B - FECHAS APROXIMADAS:
-                - MONTO exacto (tolerancia ±0.1) + FECHA ±2 días
+                ETAPA 12B - AGRUPACIÓN POR MONEDA:
+                
+                PEN (Soles):
+                - Mayor: Agrupa por COMPROB, mapea por FDOC + TOTAL HABER
+                - Extracto: Agrupa por Referencia, mapea por Fecha + |Total importe|
+                
+                USD (Dólares):
+                - Mayor: Agrupa por FDOC, mapea por FDOC + TOTAL HABER
+                - Extracto: Agrupa por Fecha, mapea por Fecha + |Total importe|
+                
                 - Estado: "P12 - Conciliación B"
                 */
                 let conciliados = 0;
                 
+                // Separar candidatos por moneda (asumiendo que PEN es por defecto)
+                const candidatosPEN = [];
+                const candidatosUSD = [];
+                
                 for (const candidato of candidatosPendientes) {
-                    // Saltar si ya fue procesado
                     if (estadosFilas.has(candidato.indice)) continue;
                     
-                    const match = this.buscarMatchPorFechasAproximadas(candidato.fdoc, candidato.montoPrincipal, extractoProcesable, idxE, estadosExtracto);
+                    // Determinar moneda basándose en algún criterio (aquí asumimos PEN por defecto)
+                    // En una implementación real, esto debería basarse en un campo de moneda
+                    const esUSD = this.esMonedaUSD(candidato.fila);
                     
-                    if (match.encontrado) {
-                        const refMayor = match.operacionNumero;
-                        const refExtracto = `${candidato.libro}-${candidato.comprob}`;
-                        
-                        // Asignar estados
-                        estadosFilas.set(candidato.indice, {
-                            estado: 'P12 - Conciliación B',
-                            ref: refMayor
-                        });
-                        
-                        estadosExtracto.set(match.indice, {
-                            estado: 'P12 - Conciliación B',
-                            ref: refExtracto
-                        });
-                        
-                        conciliados++;
-                        
-                        // // console.log(`✅ ETAPA 12B - CONCILIACIÓN:`);
-                        // // console.log(`   📋 Mayor: LIBRO=${candidato.libro}, FDOC="${candidato.fdoc}", MONTO=${candidato.montoPrincipal}, COMPROB=${candidato.comprob} → REF="${refMayor}"`);
-                        // // console.log(`   📋 Extracto: FECHA="${match.fecha}", MONTO=${match.monto}, Diferencia días: ${match.diferenciaDias} → REF="${refExtracto}"`);
+                    if (esUSD) {
+                        candidatosUSD.push(candidato);
+                    } else {
+                        candidatosPEN.push(candidato);
                     }
+                }
+                
+                // Procesar PEN (Soles)
+                if (candidatosPEN.length > 0) {
+                    conciliados += this.procesarAgrupacionPEN(candidatosPEN, extractoProcesable, idxE, estadosFilas, estadosExtracto);
+                }
+                
+                // Procesar USD (Dólares)
+                if (candidatosUSD.length > 0) {
+                    conciliados += this.procesarAgrupacionUSD(candidatosUSD, extractoProcesable, idxE, estadosFilas, estadosExtracto);
                 }
                 
                 return conciliados;
             },
 
-            procesarEtapa12C(candidatosPendientes, extractoProcesable, idxE, estadosFilas, estadosExtracto) {
+            esMonedaUSD(filaMayor) {
                 /*
-                ETAPA 12C - SOLO MONTOS EXACTOS:
-                - Solo MONTO exacto (tolerancia ±0.1), ignorar fechas
-                - Estado: "P12 - Conciliación C"
+                Determina si un registro del Mayor corresponde a moneda USD
+                Basándose en criterios específicos del banco SBP
+                */
+                // Implementación básica - en la práctica debería basarse en un campo específico
+                // Por ahora, asumimos que ciertos libros o cuentas indican USD
+                const cuenta = filaMayor[2] || ''; // Asumiendo que la cuenta está en la columna 2
+                const glosa = filaMayor[8] || ''; // Asumiendo que la glosa está en la columna 8
+                
+                // Criterios para identificar USD (ajustar según la estructura real)
+                return cuenta.includes('USD') || glosa.includes('USD') || glosa.includes('DOLAR');
+            },
+            
+            procesarAgrupacionPEN(candidatosPEN, extractoProcesable, idxE, estadosFilas, estadosExtracto) {
+                /*
+                AGRUPACIÓN PEN (Soles):
+                - Mayor: Agrupa por COMPROB, mapea por FDOC + TOTAL HABER
+                - Extracto: Agrupa por Referencia, mapea por Fecha + |Total importe|
                 */
                 let conciliados = 0;
                 
-                for (const candidato of candidatosPendientes) {
-                    // Saltar si ya fue procesado
-                    if (estadosFilas.has(candidato.indice)) continue;
-                    
-                    const match = this.buscarMatchSoloMonto(candidato.montoPrincipal, extractoProcesable, idxE, estadosExtracto);
-                    
-                    if (match.encontrado) {
-                        const refMayor = match.operacionNumero;
-                        const refExtracto = `${candidato.libro}-${candidato.comprob}`;
-                        
-                        // Asignar estados
-                        estadosFilas.set(candidato.indice, {
-                            estado: 'P12 - Conciliación C',
-                            ref: refMayor
+                // Agrupar Mayor por COMPROB
+                const gruposMayorPEN = new Map();
+                for (const candidato of candidatosPEN) {
+                    const comprob = candidato.comprob;
+                    if (!gruposMayorPEN.has(comprob)) {
+                        gruposMayorPEN.set(comprob, {
+                            candidatos: [],
+                            fdoc: candidato.fdoc,
+                            totalHaber: 0
                         });
+                    }
+                    gruposMayorPEN.get(comprob).candidatos.push(candidato);
+                    gruposMayorPEN.get(comprob).totalHaber += candidato.haber;
+                }
+                
+                // Agrupar Extracto por Referencia
+                const gruposExtractoPEN = this.agruparExtractoPorReferencia(extractoProcesable, idxE, estadosExtracto);
+                
+                // Mapear grupos: FDOC + TOTAL HABER vs Fecha + |Total importe|
+                for (const [comprob, grupoMayor] of gruposMayorPEN) {
+                    const matchExtracto = this.buscarMatchGrupoExtractoPEN(grupoMayor.fdoc, grupoMayor.totalHaber, gruposExtractoPEN);
+                    
+                    if (matchExtracto.encontrado) {
+                        // Conciliar todos los candidatos del grupo
+                        for (const candidato of grupoMayor.candidatos) {
+                            if (!estadosFilas.has(candidato.indice)) {
+                                const refMayor = matchExtracto.referencia;
+                                const refExtracto = `${candidato.libro}-${candidato.comprob}`;
+                                
+                                estadosFilas.set(candidato.indice, {
+                                    estado: 'P12 - Conciliación B',
+                                    ref: refMayor
+                                });
+                                
+                                conciliados++;
+                            }
+                        }
                         
-                        estadosExtracto.set(match.indice, {
-                            estado: 'P12 - Conciliación C',
-                            ref: refExtracto
+                        // Marcar registros del extracto como conciliados
+                        for (const indiceExtracto of matchExtracto.indices) {
+                            if (!estadosExtracto.has(indiceExtracto)) {
+                                estadosExtracto.set(indiceExtracto, {
+                                    estado: 'P12 - Conciliación B',
+                                    ref: `LIBRO-${comprob}`
+                                });
+                            }
+                        }
+                    }
+                }
+                
+                return conciliados;
+            },
+            
+            procesarAgrupacionUSD(candidatosUSD, extractoProcesable, idxE, estadosFilas, estadosExtracto) {
+                /*
+                AGRUPACIÓN USD (Dólares):
+                - Mayor: Agrupa por FDOC, mapea por FDOC + TOTAL HABER
+                - Extracto: Agrupa por Fecha, mapea por Fecha + |Total importe|
+                */
+                let conciliados = 0;
+                
+                // Agrupar Mayor por FDOC
+                const gruposMayorUSD = new Map();
+                for (const candidato of candidatosUSD) {
+                    const fdoc = candidato.fdoc;
+                    if (!gruposMayorUSD.has(fdoc)) {
+                        gruposMayorUSD.set(fdoc, {
+                            candidatos: [],
+                            totalHaber: 0
                         });
+                    }
+                    gruposMayorUSD.get(fdoc).candidatos.push(candidato);
+                    gruposMayorUSD.get(fdoc).totalHaber += candidato.haber;
+                }
+                
+                // Agrupar Extracto por Fecha
+                const gruposExtractoUSD = this.agruparExtractoPorFecha(extractoProcesable, idxE, estadosExtracto);
+                
+                // Mapear grupos: FDOC + TOTAL HABER vs Fecha + |Total importe|
+                for (const [fdoc, grupoMayor] of gruposMayorUSD) {
+                    const matchExtracto = this.buscarMatchGrupoExtractoUSD(fdoc, grupoMayor.totalHaber, gruposExtractoUSD);
+                    
+                    if (matchExtracto.encontrado) {
+                        // Conciliar todos los candidatos del grupo
+                        for (const candidato of grupoMayor.candidatos) {
+                            if (!estadosFilas.has(candidato.indice)) {
+                                const refMayor = matchExtracto.fecha;
+                                const refExtracto = `${candidato.libro}-${candidato.comprob}`;
+                                
+                                estadosFilas.set(candidato.indice, {
+                                    estado: 'P12 - Conciliación B',
+                                    ref: refMayor
+                                });
+                                
+                                conciliados++;
+                            }
+                        }
                         
-                        conciliados++;
-                        
-                        // // console.log(`✅ ETAPA 12C - CONCILIACIÓN:`);
-                        // // console.log(`   📋 Mayor: LIBRO=${candidato.libro}, MONTO=${candidato.montoPrincipal}, COMPROB=${candidato.comprob} → REF="${refMayor}"`);
-                        // // console.log(`   📋 Extracto: FECHA="${match.fecha}", MONTO=${match.monto} (fecha ignorada) → REF="${refExtracto}"`);
+                        // Marcar registros del extracto como conciliados
+                        for (const indiceExtracto of matchExtracto.indices) {
+                            if (!estadosExtracto.has(indiceExtracto)) {
+                                estadosExtracto.set(indiceExtracto, {
+                                    estado: 'P12 - Conciliación B',
+                                    ref: `LIBRO-${fdoc}`
+                                });
+                            }
+                        }
                     }
                 }
                 
                 return conciliados;
             },
 
+            buscarMatchPorToleranciaExacta(fdocMayor, montoMayor, extractoProcesable, idxE, estadosExtracto) {
+                /*
+                ETAPA 12A: FECHA exacta + MONTO exacto (tolerancia ±0.01)
+                */
+                const fechaMayorNormalizada = this.normalizarFecha(fdocMayor);
+                
+                for (let i = 0; i < extractoProcesable.length; i++) {
+                    if (estadosExtracto.has(i)) continue;
+                    
+                    const itemExtracto = extractoProcesable[i];
+                    const filaExtracto = itemExtracto.fila;
+                    if (!filaExtracto || !Array.isArray(filaExtracto)) continue;
+                    
+                    const fechaExtractoRaw = filaExtracto[idxE.fecha] || '';
+                    const montoExtractoRaw = filaExtracto[idxE.monto] || '0';
+                    const operacionNumero = filaExtracto[6] || '';
+                    
+                    const fechaExtractoNormalizada = this.normalizarFecha(fechaExtractoRaw);
+                    const montoExtracto = Math.abs(this.normalizarMonto(montoExtractoRaw));
+                    
+                    // FECHA exacta + MONTO exacto
+                    const fechasCoinciden = fechaMayorNormalizada === fechaExtractoNormalizada;
+                    const diferenciaMonto = Math.abs(montoMayor - montoExtracto);
+                    const montosCoinciden = diferenciaMonto <= 0.01; // Tolerancia exacta
+                    
+                    if (fechasCoinciden && montosCoinciden) {
+                        return {
+                            encontrado: true,
+                            indice: i,
+                            fecha: fechaExtractoNormalizada,
+                            monto: montoExtracto,
+                            diferencia: diferenciaMonto,
+                            operacionNumero: operacionNumero
+                        };
+                    }
+                }
+                
+                return { encontrado: false };
+            },
+            
             buscarMatchPorToleranciaAmpliada(fdocMayor, montoMayor, extractoProcesable, idxE, estadosExtracto) {
                 /*
                 ETAPA 12A: FECHA exacta + MONTO con tolerancia ±5.0
@@ -10671,7 +11029,7 @@
                 let conciliados = 0;
                 
                 // Libros objetivo para PASO 8
-                const librosObjetivo = ['03', '09', '14', '15'];
+                const librosObjetivo = ['02', '03', '09', '14', '15'];
                 
                 // Identificar candidatos LIBRO = 03, 09, 14, 15 + ESTADO = Pendiente
                 const candidatosPaso8 = [];
@@ -11411,7 +11769,7 @@
                 let conciliados = 0;
                 
                 // Libros objetivo del Paso 8
-                const librosObjetivo = ['03', '09', '14', '15'];
+                const librosObjetivo = ['02', '03', '09', '14', '15'];
                 
                 // Identificar candidatos de múltiples libros
                 const candidatosPaso8 = [];
@@ -11665,7 +12023,7 @@
                 let conciliados = 0;
                 
                 // Libros objetivo del Paso 9
-                const librosObjetivo = ['03', '09', '14', '15'];
+                const librosObjetivo = ['02', '03', '09', '14', '15'];
                 
                 // Agrupar filas por NUMDOC que cumplan criterios
                 const gruposPorNUMDOC = new Map();
@@ -11936,9 +12294,9 @@
                 let gruposExtractoCreados = 0;
                 let conciliados = 0;
                 
-                // === 1. CREAR GRUPOS DEL MAYOR (LIBROS 03/09/14/15) ===
+                // === 1. CREAR GRUPOS DEL MAYOR (LIBROS 02/03/09/14/15) ===
                 const gruposMayor = new Map(); // Key: FDOC, Value: {registros: [], totalHaber: 0}
-                const librosPermitidos = ['03', '09', '14', '15'];
+                const librosPermitidos = ['02', '03', '09', '14', '15'];
                 
                 for (let i = 0; i < filasFiltradasMayor.length; i++) {
                     const estadoActual = estadosFilas.get(i);
@@ -12076,7 +12434,7 @@
         
         // === 1. CREAR GRUPOS DEL MAYOR (LIBROS 2/3/9/14/15) ===
         const gruposMayor = new Map(); // Key: COMPROB, Value: {registros: [], fdoc: '', totalHaber: 0}
-        const librosPermitidos = ['2', '3', '9', '14', '15'];
+        const librosPermitidos = ['02', '2', '3', '9', '14', '15'];
         
         // Agrupando Mayor por COMPROB
         // Libros permitidos definidos

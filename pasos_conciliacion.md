@@ -39,6 +39,8 @@
   - **ETAPA 2**: Mapeo interno BNA DEBE vs CUALQUIER HABER
   
   **SBP (SCOTIABANK) - Operaciones PAGO DE LETRA**:
+  - **ETAPA 4A - Mapeo con Extracto**: DES_TDOP = "Bna", LIBRO = "04" vs "PAGO DE LETRA" + FECHA + MONTO
+  - **ETAPA 4B - Mapeo Interno**: LIBRO = "04" (DEBE) vs LIBRO = "09" (HABER)
   - **Mayor**: Filtrar DES_TDOP = "Bna" + ESTADO = "Pendiente", agrupar por FDOC + DEBE
   - **Extracto**: Filtrar Movimiento inicia con "PAGO DE LETRA", agrupar por Fecha + |Importe|
   - **Mapeo**: FDOC (Mayor) vs Fecha (Extracto), DEBE vs |Importe| por grupos

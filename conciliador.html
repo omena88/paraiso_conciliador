@@ -2324,6 +2324,7 @@
                 // // console.log(`🔍 Total filas a revisar: ${dataRowsMayor.length}`);
                 // // console.log(`🔍 Estados ya procesados: ${estadosFilas.size}`);
                 
+                let candidatosLibro02 = 0;
                 let candidatosLibro03 = 0;
                 let candidatosLibro09 = 0;
                 let candidatosLibro14 = 0;
@@ -2331,7 +2332,7 @@
                 let conciliados = 0;
                 
                 // Libros objetivo del Paso 8
-                const librosObjetivo = ['03', '09', '14', '15'];
+                const librosObjetivo = ['02', '03', '09', '14', '15'];
                 
                 // Identificar candidatos de múltiples libros
                 const candidatosPaso8 = [];
@@ -2348,7 +2349,8 @@
                     
                     if (esLibroObjetivo) {
                         // Contar por libro
-                        if (libro.trim() === '03') candidatosLibro03++;
+                        if (libro.trim() === '02') candidatosLibro02++;
+                        else if (libro.trim() === '03') candidatosLibro03++;
                         else if (libro.trim() === '09') candidatosLibro09++;
                         else if (libro.trim() === '14') candidatosLibro14++;
                         else if (libro.trim() === '15') candidatosLibro15++;
@@ -2508,7 +2510,7 @@
                 PASO 9 - OPERACIONES MÚLTIPLES LIBROS AGRUPADAS (Lógica diferenciada por banco)
                 */
                 let conciliados = 0;
-                const librosAProcesar = ["03", "09", "14", "15"];
+                const librosAProcesar = ["02", "03", "09", "14", "15"];
                 
                 // --- SEPARAR CANDIDATOS POR CUENTA ---
                 const candidatosSantander = [];
