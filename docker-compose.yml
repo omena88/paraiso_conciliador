@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  conciliador-paraiso:
+    build: .
+    container_name: paraiso-conciliador
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    environment:
+      - NGINX_HOST=localhost
+      - NGINX_PORT=80
+    volumes:
+      # Opcional: montar logs para debugging
+      - ./logs:/var/log/nginx
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.paraiso.rule=Host(`conciliador.paraiso.local`)"
+      - "traefik.http.services.paraiso.loadbalancer.server.port=80"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# Red personalizada (opcional)
+networks:
+  default:
+    name: paraiso-network
