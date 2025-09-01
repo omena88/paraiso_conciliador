@@ -181,20 +181,49 @@
                             <div class="text-lg text-gray-900 font-medium mb-3">
                                 Arrastra archivos aquí
                     </div>
-                    
-                            <div class="text-sm text-gray-500 mb-3">
-                                o haz clic para seleccionar
-                            </div>
-                            
-                            <div class="text-xs text-gray-400">
-                                XLSX, XLS, CSV
-                            </div>
                             
                             <p class="text-xs text-blue-600 mt-3" x-show="files.length > 0">
                         <i class="fas fa-info-circle mr-1"></i>
                                 Auto-guardado activado
                     </p>
                                     </div>
+                                </div>
+                                
+                                <!-- Botones de Conciliación debajo del drag and drop -->
+                                <div class="mt-4 space-y-3">
+                                    <button x-show="canProcessConciliation()"
+                                            @click="realizarConciliacion()"
+                                            class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 shadow-sm">
+                                        <i class="fas fa-balance-scale mr-2"></i>
+                                        Iniciar
+                                    </button>
+                                    
+                                    <button x-show="!canProcessConciliation() && files.length > 0"
+                                            disabled
+                                            class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-400 bg-gray-100 cursor-not-allowed">
+                                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                                        <span x-text="getMissingFilesMessage()"></span>
+                                    </button>
+                                    
+                                    <button @click="limpiarArchivos()"
+                                            class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200 shadow-sm">
+                                        <i class="fas fa-trash mr-2"></i>
+                                        Limpiar
+                                    </button>
+                                    
+                                    <button x-show="canProcessConciliation()"
+                                            @click="exportarEstadosConciliacion()"
+                                            class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200 shadow-sm">
+                                        <i class="fas fa-file-excel mr-2"></i>
+                                        Hoja de Trabajo
+                                    </button>
+                                    
+                                    <button x-show="canProcessConciliation()"
+                                            @click="exportarRelacionCuentas()"
+                                            class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-200 shadow-sm">
+                                        <i class="fas fa-chart-bar mr-2"></i>
+                                        Reporte
+                                    </button>
                                 </div>
                             </div>
 
@@ -246,39 +275,7 @@
             </div>
         </div>
 
-        <!-- Botones de Conciliación -->
-        <div class="mb-8">
-            <div class="flex flex-wrap justify-center gap-4">
-                <button x-show="canProcessConciliation()"
-                        @click="realizarConciliacion()"
-                        class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 shadow-sm">
-                    <i class="fas fa-balance-scale mr-2"></i>
-                    Iniciar conciliación bancaria
-                </button>
-                
-                <button x-show="!canProcessConciliation() && files.length > 0"
-                        disabled
-                        class="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-400 bg-gray-100 cursor-not-allowed">
-                    <i class="fas fa-exclamation-triangle mr-2"></i>
-                    <span x-text="getMissingFilesMessage()"></span>
-                </button>
-                
-                <!-- Botones adicionales de exportación -->
-                <button x-show="canProcessConciliation()"
-                        @click="exportarEstadosConciliacion()"
-                        class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200 shadow-sm">
-                    <i class="fas fa-file-excel mr-2"></i>
-                    Exportar Estados
-                </button>
-                
-                <button x-show="canProcessConciliation()"
-                        @click="exportarRelacionCuentas()"
-                        class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-200 shadow-sm">
-                    <i class="fas fa-list mr-2"></i>
-                    Exportar Relación Cuentas
-                </button>
-            </div>
-        </div>
+
 
         <!-- Loading Spinner -->
         <div x-show="isLoading" x-cloak class="text-center py-8">
@@ -309,15 +306,15 @@
                         <!-- Estadísticas -->
                         <div class="grid grid-cols-3 gap-4 mb-6">
                             <div class="bg-blue-50 p-4 rounded-lg text-center">
-                                <div class="text-2xl font-bold text-blue-600" x-text="conciliationResult.totalProcesados"></div>
+                                <div class="text-2xl font-bold text-blue-600" x-text="conciliationResult?.totalProcesados || 0"></div>
                                 <div class="text-sm text-blue-800">Total Procesados</div>
                             </div>
                             <div class="bg-green-50 p-4 rounded-lg text-center">
-                                <div class="text-2xl font-bold text-green-600" x-text="conciliationResult.conciliados"></div>
+                                <div class="text-2xl font-bold text-green-600" x-text="conciliationResult?.conciliados || 0"></div>
                                 <div class="text-sm text-green-800">Conciliados</div>
                             </div>
                             <div class="bg-red-50 p-4 rounded-lg text-center">
-                                <div class="text-2xl font-bold text-red-600" x-text="conciliationResult.noConciliados"></div>
+                                <div class="text-2xl font-bold text-red-600" x-text="conciliationResult?.noConciliados || 0"></div>
                                 <div class="text-sm text-red-800">No Conciliados</div>
                             </div>
                         </div>
@@ -338,10 +335,10 @@
                                                 <i class="fas fa-file-excel text-green-600 mr-2"></i>
                                                 Datos Originales
                                             </h5>
-                                            <p class="text-sm text-gray-600 mb-2" x-text="conciliationResult.archivosGenerados?.datosOriginales?.descripcion"></p>
-                                            <p class="text-xs text-gray-500" x-text="conciliationResult.archivosGenerados?.datosOriginales?.nombre"></p>
+                                            <p class="text-sm text-gray-600 mb-2" x-text="conciliationResult?.archivosGenerados?.datosOriginales?.descripcion || ''"></p>
+                                            <p class="text-xs text-gray-500" x-text="conciliationResult?.archivosGenerados?.datosOriginales?.nombre || ''"></p>
                                         </div>
-                                        <button @click="downloadFile(conciliationResult.archivosGenerados.datosOriginales.url, conciliationResult.archivosGenerados.datosOriginales.nombre)"
+                                        <button @click="downloadFile(conciliationResult?.archivosGenerados?.datosOriginales?.url, conciliationResult?.archivosGenerados?.datosOriginales?.nombre)"
                                                 class="ml-4 inline-flex items-center px-3 py-2 border border-blue-300 text-sm font-medium rounded-md text-blue-600 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
                                             <i class="fas fa-download mr-1"></i>
                                             Descargar
@@ -357,10 +354,10 @@
                                                 <i class="fas fa-file-excel text-blue-600 mr-2"></i>
                                                 Resultados de Conciliación
                                             </h5>
-                                            <p class="text-sm text-gray-600 mb-2" x-text="conciliationResult.archivosGenerados?.conciliacion?.descripcion"></p>
-                                            <p class="text-xs text-gray-500" x-text="conciliationResult.archivosGenerados?.conciliacion?.nombre"></p>
+                                            <p class="text-sm text-gray-600 mb-2" x-text="conciliationResult?.archivosGenerados?.conciliacion?.descripcion || ''"></p>
+                                            <p class="text-xs text-gray-500" x-text="conciliationResult?.archivosGenerados?.conciliacion?.nombre || ''"></p>
                                         </div>
-                                        <button @click="downloadFile(conciliationResult.archivosGenerados.conciliacion.url, conciliationResult.archivosGenerados.conciliacion.nombre)"
+                                        <button @click="downloadFile(conciliationResult?.archivosGenerados?.conciliacion?.url, conciliationResult?.archivosGenerados?.conciliacion?.nombre)"
                                                 class="ml-4 inline-flex items-center px-3 py-2 border border-green-300 text-sm font-medium rounded-md text-green-600 bg-white hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
                                             <i class="fas fa-download mr-1"></i>
                                             Descargar
@@ -12369,6 +12366,32 @@
                     this.showStatus(`Error al exportar relación de cuentas: ${error.message}`, 'error');
                 } finally {
                     this.isLoading = false;
+                }
+            },
+
+            // === FUNCIÓN PARA LIMPIAR ARCHIVOS ===
+            limpiarArchivos() {
+                try {
+                    // Limpiar array de archivos
+                    this.files = [];
+                    
+                    // Limpiar localStorage
+                    localStorage.removeItem('bancarioConciliador_files');
+                    
+                    // Limpiar resultados de conciliación
+                    this.conciliationResult = null;
+                    
+                    // Limpiar mensajes de estado
+                    this.statusMessage = { show: false, text: '', type: 'success' };
+                    
+                    // Resetear estado de carga
+                    this.isLoading = false;
+                    
+                    this.showStatus('Archivos limpiados exitosamente', 'success');
+                    
+                } catch (error) {
+                    console.error("❌ Error limpiando archivos:", error);
+                    this.showStatus('Error al limpiar archivos', 'error');
                 }
             }
         }; // cierre del objeto return
