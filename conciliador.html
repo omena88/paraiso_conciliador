@@ -159,7 +159,7 @@
                 <!-- 30% Izquierda: Área de Drag & Drop -->
                 <div class="col-span-4">
             <div class="border-2 border-dashed border-gray-300 rounded-lg bg-white hover:border-gray-400 transition-colors duration-200 cursor-pointer"
-                         style="height: 300px;"
+                         style="height: 150px;"
                  :class="{ 'border-blue-500 bg-blue-50': isDragOver }"
                  @dragover.prevent="isDragOver = true"
                  @dragleave.prevent="isDragOver = false"
@@ -201,7 +201,7 @@
                 <!-- 70% Derecha: Lista de Archivos -->
                 <div class="col-span-8">
                     <div class="bg-white rounded-lg border border-gray-200 p-6" 
-                         :style="`min-height: 300px; height: ${files.length > 0 ? 'auto' : '300px'};`">
+                         :style="`min-height: 150px; height: ${files.length > 0 ? 'auto' : '150px'};`">
                         
                         <!-- Lista de Archivos -->
                         <div x-show="files.length > 0" x-cloak class="h-full flex flex-col">
@@ -246,24 +246,9 @@
             </div>
         </div>
 
-        <!-- Loading Spinner -->
-        <div x-show="isLoading" x-cloak class="text-center py-8">
-            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
-            <p class="text-gray-600">Procesando archivos de conciliación...</p>
-                                    </div>
-
-        <!-- Status Message -->
-        <div x-show="statusMessage.show" 
-             x-cloak
-             class="mb-6 p-4 rounded-md"
-             :class="statusMessage.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'">
-            <span x-text="statusMessage.text"></span>
-                                </div>
-
-
-
-                        <!-- Botones de Conciliación -->
-            <div class="flex justify-center space-x-4">
+        <!-- Botones de Conciliación -->
+        <div class="mb-8">
+            <div class="flex flex-wrap justify-center gap-4">
                 <button x-show="canProcessConciliation()"
                         @click="realizarConciliacion()"
                         class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 shadow-sm">
@@ -293,6 +278,25 @@
                     Exportar Relación Cuentas
                 </button>
             </div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div x-show="isLoading" x-cloak class="text-center py-8">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
+            <p class="text-gray-600">Procesando archivos de conciliación...</p>
+                                    </div>
+
+        <!-- Status Message -->
+        <div x-show="statusMessage.show" 
+             x-cloak
+             class="mb-6 p-4 rounded-md"
+             :class="statusMessage.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'">
+            <span x-text="statusMessage.text"></span>
+                                </div>
+
+
+
+
 
                 <!-- SECCIÓN DE RESULTADOS Y DESCARGAS -->
                 <div x-show="conciliationResult && conciliationResult.archivosGenerados" x-cloak class="mt-8">
@@ -12370,6 +12374,160 @@
         }; // cierre del objeto return
     } // cierre de la función bancarioConciliador
 </script>
+
+        <!-- Tabla de Cuentas -->
+        <div class="mt-12 mb-8">
+            <div class="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 class="text-xl font-semibold text-gray-900 mb-6">
+                    <i class="fas fa-table mr-2 text-blue-600"></i>
+                    Configuración de Cuentas Bancarias
+                </h3>
+                
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#CTA</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">USD</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PEN</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">LIBROS</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">AJUSTE TC</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <!-- BCP -->
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">1041501</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">BCP.01</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">1041505</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">BCP.02</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">1041502</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">BCP.USD</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
+                            </tr>
+                            
+                            <!-- SANTANDER -->
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">1041401</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">SANT</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">1041402</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">SANT.USD</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
+                            </tr>
+                            
+                            <!-- BBVA -->
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">1041201</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">BBVA</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">1041202</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">BBVA.USD</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
+                            </tr>
+                            
+                            <!-- SCOTIABANK -->
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">1041301</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">SBP</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">1041302</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">SBP.USD</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
+                            </tr>
+                            
+                            <!-- INTERBANK -->
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">1041101</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">IBK</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">1041102</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">IBK.USD</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
+                            </tr>
+                            
+                            <!-- OTROS BANCOS -->
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">1042101</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">DET</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">1042201</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">BN</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Leyenda -->
+                <div class="mt-4 flex items-center justify-center space-x-6 text-sm text-gray-600">
+                    <div class="flex items-center">
+                        <i class="fas fa-check text-green-500 mr-2"></i>
+                        <span>Disponible</span>
+                    </div>
+                    <div class="flex items-center">
+                        <i class="fas fa-times text-red-500 mr-2"></i>
+                        <span>No disponible</span>
+                    </div>
+                </div>
+            </div>
+        </div>
 
 </div>
 </body>
