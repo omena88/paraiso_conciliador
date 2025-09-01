@@ -11209,6 +11209,61 @@
                 }
             },
 
+            // === FUNCIONES AUXILIARES PARA CONCILIACIÓN BANCARIA ===
+            
+            obtenerCodigoCuentaPorPestaña(nombrePestaña) {
+                // Mapeo de nombres de pestañas a códigos de cuenta
+                const mapeo = {
+                    'BCP.01': '1041501',
+                    'BCP.02': '1041505', 
+                    'BCP.USD': '1041502',
+                    'SANT': '1041401',
+                    'SANT.USD': '1041402',
+                    'BBVA': '1041201',
+                    'BBVA.USD': '1041202',
+                    'SBP': '1041301',
+                    'SBP.USD': '1041302',
+                    'IBK': '1041101',
+                    'IBK.USD': '1041102',
+                    'DET': '1042101',
+                    'BN': '1041601'
+                };
+                
+                return mapeo[nombrePestaña] || 'DESCONOCIDO';
+            },
+
+            obtenerSaldoBancoPorCuenta(codigoCuenta) {
+                // Para cuentas USD, usar el equivalente en PEN (USD * TC)
+                const cuentasUSD = ['1041502', '1041402', '1041202', '1041302', '1041102'];
+                
+                if (!this.conciliationResult || !this.conciliationResult.saldosExtractos) {
+                    return 0;
+                }
+                
+                const saldoExtracto = this.conciliationResult.saldosExtractos.get(codigoCuenta);
+                
+                if (saldoExtracto === undefined || saldoExtracto === null) {
+                    return 0;
+                }
+                
+                // Si es cuenta USD, convertir a PEN usando tipo de cambio
+                if (cuentasUSD.includes(codigoCuenta) && this.tipoCambio > 0) {
+                    return saldoExtracto * this.tipoCambio;
+                }
+                
+                // Si es cuenta PEN, usar saldo directo
+                return saldoExtracto;
+            },
+
+            obtenerSaldoLibrosPorCuenta(codigoCuenta) {
+                if (!this.conciliationResult || !this.conciliationResult.saldosLibros) {
+                    return 0;
+                }
+                
+                const saldoLibros = this.conciliationResult.saldosLibros.get(codigoCuenta);
+                return (saldoLibros !== undefined && saldoLibros !== null) ? saldoLibros : 0;
+            },
+
             generateDatosOriginalesFile(datosCompletos, fileName) {
                 try {
                     // Crear workbook para resumen de cuentas
@@ -11313,18 +11368,56 @@
                         'BN'
                     ];
                     
-                    // Crear pestañas vacías para cada extracto
+                    // Crear pestañas de conciliación bancaria para cada extracto
                     pestañasExtractos.forEach(nombrePestaña => {
-                        const datosVacios = [
-                            [`EXTRACTO ${nombrePestaña}`],
-                            ['Esta pestaña será poblada con datos del extracto bancario'],
+                        // Obtener código de cuenta correspondiente al nombre de pestaña
+                        const codigoCuenta = this.obtenerCodigoCuentaPorPestaña(nombrePestaña);
+                        
+                        // Obtener saldos reales
+                        const saldoBanco = this.obtenerSaldoBancoPorCuenta(codigoCuenta);
+                        const saldoLibros = this.obtenerSaldoLibrosPorCuenta(codigoCuenta);
+                        
+                        // Logs para debugging
+                        console.log(`📊 Generando conciliación para ${nombrePestaña}:`);
+                        console.log(`   - Código cuenta: ${codigoCuenta}`);
+                        console.log(`   - Saldo banco: ${saldoBanco}`);
+                        console.log(`   - Saldo libros: ${saldoLibros}`);
+                        
+                        const diferencia = saldoBanco - saldoLibros;
+                        const estado = Math.abs(diferencia) < 0.01 ? 'CONCILIADO' : 'PENDIENTE';
+                        
+                        const datosConciliacion = [
+                            [`CONCILIACIÓN BANCARIA - ${nombrePestaña}`],
+                            ['Fecha de generación:', new Date().toLocaleDateString('es-PE')],
+                            ['Código de cuenta:', codigoCuenta],
+                            ['Tipo de cambio usado:', this.tipoCambio || 'N/A'],
                             [''],
-                            ['Estado: Pendiente de implementación'],
-                            ['Fecha de creación:', new Date().toLocaleDateString('es-PE')]
+                            ['CONCEPTO', 'IMPORTE (S/)'],
+                            [''],
+                            ['SALDO EN BANCOS', saldoBanco],
+                            ['(-) CHEQUES NO COBRADOS', 0],
+                            ['(-) DEPOSITOS EN BANCOS NO REGISTRADOS EN LIBROS', 0],
+                            ['(+) DEPOSITOS EN LIBROS NO REGISTRADOS EN BANCOS', 0],
+                            ['(-) CARGO EN BANCOS NO REGISTRADO EN LIBROS', 0],
+                            ['(-) CARGO EN LIBROS NO REGISTRADO EN BANCOS', 0],
+                            [''],
+                            ['SALDO AJUSTADO BANCOS', saldoBanco],
+                            [''],
+                            ['SALDO EN LIBROS', saldoLibros],
+                            [''],
+                            ['DIFERENCIA (Banco - Libros):', diferencia],
+                            ['ESTADO DE CONCILIACIÓN:', estado],
+                            [''],
+                            ['OBSERVACIONES:'],
+                            ['- Los ajustes están pendientes de implementación'],
+                            ['- Esta es la estructura base para conciliación'],
+                            [''],
+                            ['Generado por: Conciliador Bancario Paraíso v1.0.0'],
+                            ['Fecha y hora:', new Date().toLocaleString('es-PE')]
                         ];
                         
-                        const wsVacio = XLSX.utils.aoa_to_sheet(datosVacios);
-                        XLSX.utils.book_append_sheet(wb, wsVacio, nombrePestaña);
+                        const wsConciliacion = XLSX.utils.aoa_to_sheet(datosConciliacion);
+                        XLSX.utils.book_append_sheet(wb, wsConciliacion, nombrePestaña);
                     });
                     
                     return this.createDownloadableFile(wb, fileName);
