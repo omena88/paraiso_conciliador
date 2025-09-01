@@ -180,7 +180,7 @@
 
                             <div class="text-lg text-gray-900 font-medium mb-3">
                                 Arrastra archivos aquí
-                    </div>
+                            </div>
                             
                             <p class="text-xs text-blue-600 mt-3" x-show="files.length > 0">
                         <i class="fas fa-info-circle mr-1"></i>
@@ -189,11 +189,52 @@
                                     </div>
                                 </div>
                                 
+                                <!-- Inputs Manuales para DET, BN y Tipo de Cambio -->
+                                <div x-show="files.length > 0" class="mt-4 space-y-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                    <h4 class="text-sm font-medium text-yellow-800">Datos Requeridos</h4>
+                                    <div class="grid grid-cols-1 gap-3">
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-700 mb-1">Saldo DET (S/)</label>
+                                            <input type="number" 
+                                                   x-model="saldoDET" 
+                                                   step="0.01" 
+                                                   placeholder="0.00"
+                                                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-700 mb-1">Saldo BN (S/)</label>
+                                            <input type="number" 
+                                                   x-model="saldoBN" 
+                                                   step="0.01" 
+                                                   placeholder="0.00"
+                                                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-700 mb-1">Tipo de Cambio</label>
+                                            <input type="number" 
+                                                   x-model="tipoCambio" 
+                                                   step="0.0001" 
+                                                   placeholder="3.7500"
+                                                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Botón para limpiar solo cache de datos manuales -->
+                                    <div class="flex justify-end mt-2">
+                                        <button @click="limpiarCacheDatosManuales(); saldoDET = 0; saldoBN = 0; tipoCambio = 3.75;"
+                                                class="text-xs text-gray-500 hover:text-gray-700 underline"
+                                                title="Limpiar valores guardados y resetear a defaults">
+                                            Resetear valores
+                                        </button>
+                                    </div>
+                                </div>
+
                                 <!-- Botones de Conciliación debajo del drag and drop -->
                                 <div class="mt-4 space-y-3">
                                     <button x-show="canProcessConciliation()"
                                             @click="realizarConciliacion()"
-                                            class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 shadow-sm">
+                                            :disabled="!validarDatosRequeridos()"
+                                            class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 shadow-sm disabled:bg-gray-400 disabled:cursor-not-allowed">
                                         <i class="fas fa-balance-scale mr-2"></i>
                                         Iniciar
                                     </button>
@@ -211,19 +252,7 @@
                                         Limpiar
                                     </button>
                                     
-                                    <button x-show="canProcessConciliation()"
-                                            @click="exportarEstadosConciliacion()"
-                                            class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200 shadow-sm">
-                                        <i class="fas fa-file-excel mr-2"></i>
-                                        Hoja de Trabajo
-                                    </button>
-                                    
-                                    <button x-show="canProcessConciliation()"
-                                            @click="exportarRelacionCuentas()"
-                                            class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-200 shadow-sm">
-                                        <i class="fas fa-chart-bar mr-2"></i>
-                                        Reporte
-                                    </button>
+
                                 </div>
                             </div>
 
@@ -239,7 +268,7 @@
                                 Archivos cargados (<span x-text="files.length"></span>)
                             </h3>
                             
-                            <div class="grid grid-cols-2 gap-2 flex-1 overflow-y-auto">
+                            <div class="grid grid-cols-3 gap-2 flex-1 overflow-y-auto">
                 <template x-for="file in files" :key="file.id">
                                     <div class="file-item flex items-center p-2 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors duration-200 h-fit">
                         
@@ -294,38 +323,19 @@
 
 
 
-
+                
                 <!-- SECCIÓN DE RESULTADOS Y DESCARGAS -->
                 <div x-show="conciliationResult && conciliationResult.archivosGenerados" x-cloak class="mt-8">
                     <div class="bg-white rounded-lg border border-gray-200 p-6">
                         <h3 class="text-xl font-semibold text-gray-900 mb-4">
-                            <i class="fas fa-check-circle text-green-600 mr-2"></i>
-                            Conciliación Completada
+                            <i class="fas fa-download mr-2 text-blue-600"></i>
+                            Archivos Generados
                         </h3>
                         
-                        <!-- Estadísticas -->
-                        <div class="grid grid-cols-3 gap-4 mb-6">
-                            <div class="bg-blue-50 p-4 rounded-lg text-center">
-                                <div class="text-2xl font-bold text-blue-600" x-text="conciliationResult?.totalProcesados || 0"></div>
-                                <div class="text-sm text-blue-800">Total Procesados</div>
-                            </div>
-                            <div class="bg-green-50 p-4 rounded-lg text-center">
-                                <div class="text-2xl font-bold text-green-600" x-text="conciliationResult?.conciliados || 0"></div>
-                                <div class="text-sm text-green-800">Conciliados</div>
-                            </div>
-                            <div class="bg-red-50 p-4 rounded-lg text-center">
-                                <div class="text-2xl font-bold text-red-600" x-text="conciliationResult?.noConciliados || 0"></div>
-                                <div class="text-sm text-red-800">No Conciliados</div>
-                            </div>
-                        </div>
+
                         
                         <!-- Archivos Generados -->
                         <div class="border-t pt-6">
-                            <h4 class="text-lg font-medium text-gray-900 mb-4">
-                                <i class="fas fa-download mr-2 text-blue-600"></i>
-                                Archivos Generados
-                            </h4>
-                            
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <!-- Archivo de Datos Originales -->
                                 <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
@@ -333,7 +343,7 @@
                                         <div class="flex-1">
                                             <h5 class="font-medium text-gray-900 mb-1">
                                                 <i class="fas fa-file-excel text-green-600 mr-2"></i>
-                                                Datos Originales
+                                                Resumen
                                             </h5>
                                             <p class="text-sm text-gray-600 mb-2" x-text="conciliationResult?.archivosGenerados?.datosOriginales?.descripcion || ''"></p>
                                             <p class="text-xs text-gray-500" x-text="conciliationResult?.archivosGenerados?.datosOriginales?.nombre || ''"></p>
@@ -352,7 +362,7 @@
                                         <div class="flex-1">
                                             <h5 class="font-medium text-gray-900 mb-1">
                                                 <i class="fas fa-file-excel text-blue-600 mr-2"></i>
-                                                Resultados de Conciliación
+                                                Hoja de Trabajo
                                             </h5>
                                             <p class="text-sm text-gray-600 mb-2" x-text="conciliationResult?.archivosGenerados?.conciliacion?.descripcion || ''"></p>
                                             <p class="text-xs text-gray-500" x-text="conciliationResult?.archivosGenerados?.conciliacion?.nombre || ''"></p>
@@ -366,13 +376,164 @@
                                 </div>
                             </div>
                             
-                            <!-- Botón para descargar ambos archivos -->
-                            <div class="mt-4 text-center">
-                                <button @click="downloadBothFiles()"
-                                        class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
-                                    <i class="fas fa-download mr-2"></i>
-                                    Descargar Ambos Archivos
-                                </button>
+                            </div>
+                        
+                        <!-- Resumen de Cuentas Bancarias -->
+                        <div class="mt-8">
+                            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                                <div class="flex items-center mb-6">
+                                    <i class="fas fa-university text-blue-600 mr-3"></i>
+                                    <h3 class="text-xl font-semibold text-gray-900">Resumen de Cuentas Bancarias</h3>
+                        </div>
+                                
+                                <!-- Tabla compacta con franjas -->
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#CTA</th>
+                                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                                                <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">USD</th>
+                                                <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PEN</th>
+                                                <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Libros</th>
+                                                <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Ajuste TC</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-gray-200">
+                                            <tr class="bg-white hover:bg-gray-50">
+                                                <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">1041501</td>
+                                                <td class="px-4 py-2 whitespace-nowrap">
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">BCP.01</span>
+                                                </td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-gray-500">❌</td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-blue-600 font-medium" x-text="getSaldoExtracto('1041501')"></td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-blue-600 font-medium" x-text="getSaldoLibros('1041501')"></td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-gray-500">❌</td>
+                                            </tr>
+                                            <tr class="bg-gray-50 hover:bg-gray-100">
+                                                <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">1041505</td>
+                                                <td class="px-4 py-2 whitespace-nowrap">
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">BCP.02</span>
+                                                </td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-gray-500">❌</td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-blue-600 font-medium" x-text="getSaldoExtracto('1041505')"></td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-blue-600 font-medium" x-text="getSaldoLibros('1041505')"></td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-gray-500">❌</td>
+                                            </tr>
+                                            <tr class="bg-white hover:bg-gray-50">
+                                                <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">1041502</td>
+                                                <td class="px-4 py-2 whitespace-nowrap">
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">BCP.USD</span>
+                                                </td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-blue-600 font-medium" x-text="getSaldoExtracto('1041502')"></td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-blue-600 font-medium" x-text="getSaldoExtractoPEN('1041502')"></td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-blue-600 font-medium" x-text="getSaldoLibros('1041502')"></td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-green-600">✅</td>
+                                            </tr>
+                                            <tr class="bg-gray-50 hover:bg-gray-100">
+                                                <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">1041401</td>
+                                                <td class="px-4 py-2 whitespace-nowrap">
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">SANT</span>
+                                                </td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-gray-500">❌</td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-blue-600 font-medium" x-text="getSaldoExtracto('1041401')"></td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-blue-600 font-medium" x-text="getSaldoLibros('1041401')"></td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-gray-500">❌</td>
+                                            </tr>
+                                            <tr class="bg-white hover:bg-gray-50">
+                                                <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">1041402</td>
+                                                <td class="px-4 py-2 whitespace-nowrap">
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">SANT.USD</span>
+                                                </td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-blue-600 font-medium" x-text="getSaldoExtracto('1041402')"></td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-blue-600 font-medium" x-text="getSaldoExtractoPEN('1041402')"></td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-blue-600 font-medium" x-text="getSaldoLibros('1041402')"></td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-green-600">✅</td>
+                                            </tr>
+                                            <tr class="bg-gray-50 hover:bg-gray-100">
+                                                <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">1041201</td>
+                                                <td class="px-4 py-2 whitespace-nowrap">
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">BBVA</span>
+                                                </td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-gray-500">❌</td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-blue-600 font-medium" x-text="getSaldoExtracto('1041201')"></td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-blue-600 font-medium" x-text="getSaldoLibros('1041201')"></td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-gray-500">❌</td>
+                                            </tr>
+                                            <tr class="bg-white hover:bg-gray-50">
+                                                <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">1041202</td>
+                                                <td class="px-4 py-2 whitespace-nowrap">
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">BBVA.USD</span>
+                                                </td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-blue-600 font-medium" x-text="getSaldoExtracto('1041202')"></td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-blue-600 font-medium" x-text="getSaldoExtractoPEN('1041202')"></td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-blue-600 font-medium" x-text="getSaldoLibros('1041202')"></td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-green-600">✅</td>
+                                            </tr>
+                                            <tr class="bg-gray-50 hover:bg-gray-100">
+                                                <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">1041301</td>
+                                                <td class="px-4 py-2 whitespace-nowrap">
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">SBP</span>
+                                                </td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-gray-500">❌</td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-blue-600 font-medium" x-text="getSaldoExtracto('1041301')"></td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-blue-600 font-medium" x-text="getSaldoLibros('1041301')"></td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-gray-500">❌</td>
+                                            </tr>
+                                            <tr class="bg-white hover:bg-gray-50">
+                                                <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">1041302</td>
+                                                <td class="px-4 py-2 whitespace-nowrap">
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">SBP.USD</span>
+                                                </td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-blue-600 font-medium" x-text="getSaldoExtracto('1041302')"></td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-blue-600 font-medium" x-text="getSaldoExtractoPEN('1041302')"></td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-blue-600 font-medium" x-text="getSaldoLibros('1041302')"></td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-green-600">✅</td>
+                                            </tr>
+                                            <tr class="bg-gray-50 hover:bg-gray-100">
+                                                <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">1041101</td>
+                                                <td class="px-4 py-2 whitespace-nowrap">
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">IBK</span>
+                                                </td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-gray-500">❌</td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-blue-600 font-medium" x-text="getSaldoExtracto('1041101')"></td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-blue-600 font-medium" x-text="getSaldoLibros('1041101')"></td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-gray-500">❌</td>
+                                            </tr>
+                                            <tr class="bg-white hover:bg-gray-50">
+                                                <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">1041102</td>
+                                                <td class="px-4 py-2 whitespace-nowrap">
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">IBK.USD</span>
+                                                </td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-blue-600 font-medium" x-text="getSaldoExtracto('1041102')"></td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-blue-600 font-medium" x-text="getSaldoExtractoPEN('1041102')"></td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-blue-600 font-medium" x-text="getSaldoLibros('1041102')"></td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-green-600">✅</td>
+                                            </tr>
+                                            <tr class="bg-gray-50 hover:bg-gray-100">
+                                                <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">1042101</td>
+                                                <td class="px-4 py-2 whitespace-nowrap">
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">DET</span>
+                                                </td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-gray-500">❌</td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-blue-600 font-medium" x-text="getSaldoExtracto('1042101')"></td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-blue-600 font-medium" x-text="getSaldoLibros('1042101')"></td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-gray-500">❌</td>
+                                            </tr>
+                                            <tr class="bg-white hover:bg-gray-50">
+                                                <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">1041601</td>
+                                                <td class="px-4 py-2 whitespace-nowrap">
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">BN</span>
+                                                </td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-gray-500">❌</td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-blue-600 font-medium" x-text="getSaldoExtracto('1041601')"></td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-blue-600 font-medium" x-text="getSaldoLibros('1041601')"></td>
+                                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-gray-500">❌</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
                             </div>
                         </div>
                     </div>
@@ -388,13 +549,7 @@
                 </button>
 
                 <!-- Botón para limpiar cache -->
-                <button x-show="files.length > 0"
-                        @click="clearStoredFiles()"
-                        class="inline-flex items-center px-4 py-3 border border-red-300 text-base font-medium rounded-md text-red-600 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200 shadow-sm"
-                        title="Limpiar archivos guardados y empezar de nuevo">
-                    <i class="fas fa-trash-alt mr-2"></i>
-                    Limpiar Todo
-                </button>
+
             </div>
         </div>
 
@@ -413,7 +568,64 @@
                 type: 'success'
             },
             conciliationResult: null,
+            saldoDET: 0,
+            saldoBN: 0,
+            tipoCambio: 3.75,
             requiredFileTypes: ['mayor', 'extracto', 'resumen'],
+
+            // === FUNCIONES DE CACHE PARA DATOS MANUALES ===
+
+            guardarDatosManuales() {
+                console.log('💾 EJECUTANDO guardarDatosManuales()...');
+                const datosCache = {
+                    saldoDET: this.saldoDET,
+                    saldoBN: this.saldoBN,
+                    tipoCambio: this.tipoCambio,
+                    fechaGuardado: new Date().toISOString()
+                };
+                
+                try {
+                    localStorage.setItem('conciliador_datos_manuales', JSON.stringify(datosCache));
+                    console.log('💾 ✅ Datos manuales guardados en cache:', datosCache);
+                    
+                    // Verificar que se guardó correctamente
+                    const verificacion = localStorage.getItem('conciliador_datos_manuales');
+                    console.log('💾 🔍 Verificación inmediata:', verificacion ? 'GUARDADO OK' : 'ERROR AL GUARDAR');
+                } catch (error) {
+                    console.error('❌ Error guardando datos manuales:', error);
+                }
+            },
+
+            cargarDatosManuales() {
+                try {
+                    const datosGuardados = localStorage.getItem('conciliador_datos_manuales');
+                    if (datosGuardados) {
+                        const datos = JSON.parse(datosGuardados);
+                        this.saldoDET = datos.saldoDET || 0;
+                        this.saldoBN = datos.saldoBN || 0;
+                        this.tipoCambio = datos.tipoCambio || 3.75;
+                        console.log('📂 Datos manuales cargados desde cache:', datos);
+                        console.log(`📅 Guardados el: ${new Date(datos.fechaGuardado).toLocaleString()}`);
+                    } else {
+                        console.log('📂 No hay datos manuales guardados, usando valores por defecto');
+                    }
+                } catch (error) {
+                    console.error('❌ Error cargando datos manuales:', error);
+                    // Usar valores por defecto si hay error
+                    this.saldoDET = 0;
+                    this.saldoBN = 0;
+                    this.tipoCambio = 3.75;
+                }
+            },
+
+            limpiarCacheDatosManuales() {
+                try {
+                    localStorage.removeItem('conciliador_datos_manuales');
+                    console.log('🗑️ Cache de datos manuales limpiado');
+                } catch (error) {
+                    console.error('❌ Error limpiando cache de datos manuales:', error);
+                }
+            },
             
             // === CONFIGURACIÓN MULTI-CUENTA ===
             cuentasConfig: {
@@ -788,7 +1000,16 @@
             },
 
             init() {
+                // Cargar archivos guardados
                 this.loadStoredFiles();
+                
+                // Cargar valores manuales guardados
+                this.cargarDatosManuales();
+                
+                // Guardar automáticamente cuando cambien los valores
+                this.$watch('saldoDET', () => this.guardarDatosManuales());
+                this.$watch('saldoBN', () => this.guardarDatosManuales());
+                this.$watch('tipoCambio', () => this.guardarDatosManuales());
             },
 
             // === MÉTODOS PARA MANEJO MULTI-CUENTA ===
@@ -1000,6 +1221,7 @@
 
             categorizeFile(fileName) {
                 const name = fileName.toLowerCase();
+                console.log(`🔍 Categorizando archivo: "${fileName}" -> "${name}"`);
                 
                 // Debug específico para SBP.USD
                 if (name.includes('sbp.usd')) {
@@ -1033,14 +1255,30 @@
                     return 'resumen';
                 }
                 
+                // 4. Patrón para RESUMEN.MMAAAA (archivo de libros)
+                console.log(`📚 Verificando patrón RESUMEN para: "${name}"`);
+                const resumenMatch = name.match(/^resumen\.\d{6}/);
+                console.log(`📚 Match RESUMEN: ${resumenMatch ? 'SÍ' : 'NO'} - Patrón: /^resumen\\.\\d{6}/`);
+                
+                // También verificar patrón más flexible para archivos que empiecen con "resumen"
+                const resumenFlexible = name.startsWith('resumen.');
+                console.log(`📚 Match RESUMEN flexible: ${resumenFlexible ? 'SÍ' : 'NO'} - Empieza con "resumen."`);
+                
+                if (resumenMatch || resumenFlexible) {
+                    console.log(`✅ Archivo RESUMEN identificado como 'libros': "${fileName}"`);
+                    return 'libros';
+                }
+                
                 // 4. Patrones legacy para compatibilidad (se eliminarán gradualmente)
                 if (name.includes('mayor') || name.includes('analitico')) {
                     return 'mayor';
                 } else if (name.includes('extracto') || name.includes('banco')) {
                     return 'extracto';
                 } else if (name.includes('resumen') || name.includes('saldo')) {
+                    console.log(`📋 Archivo categorizado como 'resumen' por patrón legacy: "${fileName}"`);
                     return 'resumen';
         } else {
+                    console.log(`❓ Archivo categorizado como 'otro': "${fileName}"`);
                     return 'otro';
                 }
             },
@@ -1075,6 +1313,15 @@
                 return 'Archivos incompletos';
             },
 
+            validarDatosRequeridos() {
+                // Validar que los campos manuales tengan valores válidos
+                const saldoDETValido = this.saldoDET !== null && this.saldoDET !== undefined && this.saldoDET >= 0;
+                const saldoBNValido = this.saldoBN !== null && this.saldoBN !== undefined && this.saldoBN >= 0;
+                const tipoCambioValido = this.tipoCambio !== null && this.tipoCambio !== undefined && this.tipoCambio > 0;
+                
+                return saldoDETValido && saldoBNValido && tipoCambioValido;
+            },
+
             async realizarConciliacion() {
                 if (!this.canProcessConciliation()) {
                     this.showStatus('Se necesitan al menos los archivos MAYOR.PEN/USD.MMAAAA y extractos bancarios (BCP.01/02, SANT, BBVA, IBK)', 'error');
@@ -1093,9 +1340,26 @@
                     const mayorFileGenerico = mayorFiles[0]?.file;
                     const mayorFile = mayorFilePEN || mayorFileGenerico;
                     
+                    // === PROCESAR ARCHIVO DE LIBROS (RESUMEN.MMAAAA) ===
+                    const librosFiles = this.files.filter(f => f.category === 'libros');
+                    console.log(`📚 Archivos de libros encontrados: ${librosFiles.length}`);
+                    librosFiles.forEach((f, i) => console.log(`📚 Archivo libros ${i+1}: "${f.name}" (categoría: ${f.category})`));
+                    
+                    let saldosLibros = new Map();
+                    
+                    if (librosFiles.length > 0) {
+                        const librosFile = librosFiles[0].file;
+                        console.log(`📚 Procesando archivo de libros: "${librosFiles[0].name}"`);
+                        saldosLibros = await this.procesarArchivoLibros(librosFile);
+                        console.log(`📚 Saldos de libros procesados: ${saldosLibros.size} cuentas`);
+                    } else {
+                        console.log(`⚠️ No se encontraron archivos de libros (categoría 'libros')`);
+                    }
+                    
                     // === SEPARAR EXTRACTOS POR CUENTA ===
                     const extractoFiles = this.files.filter(f => f.category === 'extracto');
                     const extractosPorCuenta = new Map();
+                    const saldosExtractos = new Map(); // Para almacenar saldos de E6
                     
                     // Procesar cada archivo de extracto por cuenta específica
                     for (const extractoFileObj of extractoFiles) {
@@ -1108,6 +1372,17 @@
                             if (cuentaInfo.codigo === '1041302') {
                 
                             }
+                            
+                            // Capturar saldo de extractos para todos los bancos (excepto DET y BN)
+                            if (!cuentaInfo.codigo.startsWith('1042101') && !cuentaInfo.codigo.startsWith('1041601')) {
+                                console.log(`💰 Procesando saldo extracto para ${cuentaInfo.codigo} (${extractoFileObj.name})`);
+                                const saldoExtracto = await this.leerSaldoExtracto(extractoFileObj.file, cuentaInfo.codigo);
+                                if (saldoExtracto !== null) {
+                                    saldosExtractos.set(cuentaInfo.codigo, saldoExtracto);
+                                    console.log(`✅ Saldo extracto capturado para ${cuentaInfo.codigo}: ${saldoExtracto}`);
+                                }
+                            }
+                            
                             if (cuentaInfo.config.activo) {
                                 // Leer archivo con configuración específica (estructura especial si aplica)
                                 const datosExtracto = await this.readExcelFile(extractoFileObj.file, cuentaInfo.config);
@@ -1284,11 +1559,18 @@
             
             const fileName = `conciliacion_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.xlsx`;
                     
+                    // Agregar saldos manuales para DET y BN
+                    saldosExtractos.set('1042101', this.saldoDET); // DET
+                    saldosExtractos.set('1041601', this.saldoBN);   // BN
+
                     // Mostrar resultados
                     this.conciliationResult = {
                         totalProcesados: resultado.totalProcesados,
                         conciliados: Math.floor(resultado.totalProcesados * 0.8), // Ejemplo
                         noConciliados: Math.floor(resultado.totalProcesados * 0.2), // Ejemplo
+                        saldosLibros: saldosLibros, // Agregar saldos de libros
+                        saldosExtractos: saldosExtractos, // Agregar saldos de extractos (E6)
+                        tipoCambio: this.tipoCambio, // Agregar tipo de cambio
                         detalles: {
                             fecha: new Date().toISOString(),
                             archivo_generado: fileName,
@@ -10901,8 +11183,8 @@
                 try {
                     const timestamp = new Date().toISOString().slice(0,19).replace(/:/g,'-');
                     
-                    // Archivo 1: Datos originales
-                    const datosOriginalesFileName = `datos_originales_${timestamp}.xlsx`;
+                    // Archivo 1: Resumen
+                    const datosOriginalesFileName = `resumen_${timestamp}.xlsx`;
                     const urlDatosOriginales = this.generateDatosOriginalesFile(datosCompletos, datosOriginalesFileName);
                     
                     // Archivo 2: Resultados de conciliación
@@ -10913,7 +11195,7 @@
                         datosOriginales: {
                             nombre: datosOriginalesFileName,
                             url: urlDatosOriginales,
-                            descripcion: 'Datos originales sin procesar'
+                            descripcion: 'Resumen de cuentas bancarias configuradas'
                         },
                         conciliacion: {
                             nombre: conciliacionFileName,
@@ -10929,36 +11211,121 @@
 
             generateDatosOriginalesFile(datosCompletos, fileName) {
                 try {
-                    // Crear workbook para datos originales
+                    // Crear workbook para resumen de cuentas
                     const wb = XLSX.utils.book_new();
                     
-                    // HOJA 1: MAYOR.PEN (datos originales)
-                    if (datosCompletos.datosMayor && datosCompletos.datosMayor.length > 0) {
-                        const wsMayor = XLSX.utils.aoa_to_sheet(datosCompletos.datosMayor);
-                        XLSX.utils.book_append_sheet(wb, wsMayor, "MAYOR.PEN");
-                    }
+                    // Generar datos de la tabla de resumen de cuentas bancarias
+                    const resumenData = [];
                     
-                    // HOJA 2: MAYOR.USD
-                    if (datosCompletos.datosMayorUSD && datosCompletos.datosMayorUSD.length > 0) {
-                        const wsMayorUSD = XLSX.utils.aoa_to_sheet(datosCompletos.datosMayorUSD);
-                        XLSX.utils.book_append_sheet(wb, wsMayorUSD, "MAYOR.USD");
-                    }
+                    // Header principal
+                    resumenData.push(['RESUMEN DE CUENTAS BANCARIAS']);
+                    resumenData.push(['Generado el:', new Date().toLocaleDateString('es-PE')]);
+                    resumenData.push([]); // Fila vacía
                     
-                    // HOJAS DE EXTRACTOS (datos originales)
-                    if (datosCompletos.extractosPorCuenta) {
-                        datosCompletos.extractosPorCuenta.forEach((extractoInfo, codigoCuenta) => {
-                            if (extractoInfo.datosExtracto && extractoInfo.datosExtracto.length > 0) {
-                                const wsExtracto = XLSX.utils.aoa_to_sheet(extractoInfo.datosExtracto);
-                                XLSX.utils.book_append_sheet(wb, wsExtracto, extractoInfo.config.pestañaExcel);
+                    // Headers de la tabla
+                    resumenData.push(['#CTA', 'Nombre', 'USD', 'PEN', 'LIBROS', 'AJUSTE TC']);
+                    
+                    // Función para obtener saldo de libros
+                    const getSaldoLibrosExcel = (cuenta) => {
+                        if (this.conciliationResult && this.conciliationResult.saldosLibros) {
+                            const saldo = this.conciliationResult.saldosLibros.get(cuenta);
+                            if (saldo !== undefined && saldo !== null) {
+                                return saldo; // Retornar el número para Excel
                             }
-                        });
-                    }
+                        }
+                        return 0; // Si no hay saldo, retornar 0
+                    };
                     
-                    // HOJA: SALDO
-                    if (datosCompletos.datosSaldo && datosCompletos.datosSaldo.length > 0) {
-                        const wsSaldo = XLSX.utils.aoa_to_sheet(datosCompletos.datosSaldo);
-                        XLSX.utils.book_append_sheet(wb, wsSaldo, "SALDO");
-                    }
+                    // Función para obtener saldo de extractos
+                    const getSaldoExtractoExcel = (cuenta) => {
+                        if (this.conciliationResult && this.conciliationResult.saldosExtractos) {
+                            const saldo = this.conciliationResult.saldosExtractos.get(cuenta);
+                            if (saldo !== undefined && saldo !== null) {
+                                return saldo; // Retornar el número para Excel
+                            }
+                        }
+                        return 0; // Si no hay saldo, retornar 0
+                    };
+
+                    // Función para calcular equivalente PEN de cuentas USD
+                    const getSaldoExtractoPENExcel = (cuenta) => {
+                        if (this.conciliationResult && this.conciliationResult.saldosExtractos && this.tipoCambio > 0) {
+                            const saldoUSD = this.conciliationResult.saldosExtractos.get(cuenta);
+                            if (saldoUSD !== undefined && saldoUSD !== null) {
+                                return saldoUSD * this.tipoCambio; // USD * Tipo de Cambio = PEN
+                            }
+                        }
+                        return 0; // Si no hay saldo USD o TC, retornar 0
+                    };
+                    
+                    // Datos de las cuentas con saldos reales
+                    const cuentasData = [
+                        ['1041501', 'BCP.01', 0, getSaldoExtractoExcel('1041501'), getSaldoLibrosExcel('1041501'), 'No'],
+                        ['1041505', 'BCP.02', 0, getSaldoExtractoExcel('1041505'), getSaldoLibrosExcel('1041505'), 'No'],
+                        ['1041502', 'BCP.USD', getSaldoExtractoExcel('1041502'), getSaldoExtractoPENExcel('1041502'), getSaldoLibrosExcel('1041502'), 'Sí'],
+                        ['1041401', 'SANT', 0, getSaldoExtractoExcel('1041401'), getSaldoLibrosExcel('1041401'), 'No'],
+                        ['1041402', 'SANT.USD', getSaldoExtractoExcel('1041402'), getSaldoExtractoPENExcel('1041402'), getSaldoLibrosExcel('1041402'), 'Sí'],
+                        ['1041201', 'BBVA', 0, getSaldoExtractoExcel('1041201'), getSaldoLibrosExcel('1041201'), 'No'],
+                        ['1041202', 'BBVA.USD', getSaldoExtractoExcel('1041202'), getSaldoExtractoPENExcel('1041202'), getSaldoLibrosExcel('1041202'), 'Sí'],
+                        ['1041301', 'SBP', 0, getSaldoExtractoExcel('1041301'), getSaldoLibrosExcel('1041301'), 'No'],
+                        ['1041302', 'SBP.USD', getSaldoExtractoExcel('1041302'), getSaldoExtractoPENExcel('1041302'), getSaldoLibrosExcel('1041302'), 'Sí'],
+                        ['1041101', 'IBK', 0, getSaldoExtractoExcel('1041101'), getSaldoLibrosExcel('1041101'), 'No'],
+                        ['1041102', 'IBK.USD', getSaldoExtractoExcel('1041102'), getSaldoExtractoPENExcel('1041102'), getSaldoLibrosExcel('1041102'), 'Sí'],
+                        ['1042101', 'DET', 0, getSaldoExtractoExcel('1042101'), getSaldoLibrosExcel('1042101'), 'No'],
+                        ['1041601', 'BN', 0, getSaldoExtractoExcel('1041601'), getSaldoLibrosExcel('1041601'), 'No']
+                    ];
+                    
+                    // Agregar datos de cuentas
+                    cuentasData.forEach(cuenta => resumenData.push(cuenta));
+                    
+                    resumenData.push([]); // Fila vacía
+                    
+                    // Resumen estadístico
+                    const totalCuentas = cuentasData.length;
+                    const cuentasUSD = cuentasData.filter(c => c[2] === 'Sí').length;
+                    const cuentasPEN = cuentasData.filter(c => c[3] === 'Sí').length;
+                    const cuentasAjusteTC = cuentasData.filter(c => c[5] === 'Sí').length;
+                    
+                    resumenData.push(['ESTADÍSTICAS:']);
+                    resumenData.push(['Total de cuentas:', totalCuentas]);
+                    resumenData.push(['Cuentas USD:', cuentasUSD]);
+                    resumenData.push(['Cuentas PEN:', cuentasPEN]);
+                    resumenData.push(['Cuentas con Ajuste TC:', cuentasAjusteTC]);
+                    
+                    // Crear hoja de resumen
+                    const wsResumen = XLSX.utils.aoa_to_sheet(resumenData);
+                    XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen");
+                    
+                    // AGREGAR PESTAÑAS DE EXTRACTOS VACÍAS (mismas que Hoja de Trabajo)
+                    const pestañasExtractos = [
+                        'BCP.01',
+                        'BCP.02', 
+                        'BCP.USD',
+                        'SANT',
+                        'SANT.USD',
+                        'BBVA',
+                        'BBVA.USD',
+                        'SBP',
+                        'SBP.USD',
+                        'IBK',
+                        'IBK.USD',
+                        'DET',
+                        'BN'
+                    ];
+                    
+                    // Crear pestañas vacías para cada extracto
+                    pestañasExtractos.forEach(nombrePestaña => {
+                        const datosVacios = [
+                            [`EXTRACTO ${nombrePestaña}`],
+                            ['Esta pestaña será poblada con datos del extracto bancario'],
+                            [''],
+                            ['Estado: Pendiente de implementación'],
+                            ['Fecha de creación:', new Date().toLocaleDateString('es-PE')]
+                        ];
+                        
+                        const wsVacio = XLSX.utils.aoa_to_sheet(datosVacios);
+                        XLSX.utils.book_append_sheet(wb, wsVacio, nombrePestaña);
+                    });
                     
                     return this.createDownloadableFile(wb, fileName);
                 } catch (error) {
@@ -10972,26 +11339,7 @@
                     // Crear workbook para resultados de conciliación
                     const wb = XLSX.utils.book_new();
                     
-                    // HOJA 1: RESUMEN DE CONCILIACIÓN
-                    const resumenData = [
-                        ['RESUMEN DE CONCILIACIÓN BANCARIA'],
-                        ['Fecha de procesamiento:', new Date().toLocaleString()],
-                        [''],
-                        ['ESTADÍSTICAS:'],
-                        ['Total de registros procesados:', this.conciliationResult?.totalProcesados || 0],
-                        ['Registros conciliados:', this.conciliationResult?.conciliados || 0],
-                        ['Registros no conciliados:', this.conciliationResult?.noConciliados || 0],
-                        [''],
-                        ['ARCHIVOS PROCESADOS:'],
-                    ];
-                    
-                    // Agregar información de archivos procesados
-                    this.files.forEach(file => {
-                        resumenData.push([file.name, this.getFileTypeFromName(file.name)]);
-                    });
-                    
-                    const wsResumen = XLSX.utils.aoa_to_sheet(resumenData);
-                     XLSX.utils.book_append_sheet(wb, wsResumen, "RESUMEN");
+                    // HOJA DE RESUMEN ELIMINADA - Solo hojas de trabajo
                      
                      // HOJA 2: MAYOR.PEN PROCESADO (con estados de conciliación)
                      if (datosCompletos.datosMayor && datosCompletos.datosMayor.length > 0) {
@@ -12378,6 +12726,14 @@
                     // Limpiar localStorage
                     localStorage.removeItem('bancarioConciliador_files');
                     
+                    // Limpiar cache de datos manuales
+                    this.limpiarCacheDatosManuales();
+                    
+                    // Resetear valores manuales a defaults
+                    this.saldoDET = 0;
+                    this.saldoBN = 0;
+                    this.tipoCambio = 3.75;
+                    
                     // Limpiar resultados de conciliación
                     this.conciliationResult = null;
                     
@@ -12393,165 +12749,369 @@
                     console.error("❌ Error limpiando archivos:", error);
                     this.showStatus('Error al limpiar archivos', 'error');
                 }
+            },
+
+            // === FUNCIÓN PARA PROCESAR ARCHIVO DE LIBROS (RESUMEN.MMAAAA) ===
+            async procesarArchivoLibros(file) {
+                console.log(`📚 Iniciando procesamiento de archivo RESUMEN: "${file.name}"`);
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            console.log(`📚 Archivo RESUMEN leído, procesando Excel...`);
+                            const data = new Uint8Array(e.target.result);
+                            const workbook = XLSX.read(data, { type: 'array' });
+                            
+                            console.log(`📚 Pestañas disponibles: ${workbook.SheetNames.join(', ')}`);
+                            
+                            // Buscar la pestaña "104 - Mayor General SOLES" o usar la primera
+                            let sheetName = workbook.SheetNames.find(name => 
+                                name.includes('104') && name.includes('Mayor') && name.includes('SOLES')
+                            ) || workbook.SheetNames[0];
+                            
+                            console.log(`📚 Usando hoja de Excel: "${sheetName}"`);
+                            const worksheet = workbook.Sheets[sheetName];
+                            
+                            // Leer específicamente el rango A8:F20
+                            console.log(`📚 Leyendo rango A8:F20...`);
+                            const range = XLSX.utils.decode_range('A8:F20');
+                            const jsonData = [];
+                            
+                            for (let R = range.s.r; R <= range.e.r; ++R) {
+                                const row = [];
+                                for (let C = range.s.c; C <= range.e.c; ++C) {
+                                    const cellAddress = XLSX.utils.encode_cell({c: C, r: R});
+                                    const cell = worksheet[cellAddress];
+                                    row.push(cell ? cell.v : undefined);
+                                }
+                                jsonData.push(row);
+                            }
+                            
+                            console.log(`📚 Filas encontradas en rango A8:F20: ${jsonData.length}`);
+                            
+                            const saldosLibros = new Map();
+                            
+                            // Procesar cada fila del rango A8:F20
+                            // Columna A (índice 0) = Cuenta, Columna F (índice 5) = Saldo
+                            console.log(`📚 Procesando rango A8:F20...`);
+                            
+                            let cuentasProcesadas = 0;
+                            for (let i = 0; i < jsonData.length; i++) {
+                                const fila = jsonData[i];
+                                const filaExcel = i + 8; // Fila real en Excel (A8 = fila 8)
+                                
+                                console.log(`📚 Fila A${filaExcel}: ${JSON.stringify(fila)}`);
+                                
+                                if (fila && fila.length >= 6) {
+                                    const cuenta = fila[0]; // Columna A
+                                    const saldo = fila[5]; // Columna F (índice 5)
+                                    
+                                    // Verificar si la cuenta es válida (no vacía y parece número de cuenta)
+                                    if (cuenta !== undefined && cuenta !== null && cuenta !== '') {
+                                        const cuentaStr = String(cuenta).trim();
+                                        const esNumCuenta = /^104\d+$/.test(cuentaStr);
+                                        
+                                        console.log(`📚 A${filaExcel}: Cuenta="${cuentaStr}", Saldo="${saldo}", EsCuenta=${esNumCuenta}`);
+                                        
+                                        if (esNumCuenta && saldo !== undefined && saldo !== null && saldo !== '') {
+                                            // Convertir saldo a número
+                                            let saldoNum = 0;
+                                            if (typeof saldo === 'number') {
+                                                saldoNum = saldo;
+                                            } else {
+                                                // Limpiar el saldo de comas y convertir
+                                                const saldoLimpio = String(saldo).replace(/,/g, '');
+                                                saldoNum = parseFloat(saldoLimpio) || 0;
+                                            }
+                                            
+                                            saldosLibros.set(cuentaStr, saldoNum);
+                                            cuentasProcesadas++;
+                                            
+                                            console.log(`✅ Cuenta procesada A${filaExcel}: "${cuentaStr}" = ${saldoNum}`);
+                                        }
+                                    }
+                                }
+                            }
+                            console.log(`📚 Total cuentas procesadas: ${cuentasProcesadas}`);
+                            
+                            console.log(`📚 Archivo RESUMEN procesado: ${saldosLibros.size} cuentas encontradas`);
+                            resolve(saldosLibros);
+                            
+                        } catch (error) {
+                            console.error('❌ Error procesando archivo RESUMEN:', error);
+                            reject(error);
+                        }
+                    };
+                    
+                    reader.onerror = function(error) {
+                        console.error('❌ Error leyendo archivo RESUMEN:', error);
+                        reject(error);
+                    };
+                    
+                    reader.readAsArrayBuffer(file);
+                });
+            },
+
+                        // === FUNCIÓN PARA LEER SALDO DE EXTRACTOS BANCARIOS ===
+            async leerSaldoExtracto(file, cuentaCodigo) {
+                return new Promise((resolve, reject) => {
+                    console.log(`💰 ========== INICIO LECTURA SALDO ==========`);
+                    console.log(`💰 Archivo: "${file.name}"`);
+                    console.log(`💰 Cuenta: ${cuentaCodigo}`);
+                    console.log(`💰 Tamaño archivo: ${file.size} bytes`);
+                    console.log(`💰 Tipo archivo: ${file.type}`);
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const data = new Uint8Array(e.target.result);
+                            const workbook = XLSX.read(data, { type: 'array' });
+                            const sheetName = workbook.SheetNames[0]; // Primera hoja
+                            console.log(`💰 Leyendo hoja: "${sheetName}"`);
+                            const worksheet = workbook.Sheets[sheetName];
+                            
+                            let saldo = null;
+                            
+                            // Determinar celda según el banco
+                            if (cuentaCodigo.startsWith('1041501') || cuentaCodigo.startsWith('1041505') || cuentaCodigo.startsWith('1041502')) {
+                                // BCP: Celda E6
+                                console.log(`💰 BCP: Leyendo celda E6`);
+                                const cellE6 = worksheet['E6'];
+                                if (cellE6 && cellE6.v !== undefined) {
+                                    saldo = cellE6.v;
+                                    console.log(`💰 BCP E6: ${saldo}`);
+                                }
+                            } else if (cuentaCodigo.startsWith('1041401') || cuentaCodigo.startsWith('1041402')) {
+                                // SANTANDER: Celda B5
+                                console.log(`💰 SANTANDER: Leyendo celda B5`);
+                                const cellB5 = worksheet['B5'];
+                                if (cellB5 && cellB5.v !== undefined) {
+                                    saldo = cellB5.v;
+                                    console.log(`💰 SANTANDER B5: ${saldo}`);
+                                }
+                            } else if (cuentaCodigo.startsWith('1041201') || cuentaCodigo.startsWith('1041202')) {
+                                // BBVA: Última fila con datos en columna F
+                                console.log(`💰 BBVA: Buscando última fila con datos en columna F para cuenta ${cuentaCodigo}`);
+                                console.log(`💰 BBVA: Es PEN (1041201)? ${cuentaCodigo.startsWith('1041201')}`);
+                                console.log(`💰 BBVA: Es USD (1041202)? ${cuentaCodigo.startsWith('1041202')}`);
+                                
+                                const range = XLSX.utils.decode_range(worksheet['!ref']);
+                                console.log(`💰 BBVA: Rango de hoja: ${worksheet['!ref']}, filas desde ${range.s.r} hasta ${range.e.r}`);
+                                
+                                let filasRevisadas = 0;
+                                for (let row = range.e.r; row >= range.s.r; row--) {
+                                    filasRevisadas++;
+                                    const cellAddress = XLSX.utils.encode_cell({c: 5, r: row}); // Columna F (índice 5)
+                                    const cell = worksheet[cellAddress];
+                                    console.log(`💰 BBVA: Revisando fila ${row + 1}, celda ${cellAddress}, valor: ${cell ? cell.v : 'undefined'}, tipo: ${cell ? typeof cell.v : 'N/A'}`);
+                                    
+                                    if (cell && cell.v !== undefined && cell.v !== null && cell.v !== '') {
+                                        saldo = cell.v;
+                                        console.log(`💰 BBVA: ✅ ENCONTRADO en fila F${row + 1}: ${saldo} (tipo: ${typeof saldo})`);
+                                        break;
+                                    }
+                                    
+                                    // Limitar búsqueda para evitar logs excesivos
+                                    if (filasRevisadas > 20) {
+                                        console.log(`💰 BBVA: ⚠️ Deteniendo búsqueda después de revisar 20 filas`);
+                                        break;
+                                    }
+                                }
+                                
+                                if (saldo === null) {
+                                    console.log(`💰 BBVA: ❌ NO se encontró saldo en columna F para cuenta ${cuentaCodigo}`);
+                                }
+                            } else if (cuentaCodigo.startsWith('1041301') || cuentaCodigo.startsWith('1041302')) {
+                                // SCOTIABANK: Celda A5 - extraer saldo contable
+                                console.log(`💰 SCOTIABANK: Leyendo celda A5 para cuenta ${cuentaCodigo}`);
+                                console.log(`💰 SCOTIABANK: Es PEN (1041301)? ${cuentaCodigo.startsWith('1041301')}`);
+                                console.log(`💰 SCOTIABANK: Es USD (1041302)? ${cuentaCodigo.startsWith('1041302')}`);
+                                
+                                const cellA5 = worksheet['A5'];
+                                console.log(`💰 SCOTIABANK: Celda A5 existe? ${!!cellA5}`);
+                                console.log(`💰 SCOTIABANK: Celda A5 valor crudo: ${cellA5 ? cellA5.v : 'undefined'}`);
+                                console.log(`💰 SCOTIABANK: Celda A5 tipo: ${cellA5 ? typeof cellA5.v : 'N/A'}`);
+                                
+                                if (cellA5 && cellA5.v !== undefined) {
+                                    const texto = String(cellA5.v);
+                                    console.log(`💰 SCOTIABANK A5 texto convertido: "${texto}"`);
+                                    console.log(`💰 SCOTIABANK A5 longitud texto: ${texto.length}`);
+                                    
+                                    // Buscar patrón "Saldo Contable: S/ xxx,xxx.xx" o "Saldo Contable: $ xxx,xxx.xx"
+                                    console.log(`💰 SCOTIABANK: Aplicando regex principal`);
+                                    const match = texto.match(/Saldo Contable:\s*[S\/\$]\s*([\d,]+\.?\d*)/);
+                                    console.log(`💰 SCOTIABANK: Match encontrado? ${!!match}`);
+                                    
+                                    if (match) {
+                                        console.log(`💰 SCOTIABANK: Match completo: ${JSON.stringify(match)}`);
+                                        console.log(`💰 SCOTIABANK: Grupo capturado [1]: "${match[1]}"`);
+                                        
+                                        const saldoTexto = match[1].replace(/,/g, '');
+                                        console.log(`💰 SCOTIABANK: Texto sin comas: "${saldoTexto}"`);
+                                        
+                                        saldo = parseFloat(saldoTexto) || 0;
+                                        console.log(`💰 SCOTIABANK: ✅ Saldo contable extraído: ${saldo} (tipo: ${typeof saldo})`);
+                                    } else {
+                                        console.log(`💰 SCOTIABANK: ❌ Regex principal falló, usando patrón alternativo`);
+                                        
+                                        // Usar el patrón alternativo que SÍ funciona
+                                        const altMatch1 = texto.match(/Saldo.*?[S\/\$]\s*([\d,]+\.?\d*)/i);
+                                        console.log(`💰 SCOTIABANK: Patrón alternativo: ${!!altMatch1}`);
+                                        
+                                        if (altMatch1) {
+                                            console.log(`💰 SCOTIABANK: Alt match: ${JSON.stringify(altMatch1)}`);
+                                            const saldoTexto = altMatch1[1].replace(/,/g, '');
+                                            console.log(`💰 SCOTIABANK: Alt texto sin comas: "${saldoTexto}"`);
+                                            saldo = parseFloat(saldoTexto) || 0;
+                                            console.log(`💰 SCOTIABANK: ✅ Saldo alternativo extraído: ${saldo} (tipo: ${typeof saldo})`);
+                                        }
+                                    }
+                                } else {
+                                    console.log(`💰 SCOTIABANK: ❌ Celda A5 no existe o está vacía`);
+                                }
+                            } else if (cuentaCodigo.startsWith('1041101') || cuentaCodigo.startsWith('1041102')) {
+                                // INTERBANK: Celda J10
+                                console.log(`💰 INTERBANK: Leyendo celda J10 para cuenta ${cuentaCodigo}`);
+                                console.log(`💰 INTERBANK: Es PEN (1041101)? ${cuentaCodigo.startsWith('1041101')}`);
+                                console.log(`💰 INTERBANK: Es USD (1041102)? ${cuentaCodigo.startsWith('1041102')}`);
+                                
+                                const cellJ10 = worksheet['J10'];
+                                console.log(`💰 INTERBANK: Celda J10 existe? ${!!cellJ10}`);
+                                console.log(`💰 INTERBANK: Celda J10 valor crudo: ${cellJ10 ? cellJ10.v : 'undefined'}`);
+                                console.log(`💰 INTERBANK: Celda J10 tipo: ${cellJ10 ? typeof cellJ10.v : 'N/A'}`);
+                                
+                                if (cellJ10 && cellJ10.v !== undefined) {
+                                    saldo = cellJ10.v;
+                                    console.log(`💰 INTERBANK: ✅ J10 valor encontrado: ${saldo} (tipo: ${typeof saldo})`);
+                                } else {
+                                    console.log(`💰 INTERBANK: ❌ Celda J10 no existe o está vacía`);
+                                    
+                                    // Verificar celdas cercanas por si acaso
+                                    console.log(`💰 INTERBANK: Verificando celdas cercanas...`);
+                                    const cellsToCheck = ['I10', 'K10', 'J9', 'J11', 'J8', 'J12'];
+                                    cellsToCheck.forEach(cellAddr => {
+                                        const cell = worksheet[cellAddr];
+                                        console.log(`💰 INTERBANK: Celda ${cellAddr}: ${cell ? cell.v : 'undefined'} (tipo: ${cell ? typeof cell.v : 'N/A'})`);
+                                    });
+                                }
+                            }
+                            
+                            // Convertir a número si es necesario
+                            if (saldo !== null && typeof saldo === 'string') {
+                                console.log(`💰 Convirtiendo string a número: "${saldo}"`);
+                                saldo = parseFloat(saldo.replace(/,/g, '')) || 0;
+                                console.log(`💰 Después de conversión: ${saldo}`);
+                            }
+                            
+                            console.log(`💰 ========== RESULTADO FINAL ==========`);
+                            console.log(`💰 Archivo: "${file.name}"`);
+                            console.log(`💰 Cuenta: ${cuentaCodigo}`);
+                            console.log(`💰 Saldo extraído: ${saldo}`);
+                            console.log(`💰 Tipo final: ${typeof saldo}`);
+                            console.log(`💰 ========================================`);
+                            resolve(saldo);
+                            
+                        } catch (error) {
+                            console.error('❌ Error leyendo saldo de extracto:', error);
+                            resolve(null);
+                        }
+                    };
+                    
+                    reader.onerror = function(error) {
+                        console.error('❌ Error leyendo archivo de extracto:', error);
+                        resolve(null);
+                    };
+                    
+                    reader.readAsArrayBuffer(file);
+                });
+            },
+
+            // === FUNCIÓN PARA OBTENER SALDO DE LIBROS ===
+            getSaldoLibros(cuenta) {
+                console.log(`💰 Consultando saldo para cuenta: "${cuenta}"`);
+                if (!this.conciliationResult || !this.conciliationResult.saldosLibros) {
+                    console.log(`💰 No hay datos de conciliación o saldos de libros disponibles`);
+                    return '—';
+                }
+                
+                const saldo = this.conciliationResult.saldosLibros.get(cuenta);
+                console.log(`💰 Saldo encontrado para "${cuenta}": ${saldo}`);
+                if (saldo !== undefined && saldo !== null) {
+                    const formatted = new Intl.NumberFormat('es-PE', {
+                        style: 'currency',
+                        currency: 'PEN',
+                        minimumFractionDigits: 2
+                    }).format(saldo);
+                    console.log(`💰 Saldo formateado: ${formatted}`);
+                    return formatted;
+                }
+                console.log(`💰 No se encontró saldo para cuenta "${cuenta}"`);
+                return '—';
+            },
+
+            // === FUNCIÓN PARA OBTENER SALDO DE EXTRACTOS (USD/PEN) ===
+            getSaldoExtracto(cuenta) {
+                console.log(`💰 Consultando saldo extracto para cuenta: "${cuenta}"`);
+                if (!this.conciliationResult || !this.conciliationResult.saldosExtractos) {
+                    console.log(`💰 No hay datos de saldos de extractos disponibles`);
+                    return '—';
+                }
+                
+                const saldo = this.conciliationResult.saldosExtractos.get(cuenta);
+                console.log(`💰 Saldo extracto encontrado para "${cuenta}": ${saldo}`);
+                if (saldo !== undefined && saldo !== null) {
+                    // Determinar si es cuenta USD o PEN
+                    const cuentasUSD = ['1041502', '1041402', '1041202', '1041302', '1041102'];
+                    const esUSD = cuentasUSD.includes(cuenta);
+                    
+                    const formatted = new Intl.NumberFormat('es-PE', {
+                        style: 'currency',
+                        currency: esUSD ? 'USD' : 'PEN',
+                        minimumFractionDigits: 2
+                    }).format(saldo);
+                    console.log(`💰 Saldo extracto formateado (${esUSD ? 'USD' : 'PEN'}): ${formatted}`);
+                    return formatted;
+                }
+                console.log(`💰 No se encontró saldo extracto para cuenta "${cuenta}"`);
+                return '—';
+            },
+
+            // === FUNCIÓN PARA CALCULAR EQUIVALENTE EN PEN DE CUENTAS USD ===
+            getSaldoExtractoPEN(cuenta) {
+                console.log(`💱 Calculando equivalente PEN para cuenta USD: "${cuenta}"`);
+                
+                if (!this.conciliationResult || !this.conciliationResult.saldosExtractos) {
+                    console.log(`💱 No hay datos de saldos de extractos disponibles`);
+                    return '—';
+                }
+                
+                const saldoUSD = this.conciliationResult.saldosExtractos.get(cuenta);
+                console.log(`💱 Saldo USD encontrado: ${saldoUSD}`);
+                console.log(`💱 Tipo de cambio actual: ${this.tipoCambio}`);
+                
+                if (saldoUSD === undefined || saldoUSD === null || this.tipoCambio <= 0) {
+                    console.log(`💱 Saldo USD no disponible o tipo de cambio inválido`);
+                    return '—';
+                }
+                
+                const equivalentePEN = saldoUSD * this.tipoCambio;
+                console.log(`💱 Cálculo: ${saldoUSD} USD × ${this.tipoCambio} TC = ${equivalentePEN} PEN`);
+                
+                const formatted = new Intl.NumberFormat('es-PE', {
+                    style: 'currency',
+                    currency: 'PEN',
+                    minimumFractionDigits: 2
+                }).format(equivalentePEN);
+                
+                console.log(`💱 Equivalente PEN formateado: ${formatted}`);
+                return formatted;
             }
         }; // cierre del objeto return
     } // cierre de la función bancarioConciliador
 </script>
 
         <!-- Tabla de Cuentas -->
-        <div class="mt-12 mb-8">
-            <div class="bg-white rounded-lg border border-gray-200 p-6">
-                <h3 class="text-xl font-semibold text-gray-900 mb-6">
-                    <i class="fas fa-table mr-2 text-blue-600"></i>
-                    Configuración de Cuentas Bancarias
-                </h3>
-                
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#CTA</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">USD</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PEN</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">LIBROS</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">AJUSTE TC</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            <!-- BCP -->
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">1041501</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">BCP.01</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
-                            </tr>
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">1041505</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">BCP.02</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
-                            </tr>
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">1041502</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">BCP.USD</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
-                            </tr>
-                            
-                            <!-- SANTANDER -->
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">1041401</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">SANT</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
-                            </tr>
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">1041402</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">SANT.USD</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
-                            </tr>
-                            
-                            <!-- BBVA -->
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">1041201</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">BBVA</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
-                            </tr>
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">1041202</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">BBVA.USD</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
-                            </tr>
-                            
-                            <!-- SCOTIABANK -->
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">1041301</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">SBP</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
-                            </tr>
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">1041302</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">SBP.USD</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
-                            </tr>
-                            
-                            <!-- INTERBANK -->
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">1041101</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">IBK</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
-                            </tr>
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">1041102</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">IBK.USD</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
-                            </tr>
-                            
-                            <!-- OTROS BANCOS -->
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">1042101</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">DET</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
-                            </tr>
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">1042201</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">BN</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-check text-green-500"></i></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center"><i class="fas fa-times text-red-500"></i></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                <!-- Leyenda -->
-                <div class="mt-4 flex items-center justify-center space-x-6 text-sm text-gray-600">
-                    <div class="flex items-center">
-                        <i class="fas fa-check text-green-500 mr-2"></i>
-                        <span>Disponible</span>
-                    </div>
-                    <div class="flex items-center">
-                        <i class="fas fa-times text-red-500 mr-2"></i>
-                        <span>No disponible</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
 </div>
 </body>
 </html>
+
+
