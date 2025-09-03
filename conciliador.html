@@ -3,26 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conciliador Bancario</title>
-    <!-- 
-    ======================================================
-    CONCILIADOR BANCARIO - VERSIÓN WORDPRESS
-    ======================================================
+    <title>Conciliador Bancario v2.1.0</title>
+    <!--
     
-    Esta versión está optimizada para integrarse en WordPress:
+    ████████████████████████████████████████████████████████████████
+    █                                                              █
+    █     🏦 CONCILIADOR BANCARIO PARAÍSO v2.1.0                  █
+    █     📅 Actualizado: 02/01/2025 - 15:30 UTC                 █
+    █     🚀 VERSIÓN FINAL CON FUNCIONALIDADES COMPLETAS          █
+    █                                                              █
+    █     ✅ (+) DEPOSITOS EN LIBROS NO REGISTRADOS EN BANCOS     █
+    █     ✅ (-) CARGO EN BANCOS NO REGISTRADO EN LIBROS          █
+    █     ✅ Filtros: Estado Pendiente + Criterios de Importe     █
+    █     ✅ Soporte para todos los bancos                        █
+    █                                                              █
+    ████████████████████████████████████████████████████████████████
     
-    ✅ Todos los estilos están encapsulados con la clase .conciliador-bancario-app
-    ✅ Se usa !important para prevenir conflictos con temas de WordPress
-    ✅ Tailwind CSS configurado con selector important
-    ✅ Reset de estilos para elementos críticos
-    ✅ Isolation CSS para crear contexto de stacking independiente
-    
-    INTEGRACIÓN EN WORDPRESS:
-    - Insertar el contenido del <body> en una página/post
-    - Asegurar que las librerías CDN están cargadas
-    - El contenedor .conciliador-bancario-app aísla los estilos
-    
-    ====================================================== 
     -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
@@ -150,7 +146,20 @@
 <div class="conciliador-bancario-app bg-gray-50" x-data="bancarioConciliador()">
     <!-- Header -->
     <div class="max-w-none mx-auto px-4 py-8" style="max-width: 1200px;">
-        <h1 class="text-3xl font-bold text-gray-900 mb-8">Conciliador Bancario</h1>
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Conciliador Bancario</h1>
+        
+        <!-- Version Badge -->
+        <div class="flex items-center gap-3 mb-6">
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                🏦 v2.1.0 - Final Release
+            </span>
+            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-mono bg-blue-50 text-blue-700 border border-blue-200">
+                📅 02/01/2025 15:30 UTC
+            </span>
+            <span class="inline-flex items-center px-2 py-1 rounded text-xs bg-purple-50 text-purple-700 border border-purple-200">
+                🚀 Funcionalidades Completas
+            </span>
+        </div>
 
         <!-- Upload Area - Layout Compacto -->
         <div class="mb-8">
@@ -576,7 +585,6 @@
             // === FUNCIONES DE CACHE PARA DATOS MANUALES ===
 
             guardarDatosManuales() {
-                console.log('💾 EJECUTANDO guardarDatosManuales()...');
                 const datosCache = {
                     saldoDET: this.saldoDET,
                     saldoBN: this.saldoBN,
@@ -586,13 +594,10 @@
                 
                 try {
                     localStorage.setItem('conciliador_datos_manuales', JSON.stringify(datosCache));
-                    console.log('💾 ✅ Datos manuales guardados en cache:', datosCache);
                     
                     // Verificar que se guardó correctamente
                     const verificacion = localStorage.getItem('conciliador_datos_manuales');
-                    console.log('💾 🔍 Verificación inmediata:', verificacion ? 'GUARDADO OK' : 'ERROR AL GUARDAR');
                 } catch (error) {
-                    console.error('❌ Error guardando datos manuales:', error);
                 }
             },
 
@@ -606,10 +611,8 @@
                         this.tipoCambio = datos.tipoCambio || 3.75;
                         // Datos manuales cargados desde cache
                     } else {
-                        console.log('📂 No hay datos manuales guardados, usando valores por defecto');
                     }
                 } catch (error) {
-                    console.error('❌ Error cargando datos manuales:', error);
                     // Usar valores por defecto si hay error
                     this.saldoDET = 0;
                     this.saldoBN = 0;
@@ -620,9 +623,7 @@
             limpiarCacheDatosManuales() {
                 try {
                     localStorage.removeItem('conciliador_datos_manuales');
-                    console.log('🗑️ Cache de datos manuales limpiado');
                 } catch (error) {
-                    console.error('❌ Error limpiando cache de datos manuales:', error);
                 }
             },
             
@@ -1110,7 +1111,6 @@
                         }
                     }
                 } catch (error) {
-                    // console.error('Error cargando archivos guardados:', error);
                 }
             },
 
@@ -1135,10 +1135,8 @@
                     )).then(filesWithBase64 => {
                         localStorage.setItem('bancarioConciliador_files', JSON.stringify(filesWithBase64));
                     }).catch(error => {
-                        // console.error('Error guardando archivos:', error);
                     });
                 } catch (error) {
-                    // console.error('Error en saveFilesToStorage:', error);
                 }
             },
 
@@ -1221,9 +1219,7 @@
 
             categorizeFile(fileName) {
                 const name = fileName.toLowerCase();
-                console.log(`🔍 Categorizando archivo: "${fileName}" -> "${name}"`);
                 
-                // Debug específico para SBP.USD
                 if (name.includes('sbp.usd')) {
     
                 }
@@ -1255,17 +1251,11 @@
                     return 'resumen';
                 }
                 
-                // 4. Patrón para RESUMEN.MMAAAA (archivo de libros)
-                console.log(`📚 Verificando patrón RESUMEN para: "${name}"`);
                 const resumenMatch = name.match(/^resumen\.\d{6}/);
-                console.log(`📚 Match RESUMEN: ${resumenMatch ? 'SÍ' : 'NO'} - Patrón: /^resumen\\.\\d{6}/`);
                 
-                // También verificar patrón más flexible para archivos que empiecen con "resumen"
                 const resumenFlexible = name.startsWith('resumen.');
-                console.log(`📚 Match RESUMEN flexible: ${resumenFlexible ? 'SÍ' : 'NO'} - Empieza con "resumen."`);
                 
                 if (resumenMatch || resumenFlexible) {
-                    console.log(`✅ Archivo RESUMEN identificado como 'libros': "${fileName}"`);
                     return 'libros';
                 }
                 
@@ -1275,10 +1265,8 @@
                 } else if (name.includes('extracto') || name.includes('banco')) {
                     return 'extracto';
                 } else if (name.includes('resumen') || name.includes('saldo')) {
-                    console.log(`📋 Archivo categorizado como 'resumen' por patrón legacy: "${fileName}"`);
                     return 'resumen';
         } else {
-                    console.log(`❓ Archivo categorizado como 'otro': "${fileName}"`);
                     return 'otro';
                 }
             },
@@ -1340,20 +1328,15 @@
                     const mayorFileGenerico = mayorFiles[0]?.file;
                     const mayorFile = mayorFilePEN || mayorFileGenerico;
                     
-                    // === PROCESAR ARCHIVO DE LIBROS (RESUMEN.MMAAAA) ===
                     const librosFiles = this.files.filter(f => f.category === 'libros');
-                    console.log(`📚 Archivos de libros encontrados: ${librosFiles.length}`);
                     librosFiles.forEach((f, i) => console.log(`📚 Archivo libros ${i+1}: "${f.name}" (categoría: ${f.category})`));
                     
                     let saldosLibros = new Map();
                     
                     if (librosFiles.length > 0) {
                         const librosFile = librosFiles[0].file;
-                        console.log(`📚 Procesando archivo de libros: "${librosFiles[0].name}"`);
                         saldosLibros = await this.procesarArchivoLibros(librosFile);
-                        console.log(`📚 Saldos de libros procesados: ${saldosLibros.size} cuentas`);
                     } else {
-                        console.log(`⚠️ No se encontraron archivos de libros (categoría 'libros')`);
                     }
                     
                     // === SEPARAR EXTRACTOS POR CUENTA ===
@@ -1363,7 +1346,6 @@
                     
                     // Procesar cada archivo de extracto por cuenta específica
                     for (const extractoFileObj of extractoFiles) {
-                        // Solo mostrar logs para SBP.USD
                         if (extractoFileObj.name.toLowerCase().includes('sbp.usd')) {
             
                         }
@@ -1375,11 +1357,9 @@
                             
                             // Capturar saldo de extractos para todos los bancos (excepto DET y BN)
                             if (!cuentaInfo.codigo.startsWith('1042101') && !cuentaInfo.codigo.startsWith('1041601')) {
-                                console.log(`💰 Procesando saldo extracto para ${cuentaInfo.codigo} (${extractoFileObj.name})`);
                                 const saldoExtracto = await this.leerSaldoExtracto(extractoFileObj.file, cuentaInfo.codigo);
                                 if (saldoExtracto !== null) {
                                     saldosExtractos.set(cuentaInfo.codigo, saldoExtracto);
-                                    console.log(`✅ Saldo extracto capturado para ${cuentaInfo.codigo}: ${saldoExtracto}`);
                                 }
                             }
                             
@@ -1520,7 +1500,6 @@
             }
             
             
-            // MUESTRA DE DATOS CARGADOS PARA DEBUG
             mayorDataPEN.slice(0, 3).forEach((fila, idx) => {
             });
             
@@ -1579,7 +1558,7 @@
                     };
                     
                     // Generar dos archivos Excel
-                    const archivosGenerados = this.generateTwoExcelFiles(resultado, fileName);
+                    const archivosGenerados = await this.generateTwoExcelFiles(resultado, fileName);
                     
                     // Guardar información de archivos generados para descarga manual
                     this.conciliationResult.archivosGenerados = archivosGenerados;
@@ -1974,7 +1953,6 @@
                         archivo: extractoInfo.archivo
                     });
                     
-                    // Log específico para SBP.USD
                     if (codigoCuenta === '1041302') {
         
         
@@ -2079,7 +2057,6 @@
                                 registrosYaProcesados.add(claveRegistro);
                             } else {
                                 duplicadosEliminados++;
-                                // Debug para SANT
                                 if (codigoCuenta === '1041401' && duplicadosEliminados <= 3) {
                                 }
                             }
@@ -2088,7 +2065,6 @@
                     }
                 });
 
-                // Resumen consolidación completo
 
                 // Construir resultado final con header + todos los registros
                 const resultado = headerMayor ? [headerMayor, ...registrosConsolidados] : registrosConsolidados;
@@ -2249,7 +2225,6 @@
                     // OPCIÓN 1: Usar consolidación cuenta por cuenta (como antes)
 
                     
-                    // DEBUG: Ver solo SBP.USD
                     if (resultadosUSD.has('1041302')) {
                         const sbpInfo = resultadosUSD.get('1041302');
                         const mayorLength = sbpInfo.resultado?.datosMayor?.length || 0;
@@ -2366,7 +2341,6 @@
 
     // --- Lógica de Conciliación Principal (mantenida del código original) ---
             procesarConciliacion(datosExtracto, datosMayor, datosSaldo = null, cuentaConfig = null) {
-        // === LOGS DE DIAGNÓSTICO DE ENTRADA ===
 
 
         if (datosExtracto && datosExtracto.length > 0) {
@@ -2468,10 +2442,8 @@
             const countInicial = filasFiltradasMayor.length;
             
             if (cuentaConfig && cuentaConfig.codigo) {
-                // Filtrar SOLO por la cuenta específica que se está procesando
                 const codigoCuentaEspecifica = cuentaConfig.codigo;
                 
-                // 🔍 DEBUG PASO 1 - FILTRO CUENTA SANT
                 if (codigoCuentaEspecifica === '1041401') {
 
 
@@ -2491,7 +2463,6 @@
                     return cuenta === codigoCuentaEspecifica;
                 });
                 
-                // 🔍 DEBUG PASO 1 - RESULTADO FILTRO SANT
                 if (codigoCuentaEspecifica === '1041401') {
 
 
@@ -2517,7 +2488,6 @@
         if (indicesMayor.glosa !== -1) {
             const countAntesFiltro = filasFiltradasMayor.length;
             
-            // Debug: Mostrar muestra de valores GLOSA
             filasFiltradasMayor.slice(0, 3).forEach((fila, idx) => {
                 const glosa = fila[indicesMayor.glosa] || '';
             });
@@ -2592,7 +2562,6 @@
             // Verificar si es anulación por GLOSA
             const esAnulacion = glosa.toUpperCase().includes('ANULADO');
 
-            // DEBUG: Log para las primeras 3 filas de anulaciones solamente
             if (esAnulacion && paso3Procesados < 3) {
             }
             
@@ -2625,7 +2594,6 @@
                     if (resultadoPaso3.etapa === 2) {
                         paso3Etapa2++; // Etapa 3b: Anulado Saldo
                         
-                        // Actualizar estado del saldo si hay un match encontrado (ETAPA 3b)
                         if (resultadoPaso3.indiceParejaEncontrada !== -1 && datosSaldo && datosSaldo.length > 1) {
                             // Actualizar estado de la fila correspondiente en saldo
                             estadosSaldo.set(resultadoPaso3.indiceParejaEncontrada, {
@@ -2678,7 +2646,6 @@
         
         // === PASO 12 - AGRUPACIÓN POR BANCO (DESPUÉS DE ITF) ===
         
-        console.log(`🔥 INICIANDO PASO 12 - Cuenta: ${cuentaConfig ? cuentaConfig.alias : 'null'} (${cuentaConfig ? cuentaConfig.codigo : 'null'})`);
         
         // Detectar banco específico para lógica especializada
         const esBBVA = cuentaConfig && (cuentaConfig.codigo === '1041201' || cuentaConfig.codigo === '1041202');
@@ -2688,7 +2655,6 @@
         const esDET = cuentaConfig && (cuentaConfig.codigo === '1042101');
         
         if (esDET) {
-            console.log(`🔥 DET DETECTADO: ${cuentaConfig.alias} (${cuentaConfig.codigo})`);
         }
         
         let resultadosPaso12;
@@ -2701,10 +2667,8 @@
         } else if (esIBK) {
             resultadosPaso12 = this.procesarPaso12IBK(filasFiltradasMayor, extractoProcesable, indicesMayor, indicesExtracto, estadosFilas, estadosExtracto, cuentaConfig);
         } else if (esDET) {
-            console.log(`🔥🔥🔥 EJECUTANDO PASO 12 DET 🔥🔥🔥`);
             // Para DET necesitamos acceso a TODOS los datos del Mayor (todas las cuentas)
             // Usar datosMayor completo (parámetro original) que contiene TODOS los registros
-            console.log(`🔥 DEBUG: Pasando ${datosMayor.length} registros del Mayor completo`);
             resultadosPaso12 = this.procesarPaso12DET(filasFiltradasMayor, extractoProcesable, indicesMayor, indicesExtracto, estadosFilas, estadosExtracto, cuentaConfig, datosMayor);
         } else {
             resultadosPaso12 = this.procesarPaso12Santander(filasFiltradasMayor, extractoProcesable, indicesMayor, indicesExtracto, estadosFilas, estadosExtracto, cuentaConfig);
@@ -2719,7 +2683,6 @@
             const estadoAsignado = estadoInfo ? estadoInfo.estado : 'Pendiente';
             const refAsignada = estadoInfo ? estadoInfo.ref : '';
 
-            // DEBUG: Para registros P5, mostrar el proceso
             if (estadoInfo && estadoInfo.estado === 'P5 - Conciliada') {
             }
 
@@ -2727,7 +2690,6 @@
             const filaCompleta = [...filaMayor, estadoAsignado, refAsignada];
             resultados.push(filaCompleta);
             
-            // LOG PARA PRIMERA FILA (solo para verificación)
             if (resultados.length === 1) {
             }
         }
@@ -2752,7 +2714,6 @@
         
         const datosFinales = [cabeceraFinal, ...resultadosFiltrados];
         
-        // LOG PARA VERIFICACIÓN COMPLETA
         if (resultadosFiltrados[0]) {
         }
         
@@ -2853,7 +2814,6 @@
                 const estado = fila[fila.length - 2];
                 const ref = fila[fila.length - 1];
                 
-                // DEBUG: Mostrar toda la estructura de la fila para diagnosticar
             });
         }
 
@@ -2984,7 +2944,6 @@
                 
                 datosExtractoHoja = [headerExtracto, ...datosExtractoSinHeader];
             } else {
-                console.error('⚠️ extractoProcesable no está disponible, usando datos básicos del extracto');
                 // Fallback: usar datos básicos del extracto (dinámico según cuenta)
                 let datosExtractoSinHeader;
                 if (cuentaConfig && cuentaConfig.alias === 'IBK') {
@@ -3175,7 +3134,6 @@
                     const debe = this.normalizarMonto(filaMayor[idxM.debe] || '0');
                     const comprob = filaMayor[idxM.comprob] || '';
                     
-                    // Debug: Mostrar las primeras 10 filas para entender el formato
                     if (i < 10) {
                     }
                     
@@ -3199,7 +3157,6 @@
                     if (esBNA && esLibro4 && debe > 0) {
                         candidatosBNA++;
                         
-                        // Normalizar fecha del Mayor para logging
                         const fdocNormalizado = this.normalizarFecha(fdoc);
                         
                         
@@ -3487,7 +3444,6 @@
                             status = 'MATCH ✅';
                             grupoId = `${numeroGrupo}`;
                             
-                            // === LOG DETALLADO DEL MATCH ===
                             
                             // === CONCILIAR REGISTROS ===
                             const refGrupo = `BBVA-GRUPO-${numeroGrupo}`;
@@ -3514,19 +3470,16 @@
                             status = `DIFF ${diff.toFixed(2)} ❌`;
                             grupoId = '-';
                             
-                            // === LOG DETALLADO DE NO MATCH ===
                         }
                     } else if (tieneGrupoMayor) {
                         status = 'MAYOR SOLO';
                         grupoId = '-';
                         
-                        // === LOG GRUPO SOLO EN MAYOR ===
                         
                     } else {
                         status = 'BBVA SOLO';
                         grupoId = '-';
                         
-                        // === LOG GRUPO SOLO EN EXTRACTO ===
                     }
                     
                     // Formatear datos para tabla
@@ -3610,7 +3563,6 @@
                         if (candidatoBna.fechaNormalizada === fechaDestinoNormalizada && diff < 0.01 && haberDestino > 0) {
                             candidatosHaberEncontrados++;
                             
-                            // === MATCH ENCONTRADO ===
                             
                             // Conciliar ambos registros
                             estadosFilas.set(candidatoBna.indice, {
@@ -3635,7 +3587,6 @@
                 
                 
                 
-                // === TABLA RESUMEN FINAL ===
                 
                 return {
                     candidatos: candidatosMayor + candidatosExtracto + candidatosBnaDebe + candidatosHaberEncontrados,
@@ -3776,7 +3727,6 @@
                         const diferencia = Math.abs(grupoMayor.totalDebe - grupoExtracto.totalImporte);
                         
                         if (diferencia < 0.01) { // Tolerancia mínima
-                            // ✅ MATCH ENCONTRADO - Procesar conciliación
                             const refExtracto = grupoExtracto.filas.length > 0 ? grupoExtracto.filas[0].referencia : '';
                             const refMayor = grupoMayor.filas.length > 0 ? `${grupoMayor.filas[0].libro}-${grupoMayor.filas[0].comprob}` : '';
                             
@@ -3972,7 +3922,6 @@
                         if (esPROT) candidatosPROT++;
                         if (esDEV) candidatosDEV++;
                         
-                        // Debug: Mostrar los primeros 5 candidatos
                         // if ((candidatosPROT + candidatosDEV) <= 5) {
                         // }
                         
@@ -4021,7 +3970,6 @@
                                 ref: refMayor // Mismo número de operación para todas las filas del grupo
                             });
                             
-                            // DEBUG: Verificar que se está asignando correctamente
                         });
                         
                         estadosExtracto.set(matchExtracto.indice, {
@@ -4032,7 +3980,6 @@
                         conciliados++;
                         
                         
-                        // Debug: Mostrar cada fila del grupo con su REF asignado
                         // grupo.filas.forEach((item, idx) => {
                         // });
                     } else {
@@ -4206,7 +4153,6 @@
                         const diff = Math.abs(grupoMayor.totalHaber - totalImporteAbsoluto);
                         
                         if (fechaMayor === fechaBBVA && diff < 0.01) {
-                            // === MATCH ENCONTRADO ===
                             matchEncontrado = true;
                             grupoId = `GRUPO-${conciliados + 1}`;
                             
@@ -4296,7 +4242,6 @@
                     const esPROT = String(libro || '').trim() === '04' && (glosa.startsWith('PROT') || glosa.includes('PROT'));
                     const esDEV = (String(libro || '').trim() === '03' || String(libro || '').trim() === '09') && (glosa.startsWith('DEV') || glosa.includes('DEV'));
                     
-                    // Log de los primeros 10 registros para debug
                     if (i < 10) {
                         const glosaSafe = glosa ? glosa.substring(0, 40) : '';
                     }
@@ -4351,7 +4296,6 @@
                     const importe = this.normalizarMonto(filaExtracto[idxE.monto] || '0'); // Usar índice correcto
                     const operacion = filaExtracto[idxE.operacion] || ''; // Para referencia
                     
-                    // Debug: mostrar los primeros registros
                     if (j < 5) {
                     }
                     
@@ -4361,7 +4305,6 @@
                         
                         const fechaNormalizada = this.normalizarFecha(fecha);
                         
-                        // Extracto candidato encontrado
                         
                         if (!gruposExtracto.has(fechaNormalizada)) {
                             gruposExtracto.set(fechaNormalizada, {
@@ -4397,7 +4340,6 @@
                         
                         
                         if (diferencia < 0.01) { // Tolerancia mínima
-                            // ✅ MATCH ENCONTRADO - Procesar conciliación
                             const refExtracto = grupoExtracto.filas.length > 0 ? grupoExtracto.filas[0].operacion : '';
                             const refMayor = grupoMayor.filas.length > 0 ? `${grupoMayor.filas[0].libro}-${grupoMayor.filas[0].comprob}` : '';
                             
@@ -4426,7 +4368,6 @@
                             // Diferencia mayor a tolerancia
                         }
                     } else {
-                        // No match encontrado
                     }
                 }
                 
@@ -4576,7 +4517,6 @@
                             const montosCoinciden = diff < 0.01;
                             
                             if (fechasCoinciden && montosCoinciden) {
-                                // === MATCH ENCONTRADO ===
                                 
                                 // Conciliar ambos registros
                                 const refMayor = `BBVA-P6-${itemExtracto.fOperacion}`;
@@ -4691,7 +4631,6 @@
                             comprob: comprob
                         });
                         
-                        // Debug: Mostrar los primeros 5 candidatos
                         if (candidatosDepositos <= 5) {
                         }
                     }
@@ -4940,7 +4879,6 @@
                         };
                     }
                     
-                    // Debug para los primeros 3 candidatos
                     if (candidatosRevisados <= 3) {
                     }
                 }
@@ -5050,7 +4988,6 @@
                         const montosCoinciden = diff < 0.01;
                         
                         if (fechasCoinciden && montosCoinciden) {
-                            // === MATCH ENCONTRADO ===
                             
                             // Conciliar ambos registros
                             const refMayor = `BBVA-P7-${itemExtracto.fOperacion}`;
@@ -5143,7 +5080,6 @@
                             comprob: comprob
                         });
                         
-                        // Debug: Mostrar los primeros 5 candidatos
                         // if (candidatosLibro3 <= 5) {
                         // }
                     }
@@ -5268,7 +5204,6 @@
                             comprob: comprob
                         });
                         
-                        // Debug: Mostrar los primeros 5 candidatos
                         // if (candidatosPaso8.length <= 5) {
                         // }
                     }
@@ -5430,7 +5365,6 @@
                     const diferenciaMonto = Math.abs(haberMayor - importe);
                     const montosCoinciden = diferenciaMonto === 0; // Exacto
                     
-                    // Debug: Mostrar los primeros 5 candidatos
                     if (candidatosRevisados <= 5) {
                     }
                     
@@ -5517,7 +5451,6 @@
                             comprob: comprob
                         });
                         
-                        // Debug: Mostrar los primeros 5 candidatos
                         if (candidatosPaso8.length <= 5) {
                         }
                     }
@@ -5602,7 +5535,6 @@
                 const esBBVA = cuentaConfig && (cuentaConfig.codigo === '1041201' || cuentaConfig.codigo === '1041202');
                 const esIBK = cuentaConfig && cuentaConfig.alias === 'IBK';
                 
-                // === DEBUG: Bank Detection ===
                 
                 // ⭐ FORZAR SANTANDER SI ES CUENTA 1041401
                 const esCuentaSantander = cuentaConfig?.codigo === '1041401';
@@ -5655,7 +5587,6 @@
                         else if (String(libro || '').trim() === '14') candidatosLibro14++;
                         else if (String(libro || '').trim() === '15') candidatosLibro15++;
                         
-                        // Debug: Mostrar los primeros 5 candidatos
                         // if ((candidatosLibro03 + candidatosLibro09 + candidatosLibro14 + candidatosLibro15) <= 10) {
                         // }
                         
@@ -5697,7 +5628,6 @@
                     return { candidatos: 0, grupos: 0, conciliados: 0 };
                 }
                 
-                // ✅ A. GRUPOS ESPECÍFICOS OBJETIVO
                 let contadorGrupo = 104;
                 const gruposObjetivoA = ['11302', '1113', '11303', '1157', '900013']; // Solo estos grupos
                 for (const [numdocNormalizado, grupo] of gruposPorNUMDOC.entries()) {
@@ -5710,12 +5640,10 @@
                 }
                 
                 
-                // ✅ PASO 9B: BUSCAR MATCHES EN EXTRACTO PARA CADA GRUPO
                 contadorGrupo = 104;
                 const gruposObjetivo = ['11302', '1113', '11303', '1157', '900013']; // Solo estos grupos
                 
                 for (const [numdocNormalizado, grupo] of gruposPorNUMDOC.entries()) {
-                    // Solo procesar y mostrar logs para los grupos objetivo
                     const esGrupoObjetivo = gruposObjetivo.includes(numdocNormalizado);
                     
                     if (esGrupoObjetivo) {
@@ -5750,7 +5678,6 @@
                         conciliados++;
                         
                         
-                        // Debug: Mostrar cada fila del grupo con su REF asignado
                         // grupo.filas.forEach((item, idx) => {
                         // });
                     } else {
@@ -5758,13 +5685,11 @@
                         }
                     }
                     
-                    // Solo incrementar contador para grupos objetivo (para mantener numeración consistente en logs)
                     if (esGrupoObjetivo) {
                         contadorGrupo++;
                     }
                 }
                 
-                // ✅ C. TABLA DE ESTADOS DE GRUPOS (SOLO GRUPOS OBJETIVO)
                 
                 let gruposConciliados = 0;
                 let gruposNoConciliados = 0;
@@ -5831,11 +5756,9 @@
                 const coincide27 = this.normalizarFecha('27/6/2025') === this.normalizarFecha('27/06/2025');
                 
                 
-                // === 🔍 VERIFICACIÓN ESPECÍFICA REGISTROS SANT DISPONIBLES ===
                 const registrosDisponibles = extractoProcesable ? extractoProcesable.filter((_, i) => !estadosExtracto.has(i)) : [];
                 const registrosYaProcesados = extractoProcesable ? extractoProcesable.length - registrosDisponibles.length : 0;
                 
-                // DEBUG: Resumen de estados del extracto SANT
                 const estadosEnExtracto = {};
                 for (let i = 0; i < extractoProcesable.length; i++) {
                     if (estadosExtracto.has(i)) {
@@ -5848,7 +5771,6 @@
                 for (const [estado, cantidad] of Object.entries(estadosEnExtracto)) {
                 }
                 
-                // DEBUG: Resumen de estados del Mayor
                 const estadosEnMayor = {};
                 for (let i = 0; i < filasFiltradasMayor.length; i++) {
                     if (estadosFilas.has(i)) {
@@ -5894,7 +5816,6 @@
                         continue;
                     }
                     
-                    // 🔍 DEBUG: Mostrar registros que SÍ se procesan con DETALLE COMPLETO
                     if ((candidatosLibro03 + candidatosLibro09 + candidatosLibro14 + candidatosLibro15) <= 10) {
                         const numdoc = filaMayor[idxM.numdoc] || '';
                         const glosa = (filaMayor[idxM.glosa] || '').substring(0, 30);
@@ -5914,7 +5835,6 @@
                         // ⭐ AGRUPAR POR FECHA (FDOC) - CORRECCIÓN PRINCIPAL
                         const fechaMayorNormalizada = this.normalizarFecha(fdoc);
                         
-                        // 🔍 DEBUG ESPECÍFICO PARA FECHAS PROBLEMÁTICAS
                         if (fdoc === '6/6/2025' || fdoc === '13/6/2025' || fdoc === '20/6/2025' || fdoc === '27/6/2025') {
                         }
                         
@@ -5985,7 +5905,6 @@
                     // ⭐ EL REGISTRO YA FUE PROCESADO EN PASOS ANTERIORES (verificado arriba con estadosExtracto.has(i))
                     // NO necesitamos verificar columna L porque los estados se guardan en estadosExtracto Map
                     
-                    // 🔍 DEBUG SOLO PARA REGISTROS QUE REALMENTE SE PROCESAN
                     if (registrosProcesadosEnExtracto <= 15) {
                         const referencia = filaExtracto[3] || '';
                         const descripcion = (filaExtracto[4] || '').substring(0, 20);
@@ -5996,7 +5915,6 @@
                     const fechaExtractoNormalizada = this.normalizarFecha(fechaExtracto);
                     const montoExtractoAbs = Math.abs(this.normalizarMonto(importeExtracto));
                     
-                    // 🔍 DEBUG ESPECÍFICO PARA FECHAS SANT PROBLEMÁTICAS
                     if (fechaExtracto === '06/06/2025' || fechaExtracto === '13/06/2025' || fechaExtracto === '20/06/2025' || fechaExtracto === '27/06/2025') {
                     }
                     
@@ -6014,7 +5932,6 @@
                         grupo.totalImporte += montoExtractoAbs;
                         grupo.filas.push(i);
                         
-                        // Debug de grupos formados (solo primeros 5 grupos)
                         if (gruposPorFechaExtracto.size <= 5) {
                         }
                     }
@@ -6022,9 +5939,7 @@
                 
                 const gruposExtractoFormados = gruposPorFechaExtracto.size;
                 
-                // === 📊 RESUMEN DE PROCESAMIENTO SANT ===
                 
-                // === 📊 TABLA DE COMPARACIÓN MAYOR VS SANT (SOLO PARA DEBUG) ===
                 
                 // Obtener todas las fechas únicas (de ambos lados)
                 const todasFechas = new Set([
@@ -6064,7 +5979,6 @@
                 }
                 
                 
-                // === 🔍 DEBUG DETALLADO: CONTENIDO DE CADA GRUPO ===
                 
                 for (const [fecha, grupo] of gruposPorFechaMayor) {
                     for (let i = 0; i < Math.min(3, grupo.filas.length); i++) {
@@ -6113,7 +6027,6 @@
                 let numeroGrupo = 1;
                 
                 for (const [fechaMayor, grupoMayor] of gruposPorFechaMayor) {
-                    // 🔍 DEBUG BÚSQUEDA DE MAPEO
                     
                     if (gruposPorFechaExtracto.has(fechaMayor)) {
                         const grupoExtracto = gruposPorFechaExtracto.get(fechaMayor);
@@ -6153,7 +6066,6 @@
                 }
                 
                 
-                // === TABLA RESUMEN FINAL ===
                 
                 return {
                     candidatos: totalCandidatos,
@@ -6205,11 +6117,9 @@
                 const coincide27 = this.normalizarFecha('27/6/2025') === this.normalizarFecha('27/06/2025');
                 
                 
-                // === 🔍 VERIFICACIÓN ESPECÍFICA REGISTROS SANT DISPONIBLES ===
                 const registrosDisponibles = extractoProcesable ? extractoProcesable.filter((_, i) => !estadosExtracto.has(i)) : [];
                 const registrosYaProcesados = extractoProcesable ? extractoProcesable.length - registrosDisponibles.length : 0;
                 
-                // DEBUG: Resumen de estados del extracto SANT
                 const estadosEnExtracto = {};
                 for (let i = 0; i < extractoProcesable.length; i++) {
                     if (estadosExtracto.has(i)) {
@@ -6222,7 +6132,6 @@
                 for (const [estado, cantidad] of Object.entries(estadosEnExtracto)) {
                 }
                 
-                // DEBUG: Resumen de estados del Mayor
                 const estadosEnMayor = {};
                 for (let i = 0; i < filasFiltradasMayor.length; i++) {
                     if (estadosFilas.has(i)) {
@@ -6332,7 +6241,6 @@
                     // ⭐ EL REGISTRO YA FUE PROCESADO EN PASOS ANTERIORES (verificado arriba con estadosExtracto.has(i))
                     // NO necesitamos verificar columna L porque los estados se guardan en estadosExtracto Map
                     
-                    // 🔍 DEBUG SOLO PARA REGISTROS QUE REALMENTE SE PROCESAN
                     if (registrosProcesadosEnExtracto <= 15) {
                         const referencia = filaExtracto[3] || '';
                         const descripcion = (filaExtracto[4] || '').substring(0, 20);
@@ -6355,16 +6263,13 @@
                     grupo.totalImporte += montoExtractoAbs;
                     grupo.filas.push(i);
                     
-                    // Debug de grupos formados (solo primeros 5 grupos)
                     if (gruposPorFechaExtracto.size <= 5) {
                     }
                 }
                 
                 const gruposExtractoFormados = gruposPorFechaExtracto.size;
                 
-                // === 📊 RESUMEN DE PROCESAMIENTO SANT ===
                 
-                // === 📊 TABLA DE COMPARACIÓN MAYOR VS SANT (SOLO PARA DEBUG) ===
                 
                 // Obtener todas las fechas únicas (de ambos lados)
                 const todasFechas = new Set([
@@ -6376,7 +6281,6 @@
                 let numeroGrupo = 1;
                 
                 
-                // === 🔍 DEBUG DETALLADO: CONTENIDO DE CADA GRUPO ===
                 
                 for (const [fecha, grupo] of gruposPorFechaMayor) {
                     for (let i = 0; i < Math.min(3, grupo.filas.length); i++) {
@@ -6466,7 +6370,6 @@
                 
                 
                 
-                // === TABLA RESUMEN FINAL ===
                 
                 return {
                     candidatos: totalCandidatos,
@@ -6559,7 +6462,6 @@
                     const diferenciaMonto = Math.abs(totalHaber - montoExtracto);
                     const montosCoinciden = diferenciaMonto < 0.01; // Tolerancia para errores de floating point
                     
-                    // Solo mostrar logs para coincidencias de fecha o matches completos
                     if (esGrupoObjetivo && (fechasCoinciden || (fechasCoinciden && montosCoinciden))) {
                     }
                     
@@ -6756,7 +6658,6 @@
                             
                             // Comparar últimos 8 chars extracto vs NUMDOC saldo
                             if (extractoItem.ultimos8 && numdocSaldoNormalizado && extractoItem.ultimos8 === numdocSaldoNormalizado) {
-                                // MATCH ENCONTRADO
                                 const operacionNumero = extractoItem.operacionNumero;
                                 const libroSaldo = filaSaldo[indicesSaldo.libro] || filaSaldo[11] || ''; // Columna L
                                 const comprobanteSaldo = filaSaldo[indicesSaldo.comprobante] || filaSaldo[12] || ''; // Columna M
@@ -6985,7 +6886,6 @@
                             comprob: comprob
                         });
                         
-                        // Debug: Mostrar los primeros 5 candidatos
                         if (candidatosLibro09ITF <= 5) {
                         }
                         
@@ -7035,7 +6935,6 @@
                                 filaCompleta: filaExtracto
                             });
                             
-                            // Debug: Mostrar los primeros 5 candidatos del extracto
                             if (candidatosExtractoITF <= 5) {
                             }
                         }
@@ -7360,7 +7259,6 @@
                     }
                 }
                 
-                // Candidatos ITF encontrados
                 
                 if (candidatosExtractoITF === 0) {
                     // No se encontraron candidatos ITF
@@ -7450,7 +7348,6 @@
                     const haber = this.normalizarMonto(filaMayor[idxM.haber] || '0');
                     const comprob = filaMayor[idxM.comprob] || '';
                     
-                                    // Debug: mostrar los primeros registros
                 if (i < 10) {
                     const glosaSafe = glosa ? glosa.substring(0, 40) : '';
                 }
@@ -7490,7 +7387,6 @@
                     const importe = this.normalizarMonto(filaExtracto[idxE.monto] || '0');
                     const operacion = filaExtracto[idxE.operacion] || '';
                     
-                    // Debug: mostrar los primeros registros
                     if (j < 10) {
                     }
                     
@@ -7511,7 +7407,6 @@
                     }
                 }
                 
-                // Resumen extracto impuesto
                 
                 // === 3. MAPEAR TOTALES MAYOR vs EXTRACTO ===
                 // Mapeando totales SBP
@@ -7521,7 +7416,6 @@
                 // Comparando totales SBP
                 
                 if (diferenciaTotales < 0.01 && candidatosMayorITF > 0 && candidatosExtractoITF > 0) {
-                    // ✅ MATCH ENCONTRADO - Conciliar todos los registros
                     const refExtracto = candidatosImpuestoExtracto.length > 0 ? candidatosImpuestoExtracto[0].operacion : '';
                     const refMayor = candidatosITFMayor.length > 0 ? `${candidatosITFMayor[0].libro}-${candidatosITFMayor[0].comprob}` : '';
                     
@@ -8217,7 +8111,6 @@
                     
                     candidatosRevisados++;
                     
-                    // Log detallado solo para matches prometedores
                     if (fechasCoinciden || montosCoinciden || candidatosRevisados <= 2) {
                         
                         if (fechasCoinciden || montosCoinciden) {
@@ -8267,7 +8160,6 @@
                 - Números seriales de Excel (45809 = días desde 1900-01-01)
                 */
                 
-                // DEBUG GENERAL
                 // if (fechaRaw && fechaRaw.toString().includes('2025.06')) {
                 // }
                 
@@ -8280,7 +8172,6 @@
                 const numeroSerial = parseFloat(fechaStr);
                 if (!isNaN(numeroSerial) && numeroSerial > 1 && numeroSerial < 100000 && !fechaStr.includes('/') && !fechaStr.includes('-') && !fechaStr.includes('.')) {
                     const fechaConvertida = this.convertirSerialExcelAFecha(numeroSerial);
-                    // MEJORADO: Log para más casos específicos que estamos analizando
                     // if (numeroSerial >= 45800 && numeroSerial <= 45900) {
                     // }
                     return fechaConvertida;
@@ -8311,7 +8202,6 @@
                 // Detectar formato basado en longitud y valores
                 const [p1, p2, p3] = partes.map(p => parseInt(p, 10));
                 
-                // DEBUG: Log para parseo DET
                 // if (fechaStr.includes('2025.06.30')) {
                 // }
                 
@@ -8362,7 +8252,6 @@
                 
                 const resultado = `${ano}-${mesStr}-${diaStr}`;
                 
-                // DEBUG: Log resultado final
                 // if (fechaStr.includes('2025.06.30')) {
                 // }
                 
@@ -8551,7 +8440,6 @@
             }
         }
         
-        // Si llegamos aquí, mostrar resumen
         if (candidatosDetalle.length > 0) {
             candidatosDetalle.forEach((cand, idx) => {
             });
@@ -8704,7 +8592,6 @@
                 
                 const resultado = monto;
                 
-                // MEJORADO: Log detallado para casos específicos y problemáticos
                 // if (montoStr.includes('46744') || montoStr.includes('46.744') || 
                 //     montoStr.includes('18956') || montoStr.includes('27788') ||
                 //     resultado === 0 || tipoFormato.includes('mixto') || tipoFormato === 'limpieza general') {
@@ -8799,7 +8686,6 @@
                         // Contar candidatos de comisión
                         candidatosComisionRec++;
                         
-                        // Debug: Mostrar los primeros 3 candidatos del Mayor
                         if (candidatosComisionRec <= 3) {
                         }
                         
@@ -8834,7 +8720,6 @@
                 gruposMayorFormados = gruposPorComisionMayor.size;
                 
                 
-                // Debug: Mostrar los primeros 3 grupos formados en el mayor
                 let grupoNumMayor = 1;
                 for (const [fecha, grupo] of gruposPorComisionMayor.entries()) {
                     if (grupoNumMayor <= 3) {
@@ -8876,7 +8761,6 @@
                         const fechaNormalizada = this.normalizarFecha(fechaOperacion);
                         const montoOriginal = this.normalizarMonto(importe); // SIN valor absoluto aún
                         
-                        // Debug: Mostrar estructura y primeros 3 candidatos del extracto BBVA
                         if (gruposPorComisionExtracto.size < 3) {
                         }
                         
@@ -8909,7 +8793,6 @@
                 gruposExtractoFormados = gruposPorComisionExtracto.size;
                 
                 
-                // Debug: Mostrar los primeros 3 grupos formados en el extracto
                 let grupoNum = 1;
                 for (const [fecha, grupo] of gruposPorComisionExtracto.entries()) {
                     if (grupoNum <= 3) {
@@ -9372,7 +9255,6 @@
                     const abono = fila[8] || '';              // I (índice 8)
                     const saldoContable = fila[9] || '';      // J (índice 9)
                     
-                    // Debug de las primeras 3 filas para ver la estructura
                     if (i < 3) {
                     }
                     
@@ -9446,7 +9328,6 @@
                     grupo.totalImporteGrupo += candidato.importeFila; // Sumar Cargo + Abono de esta fila
                     
                     
-                    // Clasificar por tipo para logs
                     if (candidato.tipo === 'FINANC_DOCS') {
                         grupo.financDocs.push(candidato);
                     } else if (candidato.tipo === 'FCD_ABON') {
@@ -9549,7 +9430,6 @@
                     }
                 });
                 
-                // SOLO LOGS DE GRUPOS IBK PASO 4 - SEPARADOS POR CRITERIO
                 const totalFinancDocs = candidatosGrupoIBK.filter(c => c.tipo === 'FINANC_DOCS').length;
                 const totalFcdAbon = candidatosGrupoIBK.filter(c => c.tipo === 'FCD_ABON').length;
                 
@@ -10119,14 +9999,12 @@
                         const abonoExtracto = this.normalizarMonto(filaExtracto[7] || '0');
                         const fechaExtractoNormalizada = this.normalizarFecha(fechaExtracto);
                         
-                        // Log específico para parseo DET
                         // if (j < 3) {
                         // }
                         
                         const fechaCoincide = fechaMayorNormalizada === fechaExtractoNormalizada;
                         const montoCoincide = Math.abs(candidato.debe - abonoExtracto) < 0.01;
                         
-                        // Debug detallado para primeras comparaciones
                         // if (j < 5 || fechaCoincide || montoCoincide) {
                         // }
                         
@@ -10237,7 +10115,6 @@
                         const fechaCoincide = fechaMayorNormalizada === fechaExtractoNormalizada;
                         const montoCoincide = Math.abs(candidato.haber - cargoAbsoluto) < 0.01;
                         
-                        // Debug detallado para primeras comparaciones
                         if (j < 5 || fechaCoincide || montoCoincide) {
                         }
                         
@@ -10494,7 +10371,6 @@
                         const fechaCoincide = fechaMayorNormalizada === fechaExtractoNormalizada;
                         const montoCoincide = Math.abs(candidato.debe - abonoExtracto) < 0.01;
                         
-                        // Debug detallado para primeras comparaciones
                         if (j < 3) {
                         }
                         
@@ -10738,7 +10614,6 @@
                     const cargo = this.normalizarMonto(filaExtracto[7] || '0');
                     const cargoAbsoluto = Math.abs(cargo); // |CARGO|
                     
-                    // DEBUG: Mostrar primeras 3 filas para verificar estructura
                     // if (j < 3) {
                     // }
                     
@@ -10901,7 +10776,6 @@
                     // Reorganizar IBK: B-J del original (índices 1-9) → A-I del reorganizado (índices 0-8)
                     const filaExtracto = filaOriginal.slice(1, 10); // B12-J12 → A1-I1
                     
-                    // DEBUG: Mostrar estructura completa de las primeras 3 filas
                     if (j < 3) {
                     }
                     
@@ -10922,7 +10796,6 @@
                 }
                 
                 
-                // DEBUG: Buscar fechas específicas del mayor en el extracto
                 const fechasMayor = ['2025-06-02', '2025-06-04', '2025-06-05'];
                 fechasMayor.forEach(fechaBuscada => {
                     const coincidencias = candidatosExtracto.filter(cand => cand.fechaNormalizada === fechaBuscada);
@@ -10944,7 +10817,6 @@
                     
                     const fechaMayorNormalizada = this.normalizarFecha(candidato.fdoc);
                     
-                    // DEBUG: Mostrar candidatos del mayor
                     if (intentosMapeo < 10) { // Aumentamos límite para ver todos los candidatos
                     }
                     
@@ -10969,7 +10841,6 @@
                         const cargoAbsoluto = Math.abs(cargo); // |CARGO|
                         const fechaExtractoNormalizada = this.normalizarFecha(fechaExtracto);
                         
-                        // DEBUG: Mostrar filas del extracto para cada candidato del mayor
                         if (intentosExtracto < 10) { // Aumentamos límite para ver más candidatos
                         }  
                         if (intentosExtracto < 10) { // Aumentamos límite para debug
@@ -11192,17 +11063,16 @@
                 };
             },
      
-            generateTwoExcelFiles(datosCompletos, baseFileName) {
+            async generateTwoExcelFiles(datosCompletos, baseFileName) {
                 try {
                     const timestamp = new Date().toISOString().slice(0,19).replace(/:/g,'-');
                     
-                    // Archivo 1: Resumen
                     const datosOriginalesFileName = `resumen_${timestamp}.xlsx`;
                     const urlDatosOriginales = this.generateDatosOriginalesFile(datosCompletos, datosOriginalesFileName);
                     
                     // Archivo 2: Resultados de conciliación
                     const conciliacionFileName = `conciliacion_${timestamp}.xlsx`;
-                    const urlConciliacion = this.generateConciliacionFile(datosCompletos, conciliacionFileName);
+                    const urlConciliacion = await this.generateConciliacionFile(datosCompletos, conciliacionFileName);
                     
                     return {
                         datosOriginales: {
@@ -11217,7 +11087,6 @@
                         }
                     };
                 } catch (error) {
-                    console.error("❌ Error generando archivos Excel:", error);
                     throw error;
                 }
             },
@@ -11279,23 +11148,16 @@
 
             // === FUNCIÓN PARA OBTENER DEPOSITOS EN LIBROS NO REGISTRADOS EN BANCOS DE SALDOS ===
             obtenerDepositosLibrosNoRegistrados(datosCompletos) {
-                // console.log('💰 ========== INICIANDO BÚSQUEDA DE DEPOSITOS EN LIBROS NO REGISTRADOS EN BANCOS ==========');
                 
                 if (!datosCompletos.datosSaldo || !Array.isArray(datosCompletos.datosSaldo)) {
-                    // console.log('💰 ❌ No hay datos de SALDOS disponibles para depósitos');
-                    // console.log('💰 datosCompletos.datosSaldo:', datosCompletos.datosSaldo);
                     return [];
                 }
                 
-                // console.log(`💰 ✅ Datos SALDOS encontrados, ${datosCompletos.datosSaldo.length} filas`);
                 
                 const depositos = [];
                 const datosSaldo = datosCompletos.datosSaldo;
                 
-                // Mostrar primeras filas para debugging
-                // console.log('💰 Primeras 5 filas de SALDOS:');
                 // for (let i = 0; i < Math.min(5, datosSaldo.length); i++) {
-                //     console.log(`💰 Fila ${i}:`, datosSaldo[i]);
                 // }
                 
                 // Buscar header para identificar columnas
@@ -11306,19 +11168,16 @@
                         const tieneConcepto = fila.some(celda => celda && celda.toString().toUpperCase().includes('CONCEPTO'));
                         if (tieneConcepto) {
                             headerIndex = i;
-                            // console.log(`💰 ✅ Header encontrado en fila ${i}:`, fila);
                             break;
                         }
                     }
                 }
 
                 if (headerIndex === -1) {
-                    // console.log('💰 ❌ No se encontró header con CONCEPTO en datos SALDOS');
                     return [];
                 }
                 
                 const headers = datosSaldo[headerIndex];
-                // console.log('💰 Headers completos:', headers);
                 
                 // Buscar columnas de manera más robusta
                 const conceptoCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('CONCEPTO'));
@@ -11327,15 +11186,8 @@
                 const glosaCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('GLOSA'));
                 const debeCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('DEBE'));
 
-                // console.log(`💰 Índices de columnas encontrados:`);
-                // console.log(`   - CONCEPTO: ${conceptoCol} (${conceptoCol >= 0 ? headers[conceptoCol] : 'NO ENCONTRADO'})`);
-                // console.log(`   - FDOC: ${fdocCol} (${fdocCol >= 0 ? headers[fdocCol] : 'NO ENCONTRADO'})`);
-                // console.log(`   - NUMDOC: ${numdocCol} (${numdocCol >= 0 ? headers[numdocCol] : 'NO ENCONTRADO'})`);
-                // console.log(`   - GLOSA: ${glosaCol} (${glosaCol >= 0 ? headers[glosaCol] : 'NO ENCONTRADO'})`);
-                // console.log(`   - DEBE: ${debeCol} (${debeCol >= 0 ? headers[debeCol] : 'NO ENCONTRADO'})`);
 
                 if (conceptoCol === -1) {
-                    // console.log('💰 ❌ No se encontró columna CONCEPTO');
                     return [];
                 }
 
@@ -11352,19 +11204,11 @@
                     
                     if (concepto && concepto.toString().toUpperCase().includes('(+) DEPOSITOS EN LIBROS NO REGISTRADOS EN BANCOS')) {
                         depositosEncontrados++;
-                        // console.log(`💰 🎯 DEPOSITO ENCONTRADO en fila ${i}:`, fila);
-                        console.log(`   - Concepto: "${concepto}"`);
-                        console.log(`   - FDOC: "${fila[fdocCol] || 'N/A'}"`);
-                        console.log(`   - NUMDOC: "${fila[numdocCol] || 'N/A'}"`);
-                        console.log(`   - GLOSA: "${fila[glosaCol] || 'N/A'}"`);
-                        console.log(`   - DEBE: "${fila[debeCol] || 'N/A'}"`);
                         
                         // Verificar si está pendiente
                         const estado = fila[fila.length - 1]; // Última columna
                         const estadoAnterior = fila[fila.length - 2]; // Penúltima columna
                         
-                        console.log(`   - Estado (última col): "${estado}"`);
-                        console.log(`   - Estado (penúltima col): "${estadoAnterior}"`);
                         
                         // Criterio más flexible para determinar si está pendiente
                         const estaPendiente = !estado || 
@@ -11372,7 +11216,6 @@
                                             estado.toString().toUpperCase().includes('PENDIENTE') ||
                                             !estado.toString().toUpperCase().includes('CONCILIADO');
                         
-                        console.log(`   - ¿Está pendiente?: ${estaPendiente}`);
                         
                         if (estaPendiente) {
                             const deposito = {
@@ -11382,33 +11225,34 @@
                                 importe: parseFloat(fila[debeCol]) || 0
                             };
                             depositos.push(deposito);
-                            console.log(`💰 ✅ Depósito agregado:`, deposito);
                         } else {
-                            console.log(`💰 ⏭️ Depósito omitido (ya conciliado)`);
                         }
                     }
                 }
 
-                // console.log(`💰 ========== RESUMEN BÚSQUEDA DEPÓSITOS ==========`);
-                // console.log(`💰 Filas revisadas: ${filasRevisadas}`);
-                // console.log(`💰 Depósitos encontrados: ${depositosEncontrados}`);
-                // console.log(`💰 Depósitos pendientes: ${depositos.length}`);
-                // console.log(`💰 ===============================================`);
                 
                 return depositos;
             },
 
             // === FUNCIÓN PARA OBTENER OMITIDOS DEL PASO 2 AGRUPADOS POR TÉRMINO ===
             obtenerOmitidosPaso2(datosCompletos, cuenta) {
-                if (!datosCompletos.datosMayor || !Array.isArray(datosCompletos.datosMayor)) {
+                console.log(`🔍 DEBUG PASO 2 OMISIONES - Iniciando para cuenta: ${cuenta}`);
+                
+                // USAR DATOS DEL MAYOR DISPONIBLES EN DATOSCOMPLETOS
+                let datosOriginalesMayor = datosCompletos.datosMayor;
+                console.log(`📊 Usando datos del Mayor disponibles`);
+                
+                if (!datosOriginalesMayor || !Array.isArray(datosOriginalesMayor)) {
+                    console.log('❌ No hay datos del Mayor disponibles (ni originales ni procesados)');
                     return {};
                 }
                 
                 const agrupados = {};
-                const datosMayor = datosCompletos.datosMayor;
+                const datosMayor = datosOriginalesMayor; // USAR DATOS ORIGINALES, NO PROCESADOS
                 
-                // Términos de exclusión del paso 2
+                // Términos de exclusión del paso 2 (EXACTOS DEL PASO 2)
                 const terminosExclusion = ["AMERICAN EXP", "CALIDDA", "DINERS", "MASTER CARD", "MERCADOPAGO", "VISANET"];
+                console.log(`🎯 Términos de exclusión del PASO 2: ${terminosExclusion.join(', ')}`);
                 
                 // Inicializar totales por término
                 terminosExclusion.forEach(termino => {
@@ -11429,38 +11273,74 @@
                 }
 
                 if (headerIndex === -1) {
+                    console.log('❌ No se encontró header con GLOSA en datosMayor');
                     return {};
                 }
                 
                 const headers = datosMayor[headerIndex];
                 
-                // Buscar columnas
+                // Buscar columnas (igual que el PASO 2 original)
                 const glosaCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('GLOSA'));
                 const debeCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('DEBE'));
+                const cuentaCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('CUENTA'));
+                
+                console.log(`📊 Headers encontrados - CUENTA: ${cuentaCol}, GLOSA: ${glosaCol}, DEBE: ${debeCol}`);
+                console.log(`📊 Headers: ${headers.map((h, i) => `${i}:${h}`).slice(0, 10).join(' | ')}`);
 
-                if (glosaCol === -1 || debeCol === -1) {
+                if (glosaCol === -1 || debeCol === -1 || cuentaCol === -1) {
+                    console.log('❌ No se encontraron columnas CUENTA, GLOSA o DEBE');
                     return {};
                 }
 
-                // Procesar filas de datos
-                for (let i = headerIndex + 1; i < datosMayor.length; i++) {
-                    const fila = datosMayor[i];
-                    if (!Array.isArray(fila)) continue;
+                // OBTENER FILAS DE DATOS (igual que el PASO 2: después del header)
+                const dataRowsMayor = datosMayor.slice(headerIndex + 1);
+                console.log(`📊 Total de filas de datos en Mayor: ${dataRowsMayor.length}`);
+
+                // PASO 1: FILTRAR POR CUENTA BCP.01 (1041501) - igual que el paso 2 original
+                const codigoCuentaEspecifica = '1041501'; // BCP.01
+                const filasFiltradasPorCuenta = dataRowsMayor.filter(fila => {
+                    if (!Array.isArray(fila)) return false;
+                    const cuentaFila = (fila[cuentaCol] || '').toString();
+                    return cuentaFila === codigoCuentaEspecifica;
+                });
+                
+                console.log(`📊 Filas filtradas por cuenta BCP.01 (${codigoCuentaEspecifica}): ${filasFiltradasPorCuenta.length}`);
+
+                // PASO 2: IDENTIFICAR FILAS QUE SERÍAN OMITIDAS (REPLICAR LÓGICA EXACTA DEL PASO 2)
+                let filasOmitidasPorPaso2 = 0;
+                let matchesEncontrados = 0;
+
+                filasFiltradasPorCuenta.forEach((fila, idx) => {
+                    const glosa = (fila[glosaCol] || '').toString().toUpperCase();
                     
-                    const glosa = fila[glosaCol];
+                    // REPLICAR LÓGICA EXACTA DEL PASO 2: some + startsWith
+                    const seriaExcluida = terminosExclusion.some(termino => glosa.startsWith(termino.toUpperCase()));
                     
-                    if (glosa) {
-                        const glosaStr = glosa.toString().toUpperCase();
+                    if (seriaExcluida) {
+                        filasOmitidasPorPaso2++;
                         
-                        // Verificar cuál término de exclusión contiene (MISMO CRITERIO QUE PASO 2: startsWith)
+                        // Encontrar cuál término específico coincidió
                         terminosExclusion.forEach(termino => {
-                            if (glosaStr.startsWith(termino.toUpperCase())) {
+                            if (glosa.startsWith(termino.toUpperCase())) {
                                 const importe = parseFloat(fila[debeCol]) || 0;
+                                matchesEncontrados++;
+                                
+                                console.log(`✅ OMITIDA PASO 2 fila ${idx}: "${termino}" en "${glosa.substring(0, 50)}..." - DEBE: ${importe}`);
                                 agrupados[termino] += importe;
                             }
                         });
                     }
-                }
+                });
+                
+                console.log(`📊 ESTADÍSTICAS PASO 2 OMISIONES:`);
+                console.log(`   - Filas filtradas por cuenta: ${filasFiltradasPorCuenta.length}`);
+                console.log(`   - Filas omitidas por PASO 2: ${filasOmitidasPorPaso2}`);
+                console.log(`   - Matches con términos específicos: ${matchesEncontrados}`);
+                
+                console.log(`💰 AGRUPACIÓN POR TÉRMINO DE EXCLUSIÓN:`);
+                Object.entries(agrupados).forEach(([termino, total]) => {
+                    console.log(`   ${termino}: ${total}`);
+                });
                 
                 // Filtrar solo los términos que tienen monto > 0
                 const resultadoFiltrado = {};
@@ -11470,19 +11350,26 @@
                     }
                 });
                 
+                console.log(`🎯 RESULTADO FINAL (omisiones con total > 0):`);
+                Object.entries(resultadoFiltrado).forEach(([termino, total]) => {
+                    console.log(`   ${termino}: ${total}`);
+                });
+                
                 return resultadoFiltrado;
             },
 
-            // === FUNCIÓN PARA OBTENER PENDIENTES MAYOR DEBE > 0 SOLO DE BCP.01 (1041501) ===
-            obtenerPendientesMayorDebe(datosCompletos) {
+            // === FUNCIÓN PARA OBTENER PENDIENTES MAYOR DEBE > 0 PARA CUALQUIER CUENTA ===
+            obtenerPendientesMayorDebe(datosCompletos, codigoCuenta = '1041501') {
+                console.log(`🔍 DEBUG MAYOR.PEN - Iniciando búsqueda de pendientes DEBE > 0 para cuenta: ${codigoCuenta}`);
+                
                 if (!datosCompletos.datosMayor || !Array.isArray(datosCompletos.datosMayor)) {
+                    console.log('❌ No hay datos del Mayor disponibles');
                     return [];
                 }
                 
                 const pendientes = [];
                 const datosMayor = datosCompletos.datosMayor;
                 
-                console.log(`🔍 Iniciando búsqueda de pendientes SOLO BCP.01 en MAYOR.PEN, ${datosMayor.length} filas`);
                 
                 // Buscar header para identificar columnas
                 let headerIndex = -1;
@@ -11492,19 +11379,17 @@
                         const tieneEstado = fila.some(celda => celda && celda.toString().toUpperCase().includes('ESTADO'));
                         if (tieneEstado) {
                             headerIndex = i;
-                            console.log(`🔍 Header encontrado en fila ${i}`);
                             break;
                         }
                     }
                 }
 
                 if (headerIndex === -1) {
-                    console.log(`🔍 ❌ No se encontró header con ESTADO`);
+                    console.log('❌ No se encontró header con ESTADO en datosMayor');
                     return [];
                 }
                 
                 const headers = datosMayor[headerIndex];
-                console.log(`🔍 Headers:`, headers);
                 
                 // Buscar columnas
                 const cuentaCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('CUENTA'));
@@ -11514,16 +11399,18 @@
                 const numdocCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('NUMDOC'));
                 const debeCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('DEBE'));
 
-                console.log(`🔍 Columnas encontradas: CUENTA=${cuentaCol}, ESTADO=${estadoCol}, GLOSA=${glosaCol}, FDOC=${fdocCol}, NUMDOC=${numdocCol}, DEBE=${debeCol}`);
+                console.log(`📊 Headers MAYOR.PEN - CUENTA: ${cuentaCol}, ESTADO: ${estadoCol}, DEBE: ${debeCol}`);
+                console.log(`📊 Headers: ${headers.map((h, i) => `${i}:${h}`).slice(0, 10).join(' | ')}`);
 
                 if (cuentaCol === -1 || estadoCol === -1 || debeCol === -1) {
-                    console.log(`🔍 ❌ No se encontraron columnas necesarias`);
+                    console.log('❌ No se encontraron columnas CUENTA, ESTADO o DEBE');
                     return [];
                 }
 
                 let filasRevisadas = 0;
                 let candidatos = 0;
                 let filtradasPorCuenta = 0;
+                let pendientesEncontradas = 0;
                 
                 // Procesar filas de datos
                 for (let i = headerIndex + 1; i < datosMayor.length; i++) {
@@ -11536,8 +11423,8 @@
                     const estado = fila[estadoCol];
                     const debe = parseFloat(fila[debeCol]) || 0;
                     
-                    // FILTRO 1: SOLO CUENTA BCP.01 (1041501)
-                    if (!cuenta || cuenta.toString().trim() !== '1041501') {
+                    // FILTRO 1: SOLO CUENTA ESPECÍFICA
+                    if (!cuenta || cuenta.toString().trim() !== codigoCuenta) {
                         continue;
                     }
                     
@@ -11545,6 +11432,11 @@
                     
                     // FILTRO 2: Estado pendiente
                     const estaPendiente = estado && estado.toString().toUpperCase().includes('PENDIENTE');
+                    
+                    if (estaPendiente) {
+                        pendientesEncontradas++;
+                        console.log(`📝 Pendiente BCP.01 fila ${i}: Estado="${estado}", DEBE=${debe}`);
+                    }
                     
                     // FILTRO 3: DEBE > 0
                     if (estaPendiente && debe > 0) {
@@ -11556,41 +11448,37 @@
                             importe: debe,
                             cuenta: cuenta.toString().trim()
                         };
+                        console.log(`✅ CANDIDATO ${candidatos}: "${pendiente.glosa.substring(0, 40)}..." - Importe: ${debe}`);
                         pendientes.push(pendiente);
-                        console.log(`🔍 ✅ Pendiente BCP.01 ${pendientes.length}: "${pendiente.glosa}" - DEBE: ${debe} - Estado: "${estado}" - Cuenta: ${pendiente.cuenta}`);
                     }
                     
-                    // Limitar búsqueda para debugging
                     if (pendientes.length >= 10) {
-                        console.log(`🔍 ⚠️ Limitando búsqueda a 10 pendientes para debugging`);
                         break;
                     }
                 }
                 
-                console.log(`🔍 Resumen: ${filasRevisadas} filas revisadas, ${filtradasPorCuenta} de cuenta BCP.01, ${candidatos} candidatos, ${pendientes.length} pendientes finales`);
+                console.log(`📊 ESTADÍSTICAS MAYOR.PEN ${codigoCuenta}:`);
+                console.log(`   - Filas revisadas: ${filasRevisadas}`);
+                console.log(`   - Filtradas por cuenta ${codigoCuenta}: ${filtradasPorCuenta}`);
+                console.log(`   - Con estado PENDIENTE: ${pendientesEncontradas}`);
+                console.log(`   - CANDIDATOS finales (PENDIENTE + DEBE > 0): ${candidatos}`);
+                console.log(`🎯 Total de pendientes encontrados: ${pendientes.length}`);
                 
                 return pendientes;
             },
 
             // === FUNCIÓN PARA OBTENER CHEQUES NO COBRADOS DE SALDOS ===
             obtenerChequesNoCobrados(datosCompletos) {
-                // console.log('📋 ========== INICIANDO BÚSQUEDA DE CHEQUES NO COBRADOS ==========');
                 
                                 if (!datosCompletos.datosSaldo || !Array.isArray(datosCompletos.datosSaldo)) {
-                    // console.log('📋 ❌ No hay datos de SALDOS disponibles para cheques');
-                    // console.log('📋 datosCompletos.datosSaldo:', datosCompletos.datosSaldo);
                     return [];
                 }
                 
-                // console.log(`📋 ✅ Datos SALDOS encontrados, ${datosCompletos.datosSaldo.length} filas`);
                 
                 const cheques = [];
                 const datosSaldo = datosCompletos.datosSaldo;
                 
-                // Mostrar primeras filas para debugging
-                // console.log('📋 Primeras 5 filas de SALDOS:');
                 // for (let i = 0; i < Math.min(5, datosSaldo.length); i++) {
-                //     console.log(`📋 Fila ${i}:`, datosSaldo[i]);
                 // }
                 
                 // Buscar header para identificar columnas
@@ -11601,19 +11489,16 @@
                         const tieneConcepto = fila.some(celda => celda && celda.toString().toUpperCase().includes('CONCEPTO'));
                         if (tieneConcepto) {
                             headerIndex = i;
-                            // console.log(`📋 ✅ Header encontrado en fila ${i}:`, fila);
                             break;
                         }
                     }
                 }
 
                 if (headerIndex === -1) {
-                                        // console.log('📋 ❌ No se encontró header con CONCEPTO en datos SALDOS');
                     return [];
                 }
                 
                 const headers = datosSaldo[headerIndex];
-                // console.log('📋 Headers completos:', headers);
                 
                 // Buscar columnas de manera más robusta
                 const conceptoCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('CONCEPTO'));
@@ -11622,15 +11507,8 @@
                 const glosaCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('GLOSA'));
                 const importeCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('IMPORTE'));
 
-                // console.log(`📋 Índices de columnas encontrados:`);
-                // console.log(`   - CONCEPTO: ${conceptoCol} (${conceptoCol >= 0 ? headers[conceptoCol] : 'NO ENCONTRADO'})`);
-                // console.log(`   - FDOC: ${fdocCol} (${fdocCol >= 0 ? headers[fdocCol] : 'NO ENCONTRADO'})`);
-                // console.log(`   - NUMDOC: ${numdocCol} (${numdocCol >= 0 ? headers[numdocCol] : 'NO ENCONTRADO'})`);
-                // console.log(`   - GLOSA: ${glosaCol} (${glosaCol >= 0 ? headers[glosaCol] : 'NO ENCONTRADO'})`);
-                // console.log(`   - IMPORTE: ${importeCol} (${importeCol >= 0 ? headers[importeCol] : 'NO ENCONTRADO'})`);
 
                 if (conceptoCol === -1) {
-                    // console.log('📋 ❌ No se encontró columna CONCEPTO');
                     return [];
                 }
 
@@ -11647,19 +11525,11 @@
                     
                     if (concepto && concepto.toString().toUpperCase().includes('CHEQUES NO COBRADOS')) {
                         chequesEncontrados++;
-                        // console.log(`📋 🎯 CHEQUE ENCONTRADO en fila ${i}:`, fila);
-                        console.log(`   - Concepto: "${concepto}"`);
-                        console.log(`   - FDOC: "${fila[fdocCol] || 'N/A'}"`);
-                        console.log(`   - NUMDOC: "${fila[numdocCol] || 'N/A'}"`);
-                        console.log(`   - GLOSA: "${fila[glosaCol] || 'N/A'}"`);
-                        console.log(`   - IMPORTE: "${fila[importeCol] || 'N/A'}"`);
                         
                         // Verificar si está pendiente
                         const estado = fila[fila.length - 1]; // Última columna
                         const estadoAnterior = fila[fila.length - 2]; // Penúltima columna
                         
-                        console.log(`   - Estado (última col): "${estado}"`);
-                        console.log(`   - Estado (penúltima col): "${estadoAnterior}"`);
                         
                         // Criterio más flexible para determinar si está pendiente
                         const estaPendiente = !estado || 
@@ -11667,7 +11537,6 @@
                                             estado.toString().toUpperCase().includes('PENDIENTE') ||
                                             !estado.toString().toUpperCase().includes('CONCILIADO');
                         
-                        console.log(`   - ¿Está pendiente?: ${estaPendiente}`);
                         
                         if (estaPendiente) {
                             const cheque = {
@@ -11677,18 +11546,11 @@
                                 importe: parseFloat(fila[importeCol]) || 0
                             };
                             cheques.push(cheque);
-                            console.log(`📋 ✅ Cheque agregado:`, cheque);
                         } else {
-                            console.log(`📋 ⏭️ Cheque omitido (ya conciliado)`);
                         }
                     }
                 }
 
-                // console.log(`📋 ========== RESUMEN BÚSQUEDA CHEQUES ==========`);
-                // console.log(`📋 Filas revisadas: ${filasRevisadas}`);
-                // console.log(`📋 Cheques encontrados: ${chequesEncontrados}`);
-                // console.log(`📋 Cheques pendientes: ${cheques.length}`);
-                // console.log(`📋 ===============================================`);
                 
                 return cheques;
             },
@@ -11696,7 +11558,6 @@
             // === FUNCIÓN PARA OBTENER PENDIENTES DEL LIBRO 02 ===
             obtenerPendientesLibro02(datosCompletos) {
                 if (!this.conciliationResult || !this.conciliationResult.estadosFilas) {
-                    console.log('📚 No hay estados de filas disponibles');
                     return [];
                 }
 
@@ -11705,7 +11566,6 @@
                 const datosMayor = datosCompletos.datosMayor;
 
                 if (!datosMayor || !Array.isArray(datosMayor)) {
-                    console.log('📚 No hay datos del MAYOR disponibles');
                     return [];
                 }
 
@@ -11721,59 +11581,167 @@
                     }
                 });
 
-                console.log(`📚 Pendientes LIBRO 02 encontrados: ${pendientes.length}`);
                 return pendientes;
+            },
+
+            // === FUNCIÓN PARA OBTENER PENDIENTES DE EXTRACTOS (CARGOS EN BANCOS NO REGISTRADOS EN LIBROS) ===
+            obtenerPendientesExtractos(datosCompletos, nombrePestaña, codigoCuenta) {
+                console.log(`🔍 CARGOS EN BANCOS - Iniciando para ${nombrePestaña} (${codigoCuenta})`);
+                
+                // DET y BN son saldos manuales, no tienen extractos para procesar
+                if (nombrePestaña === 'DET' || nombrePestaña === 'BN') {
+                    return [];
+                }
+                
+                const cargos = [];
+                let datosExtracto = null;
+                
+                // Verificar si existe extractosPorCuenta
+                if (!datosCompletos.extractosPorCuenta) {
+                    return [];
+                }
+                
+                // Buscar por código de cuenta en extractosPorCuenta
+                if (datosCompletos.extractosPorCuenta.has(codigoCuenta)) {
+                    const extractoInfo = datosCompletos.extractosPorCuenta.get(codigoCuenta);
+                    
+                    if (extractoInfo && extractoInfo.datosExtracto) {
+                        datosExtracto = extractoInfo.datosExtracto;
+                    }
+                }
+
+                if (!datosExtracto || !Array.isArray(datosExtracto)) {
+                    return [];
+                }
+
+                // USAR MISMA LÓGICA QUE obtenerDepositosBancosNoRegistrados
+                const obtenerColumnaEstado = (nombrePestaña) => {
+                    const columnasEstado = {
+                        'BCP.01': 11,   // Columna L
+                        'BCP.02': 11,   // Columna L
+                        'BCP.USD': 11,  // Columna L
+                        'SANT': 11,     // Columna L
+                        'SANT.USD': 11, // Columna L
+                        'BBVA': 7,      // Columna H
+                        'BBVA.USD': 7,  // Columna H
+                        'SBP': 8,       // Columna I
+                        'SBP.USD': 8,   // Columna I
+                        'IBK': 9,       // Columna J
+                        'IBK.USD': 9    // Columna J
+                    };
+                    return columnasEstado[nombrePestaña] || 11; // Default L si no se encuentra
+                };
+
+                const obtenerMapeoColumnas = (nombrePestaña) => {
+                    const mapeoColumnas = {
+                        // BCP: concepto, fecha, ref, importe (usando mapeo genérico actual)
+                        'BCP.01': { concepto: 2, fecha: 1, ref: 6, importe: 3 },   // C, B, G, D
+                        'BCP.02': { concepto: 2, fecha: 1, ref: 6, importe: 3 },   // C, B, G, D
+                        'BCP.USD': { concepto: 2, fecha: 1, ref: 6, importe: 3 },  // C, B, G, D
+                        
+                        // SANT: concepto, fecha, ref, importe = E, A, D, G
+                        'SANT': { concepto: 4, fecha: 0, ref: 3, importe: 6 },     // E, A, D, G
+                        'SANT.USD': { concepto: 4, fecha: 0, ref: 3, importe: 6 }, // E, A, D, G
+                        
+                        // SBP: concepto, fecha, ref, importe = B, A, D, C
+                        'SBP': { concepto: 1, fecha: 0, ref: 3, importe: 2 },      // B, A, D, C
+                        'SBP.USD': { concepto: 1, fecha: 0, ref: 3, importe: 2 },  // B, A, D, C
+                        
+                        // IBK: concepto, fecha, ref, importe = D, A, C, H
+                        'IBK': { concepto: 3, fecha: 0, ref: 2, importe: 7 },      // D, A, C, H
+                        'IBK.USD': { concepto: 3, fecha: 0, ref: 2, importe: 7 },  // D, A, C, H
+                        
+                        // BBVA: concepto, fecha, ref, importe = E, A, D, F
+                        'BBVA': { concepto: 4, fecha: 0, ref: 3, importe: 5 },     // E, A, D, F
+                        'BBVA.USD': { concepto: 4, fecha: 0, ref: 3, importe: 5 }, // E, A, D, F
+                    };
+                    return mapeoColumnas[nombrePestaña] || { concepto: 2, fecha: 1, ref: 6, importe: 3 }; // Default BCP
+                };
+
+                const columnaEstado = obtenerColumnaEstado(nombrePestaña);
+                const mapeoColumnas = obtenerMapeoColumnas(nombrePestaña);
+                
+                let filasRevisadas = 0;
+                let filasPendientes = 0;
+                let filasCargos = 0;
+
+                // PROCESAR TODAS LAS FILAS (MISMA LÓGICA QUE obtenerDepositosBancosNoRegistrados)
+                for (let i = 1; i < datosExtracto.length; i++) {
+                    filasRevisadas++;
+                    const fila = datosExtracto[i];
+                    if (!Array.isArray(fila)) continue;
+                    
+                    const descripcion = (fila[mapeoColumnas.concepto] || '').toString();
+                    const importe = parseFloat(fila[mapeoColumnas.importe]) || 0;
+                    const ref = (fila[mapeoColumnas.ref] || '').toString();
+                    const fecha = (fila[mapeoColumnas.fecha] || '').toString();
+                    
+                    // Revisar columna de estado según el banco
+                    const estadoColumna = (fila[columnaEstado] || '').toString();
+                    
+                    // IGUAL QUE obtenerDepositosBancosNoRegistrados: Solo procesar si la columna dice "Pendiente"
+                    if (estadoColumna.toUpperCase() !== 'PENDIENTE') {
+                        continue; // Saltar si no está pendiente
+                    }
+                    
+                    filasPendientes++;
+                    
+                    // IGUAL QUE obtenerDepositosBancosNoRegistrados: En vez de importe > 0, buscar importe < 0 (cargos)
+                    if (importe < 0) {
+                        filasCargos++;
+                        
+                        cargos.push({
+                            descripcion: descripcion || `Cargo ${ref}`,
+                            fecha: fecha,
+                            referencia: ref,
+                            importe: Math.abs(importe) // Convertir a positivo para mostrar
+                        });
+                        
+                        if (filasCargos <= 5) {
+                            console.log(`✅ Cargo ${filasCargos}: "${descripcion.substring(0, 40)}..." - Importe: ${Math.abs(importe)} (original: ${importe})`);
+                        }
+                    }
+                }
+                
+                console.log(`📊 RESUMEN ${nombrePestaña}: ${filasRevisadas} revisadas, ${filasPendientes} pendientes, ${filasCargos} cargos (< 0)`);
+                
+                return cargos;
             },
 
             // === FUNCIÓN PARA OBTENER DEPÓSITOS EN BANCOS NO REGISTRADOS EN LIBROS ===
             obtenerDepositosBancosNoRegistrados(datosCompletos, nombrePestaña, codigoCuenta) {
-                console.log(`🔥🔥🔥 FUNCIÓN obtenerDepositosBancosNoRegistrados EJECUTÁNDOSE 🔥🔥🔥`);
-                console.log(`🏦 ========== BUSCANDO DEPÓSITOS NO REGISTRADOS PARA ${nombrePestaña} ==========`);
                 
                 // DET y BN son saldos manuales, no tienen extractos para procesar
                 if (nombrePestaña === 'DET' || nombrePestaña === 'BN') {
-                    console.log(`🏦 ⚠️ ${nombrePestaña} es saldo manual - no hay extracto para procesar`);
                     return [];
                 }
                 
                 const depositos = [];
                 
-                // Obtener datos del extracto desde datosCompletos.extractosPorCuenta (igual que con cheques en SALDOS)
                 let datosExtracto = null;
                 
-                console.log(`🏦 Buscando datos de extracto en datosCompletos para ${nombrePestaña} (código: ${codigoCuenta})`);
-                console.log(`🏦 Claves disponibles en datosCompletos:`, Object.keys(datosCompletos));
                 
                 // Verificar si existe extractosPorCuenta
                 if (!datosCompletos.extractosPorCuenta) {
-                    console.log(`🏦 ❌ No existe extractosPorCuenta en datosCompletos`);
                     return [];
                 }
                 
-                console.log(`🏦 extractosPorCuenta es un Map con ${datosCompletos.extractosPorCuenta.size} cuentas`);
-                console.log(`🏦 Códigos de cuenta disponibles:`, Array.from(datosCompletos.extractosPorCuenta.keys()));
                 
                 // Buscar por código de cuenta en extractosPorCuenta
                 if (datosCompletos.extractosPorCuenta.has(codigoCuenta)) {
                     const extractoInfo = datosCompletos.extractosPorCuenta.get(codigoCuenta);
-                    console.log(`🏦 ✅ Información de extracto encontrada para cuenta ${codigoCuenta}:`, extractoInfo);
                     
                     if (extractoInfo && extractoInfo.datosExtracto) {
                         datosExtracto = extractoInfo.datosExtracto;
-                        console.log(`🏦 ✅ Datos de extracto encontrados: ${datosExtracto.length} filas`);
                     } else {
-                        console.log(`🏦 ❌ extractoInfo.datosExtracto no existe o está vacío`);
                     }
                 } else {
-                    console.log(`🏦 ❌ No se encontró el código de cuenta ${codigoCuenta} en extractosPorCuenta`);
                 }
 
                 if (!datosExtracto || !Array.isArray(datosExtracto)) {
-                    console.log(`🏦 No hay datos de extracto para ${nombrePestaña}`);
                     return [];
                 }
 
-                console.log(`🏦 Datos extracto encontrados: ${datosExtracto.length} filas`);
 
                 // Función helper para obtener columna de estado según el banco
                 const obtenerColumnaEstado = (nombrePestaña) => {
@@ -11829,32 +11797,17 @@
                 const columnaEstado = obtenerColumnaEstado(nombrePestaña);
                 const mapeoColumnas = obtenerMapeoColumnas(nombrePestaña);
                 
-                console.log(`🏦 Usando columna de estado: ${String.fromCharCode(65 + columnaEstado)} (índice ${columnaEstado}) para ${nombrePestaña}`);
-                console.log(`🏦 Mapeo de columnas para ${nombrePestaña}:`);
-                console.log(`🏦   Concepto: ${String.fromCharCode(65 + mapeoColumnas.concepto)} (${mapeoColumnas.concepto})`);
-                console.log(`🏦   Fecha: ${String.fromCharCode(65 + mapeoColumnas.fecha)} (${mapeoColumnas.fecha})`);
-                console.log(`🏦   Ref: ${String.fromCharCode(65 + mapeoColumnas.ref)} (${mapeoColumnas.ref})`);
-                console.log(`🏦   Importe: ${String.fromCharCode(65 + mapeoColumnas.importe)} (${mapeoColumnas.importe})`);
                 
-                // DEBUG ESPECÍFICO PARA BBVA
                 if (nombrePestaña === 'BBVA' || nombrePestaña === 'BBVA.USD') {
-                    console.log(`🏦 🔍 DEBUG BBVA - Verificando primeras 3 filas:`);
                     for (let debug = 1; debug <= Math.min(3, datosExtracto.length - 1); debug++) {
                         const filaDebug = datosExtracto[debug];
                         if (Array.isArray(filaDebug)) {
-                            console.log(`🏦 Fila ${debug}:`);
-                            console.log(`🏦   A (fecha): "${filaDebug[0] || ''}"`);
-                            console.log(`🏦   D (ref): "${filaDebug[3] || ''}"`);
-                            console.log(`🏦   E (concepto): "${filaDebug[4] || ''}"`);
-                            console.log(`🏦   F (importe): "${filaDebug[5] || ''}"`);
-                            console.log(`🏦   H (estado): "${filaDebug[7] || ''}"`);
                         }
                     }
                 }
 
                 // LÓGICA PARA TODOS LOS BANCOS
                 if (nombrePestaña === 'BCP.01') {
-                    console.log(`🏦 === PROCESANDO BCP.01 CON LÓGICA ESPECÍFICA ===`);
                     
                     // PARTE 1: AGRUPACIONES ESPECIALES (6 grupos máximo)
                     const gruposEspeciales = [
@@ -11866,7 +11819,6 @@
                         { nombre: 'DE GAS NATURAL DE LIMA', criterio: 'includes' }
                     ];
                     
-                    console.log(`🏦 PARTE 1: Creando agrupaciones especiales (máximo 6 filas)`);
                     
                     // Crear UNA FILA por grupo (agrupación)
                     gruposEspeciales.forEach(grupo => {
@@ -11875,7 +11827,6 @@
                         let refGrupo = '';
                         let transaccionesEncontradas = [];
                         
-                        console.log(`🏦 === AGRUPANDO: "${grupo.nombre}" ===`);
                         
                         let filasRevisadas = 0;
                         let filasPendientes = 0;
@@ -11900,9 +11851,7 @@
                                 continue; // Saltar si no está pendiente
                             }
                             
-                            console.log(`🏦 Fila ${i} - Columna ${String.fromCharCode(65 + columnaEstado)}: "${estadoColumna}" - ES PENDIENTE`);
                             
-                            // Contar estadísticas para debugging (si llegamos aquí, está pendiente)
                             filasPendientes++;
                             if (importe > 0) filasPositivas++;
                             
@@ -11917,7 +11866,6 @@
                             
                             // FILTRO: POSITIVO + COINCIDE (ya sabemos que está pendiente)
                             if (importe > 0 && coincide) {
-                                console.log(`🏦 ✅ VÁLIDO: Fila ${i} - "${descripcion}" - ${importe} - PENDIENTE`);
                                 totalGrupo += importe;
                                 if (!fechaGrupo) fechaGrupo = (fila[mapeoColumnas.fecha] || '').toString(); // Primera fecha encontrada
                                 if (!refGrupo) refGrupo = ref; // Primera referencia encontrada
@@ -11939,23 +11887,15 @@
                             };
                             
                             depositos.push(agrupacion);
-                            console.log(`🏦 ✅ AGRUPACIÓN CREADA: "${grupo.nombre}"`);
-                            console.log(`🏦    Total: ${totalGrupo} (${transaccionesEncontradas.length} transacciones sumadas)`);
                             transaccionesEncontradas.forEach(t => {
-                                console.log(`🏦    - Fila ${t.fila}: ${t.descripcion} = ${t.importe}`);
                             });
                         } else {
-                            console.log(`🏦 ⚠️ No se encontraron transacciones para: ${grupo.nombre}`);
                         }
                         
-                        // Estadísticas de filtrado (sin logs)
-                        console.log(`🏦    Transacciones válidas: ${transaccionesEncontradas.length}`);
                     });
                     
-                    console.log(`🏦 PARTE 1 COMPLETADA: ${depositos.length} agrupaciones creadas`);
                     
                     // PARTE 2: TODOS LOS PENDIENTES POSITIVOS RESTANTES (que NO fueron agrupados)
-                    console.log(`🏦 PARTE 2: Buscando pendientes positivos que NO pertenecen a agrupaciones especiales`);
                     
                     let pendientesIndividuales = 0;
                     let pendientesExcluidos = 0;
@@ -12022,11 +11962,8 @@
                         }
                     }
                     
-                    // Parte 2 completada (sin logs)
-                    console.log(`🏦    Pendientes excluidos (ya agrupados): ${pendientesExcluidos}`);
                     
                 } else if (nombrePestaña === 'SBP' || nombrePestaña === 'SBP.USD') {
-                    console.log(`🏦 === PROCESANDO ${nombrePestaña} CON AGRUPACIÓN MERCADOPAGO ===`);
                     
                     // PARTE 1: AGRUPACIÓN ESPECIAL MERCADOPAGO
                     const grupoMercadoPago = { nombre: 'MERCADOPAGO', criterio: 'includes' };
@@ -12066,7 +12003,6 @@
                                 descripcion: descripcion,
                                 importe: importe
                             });
-                            console.log(`🏦 ✅ MERCADOPAGO: Fila ${i} - "${descripcion}" - ${importe}`);
                         }
                     }
                     
@@ -12079,7 +12015,6 @@
                             importe: totalGrupo
                         };
                         depositos.push(agrupacion);
-                        console.log(`🏦 ✅ AGRUPACIÓN MERCADOPAGO CREADA: Total ${totalGrupo} (${transaccionesEncontradas.length} transacciones)`);
                     }
                     
                     // PARTE 2: Todos los demás pendientes positivos (excepto MERCADOPAGO)
@@ -12110,12 +12045,10 @@
                                 importe: importe
                             };
                             depositos.push(deposito);
-                            console.log(`🏦 ✅ INDIVIDUAL: ${descripcion} - ${importe}`);
                         }
                     }
                     
                 } else if (nombrePestaña === 'BBVA' || nombrePestaña === 'BBVA.USD') {
-                    console.log(`🏦 === PROCESANDO ${nombrePestaña} CON AGRUPACIÓN POWERPAY ===`);
                     
                     // PARTE 1: AGRUPACIÓN ESPECIAL POWERPAY
                     const grupoPowerPay = { nombre: 'POWERPAY', criterio: 'includes' };
@@ -12124,7 +12057,6 @@
                     let refGrupo = '';
                     let transaccionesEncontradas = [];
                     
-                    console.log(`🏦 === AGRUPANDO: "POWERPAY" ===`);
                     
                     // Buscar todas las transacciones POWERPAY
                     for (let i = 1; i < datosExtracto.length; i++) {
@@ -12155,7 +12087,6 @@
                                 descripcion: descripcionC,
                                 importe: importeD
                             });
-                            console.log(`🏦 ✅ POWERPAY: Fila ${i} - "${descripcionC}" - ${importeD}`);
                         }
                     }
                     
@@ -12168,11 +12099,9 @@
                             importe: totalGrupo
                         };
                         depositos.push(agrupacion);
-                        console.log(`🏦 ✅ AGRUPACIÓN POWERPAY CREADA: Total ${totalGrupo} (${transaccionesEncontradas.length} transacciones)`);
                     }
                     
                     // PARTE 2: Todos los demás pendientes positivos (excepto POWERPAY)
-                    console.log(`🏦 PARTE 2: Buscando otros pendientes positivos (NO POWERPAY)`);
                     
                     for (let i = 1; i < datosExtracto.length; i++) {
                         const fila = datosExtracto[i];
@@ -12199,14 +12128,11 @@
                                 importe: importe
                             };
                             depositos.push(deposito);
-                            console.log(`🏦 ✅ INDIVIDUAL: ${descripcion} - ${importe}`);
                         }
                     }
                     
                 } else {
                     // LÓGICA GENÉRICA PARA OTROS BANCOS (SANT, IBK, BCP.02, BCP.USD, BBVA, BBVA.USD)
-                    console.log(`🏦 === PROCESANDO ${nombrePestaña} - TODOS LOS PENDIENTES POSITIVOS ===`);
-                    console.log(`🏦 Mapeo confirmado para ${nombrePestaña}: concepto=${mapeoColumnas.concepto}, fecha=${mapeoColumnas.fecha}, ref=${mapeoColumnas.ref}, importe=${mapeoColumnas.importe}`);
                     
                     for (let i = 1; i < datosExtracto.length; i++) {
                         const fila = datosExtracto[i];
@@ -12221,9 +12147,7 @@
                         // Revisar columna de estado según el banco
                         const estadoColumna = (fila[columnaEstado] || '').toString();
                         
-                        // DEBUG ESPECÍFICO PARA BBVA - mostrar primeras 5 filas
                         if ((nombrePestaña === 'BBVA' || nombrePestaña === 'BBVA.USD') && i <= 5) {
-                            console.log(`🏦 🔍 BBVA Fila ${i}: fecha="${fecha}", ref="${ref}", concepto="${descripcion}", importe="${importe}", estado="${estadoColumna}"`);
                         }
                         
                         // Solo procesar si está pendiente
@@ -12240,26 +12164,18 @@
                                 importe: importe
                             };
                             depositos.push(deposito);
-                            console.log(`🏦 ✅ PENDIENTE: ${descripcion} - ${importe}`);
                         }
                     }
                 }
 
-                console.log(`🏦 Total depósitos encontrados para ${nombrePestaña}: ${depositos.length}`);
-                console.log(`🏦 ================================================================`);
                 
                 return depositos;
             },
 
             generateDatosOriginalesFile(datosCompletos, fileName) {
-                console.log('🔥🔥🔥 INICIANDO generateDatosOriginalesFile 🔥🔥🔥');
-                console.log('🔥 fileName:', fileName);
-                console.log('🔥 datosCompletos keys:', Object.keys(datosCompletos));
                 try {
-                    // Crear workbook para resumen de cuentas
                     const wb = XLSX.utils.book_new();
                     
-                    // Generar datos de la tabla de resumen de cuentas bancarias
                     const resumenData = [];
                     
                     // Header principal
@@ -12303,7 +12219,6 @@
                         return 0; // Si no hay saldo USD o TC, retornar 0
                     };
                     
-                    // Datos de las cuentas con saldos reales
                     const cuentasData = [
                         ['1041501', 'BCP.01', 0, getSaldoExtractoExcel('1041501'), getSaldoLibrosExcel('1041501'), 'No'],
                         ['1041505', 'BCP.02', 0, getSaldoExtractoExcel('1041505'), getSaldoLibrosExcel('1041505'), 'No'],
@@ -12325,7 +12240,6 @@
                     
                     resumenData.push([]); // Fila vacía
                     
-                    // Resumen estadístico
                     const totalCuentas = cuentasData.length;
                     const cuentasUSD = cuentasData.filter(c => c[2] === 'Sí').length;
                     const cuentasPEN = cuentasData.filter(c => c[3] === 'Sí').length;
@@ -12337,7 +12251,6 @@
                     resumenData.push(['Cuentas PEN:', cuentasPEN]);
                     resumenData.push(['Cuentas con Ajuste TC:', cuentasAjusteTC]);
                     
-                    // Crear hoja de resumen
                     const wsResumen = XLSX.utils.aoa_to_sheet(resumenData);
                     XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen");
                     
@@ -12365,7 +12278,8 @@
                     const depositosLibrosNoRegistrados = this.obtenerDepositosLibrosNoRegistrados(datosCompletos);
                     
                     // Crear pestañas de conciliación bancaria para cada extracto
-                    pestañasExtractos.forEach(nombrePestaña => {
+                    for (const nombrePestaña of pestañasExtractos) {
+                        try {
                         // Obtener código de cuenta correspondiente al nombre de pestaña
                         const codigoCuenta = this.obtenerCodigoCuentaPorPestaña(nombrePestaña);
                         
@@ -12373,11 +12287,6 @@
                         const saldoBanco = this.obtenerSaldoBancoPorCuenta(codigoCuenta);
                         const saldoLibros = this.obtenerSaldoLibrosPorCuenta(codigoCuenta);
                         
-                        // Logs para debugging
-                        console.log(`📊 Generando conciliación para ${nombrePestaña}:`);
-                        console.log(`   - Código cuenta: ${codigoCuenta}`);
-                        console.log(`   - Saldo banco: ${saldoBanco}`);
-                        console.log(`   - Saldo libros: ${saldoLibros}`);
                         
                         let totalAjustes = 0;
                         
@@ -12398,12 +12307,9 @@
                         
                         // Solo para BCP.01: Agregar cheques no cobrados + pendientes LIBRO 02
                         if (nombrePestaña === 'BCP.01') {
-                            // console.log(`📋 ========== PROCESANDO CHEQUES + PENDIENTES LIBRO 02 PARA BCP.01 ==========`);
-                            // console.log(`📋 Cheques disponibles: ${chequesNoCobrados.length}`);
                             
                             // Obtener pendientes LIBRO 02 del MAYOR.PEN
                             if (datosCompletos.datosMayor && Array.isArray(datosCompletos.datosMayor)) {
-                                // console.log(`📋 Buscando pendientes LIBRO 02 en ${datosCompletos.datosMayor.length} filas del MAYOR.PEN`);
                                 
                                 // Buscar header
                                 let headerIndex = -1;
@@ -12421,7 +12327,6 @@
                                             fdocCol = filaStr.indexOf('FDOC');
                                             numdocCol = filaStr.indexOf('NUMDOC');
                                             haberCol = filaStr.indexOf('HABER');
-                                            // console.log(`📋 Header encontrado en fila ${i}, columnas: LIBRO=${libroCol}, ESTADO=${estadoCol}, GLOSA=${glosaCol}, FDOC=${fdocCol}, NUMDOC=${numdocCol}, HABER=${haberCol}`);
                                             break;
                                         }
                                     }
@@ -12448,20 +12353,17 @@
                                             
                                             if (pendiente.importe > 0) {
                                                 pendientesLibro02.push(pendiente);
-                                                // console.log(`📋 Pendiente LIBRO 02 encontrado:`, pendiente);
                                             }
                                         }
                                     }
                                 }
                             }
                             
-                            // console.log(`📋 Pendientes LIBRO 02 encontrados: ${pendientesLibro02.length}`);
                             
                             // Combinar cheques y pendientes LIBRO 02
                             const todosPendientes = [...chequesNoCobrados, ...pendientesLibro02];
                             
                             if (todosPendientes.length > 0) {
-                                // console.log(`📋 ✅ Agregando ${todosPendientes.length} items (${chequesNoCobrados.length} cheques + ${pendientesLibro02.length} pendientes LIBRO 02) a BCP.01`);
                                 
                                 // Calcular total de todos los pendientes (solo sumar los que ya son positivos)
                                 let totalPendientes = 0;
@@ -12476,7 +12378,6 @@
                                 
                                 // Agregar cada item como fila individual con glosa en CONCEPTO
                                 todosPendientes.forEach((item, index) => {
-                                    // console.log(`📋 Procesando item ${index + 1}:`, item);
                                     
                                     const filaDetalle = [
                                         item.glosa || `Item ${item.ref}`, // GLOSA en CONCEPTO
@@ -12488,22 +12389,15 @@
                                     
                                     datosConciliacion.push(filaDetalle);
                                     
-                                    // console.log(`📋 Fila detalle agregada:`, filaDetalle);
                                 });
                                 
                                 totalAjustes -= totalPendientes;
-                                // console.log(`📋 Total pendientes: ${totalPendientes}`);
-                                // console.log(`📋 Total ajustes acumulado: ${totalAjustes}`);
                             } else {
-                                // console.log(`📋 ⚠️ No hay cheques no cobrados ni pendientes LIBRO 02 para BCP.01`);
                             }
-                            // console.log(`📋 ================================================`);
                         }
 
                         // Agregar depósitos en bancos no registrados en libros
-                        console.log(`🔥🔥🔥 LLAMANDO obtenerDepositosBancosNoRegistrados para ${nombrePestaña} 🔥🔥🔥`);
                         const depositosBancos = this.obtenerDepositosBancosNoRegistrados(datosCompletos, nombrePestaña, codigoCuenta);
-                        console.log(`🔥 Resultado depositosBancos para ${nombrePestaña}:`, depositosBancos.length, 'elementos');
                         if (depositosBancos.length > 0) {
                             let totalDepositos = 0;
                             depositosBancos.forEach(deposito => {
@@ -12530,98 +12424,140 @@
                             datosConciliacion.push(['(-) DEPOSITOS EN BANCOS NO REGISTRADOS EN LIBROS', '', '', '', 0]);
                         }
                         
-                        // Para BCP.01: Agregar pendientes en DEPOSITOS EN LIBROS NO REGISTRADOS EN BANCOS
+                        // PARA TODOS LOS BANCOS: Agregar pendientes DEBE > 0 del MAYOR.PEN
+                        console.log(`🚀 INICIANDO PROCESAMIENTO ${nombrePestaña} (${codigoCuenta}) - DEPOSITOS EN LIBROS NO REGISTRADOS`);
+                        
+                        let totalSeccion = 0;
+                        let itemsParaAgregar = [];
+                        
+                        // SOLO PARA BCP.01: Incluir depósitos de SALDOS y omisiones del paso 2  
                         if (nombrePestaña === 'BCP.01') {
                             // COMBINAR: depósitos de SALDOS + omitidos del paso 2
                             const todosPendientesSaldos = [...depositosLibrosNoRegistrados];
-                            const omitidosPaso2 = this.obtenerOmitidosPaso2(datosCompletos, 'BCP.01');
+                            console.log(`📋 Depósitos de SALDOS encontrados: ${todosPendientesSaldos.length}`);
                             
-                            // Calcular total combinado
-                            let totalCombinado = 0;
-                            
-                            // Sumar depósitos de SALDOS
-                            todosPendientesSaldos.forEach(item => {
-                                if (item.importe >= 0) {
-                                    totalCombinado += item.importe;
-                                }
-                            });
-                            
-                            // Sumar omitidos del paso 2 
-                            let totalOmitidosPaso2 = 0;
-                            Object.values(omitidosPaso2).forEach(total => {
-                                totalOmitidosPaso2 += total;
-                            });
-                            totalCombinado += totalOmitidosPaso2;
-                            
-                            if (todosPendientesSaldos.length > 0 || Object.keys(omitidosPaso2).length > 0) {
-                                console.log(`💰 ✅ Agregando a BCP.01: ${todosPendientesSaldos.length} depósitos SALDOS + ${Object.keys(omitidosPaso2).length} términos omitidos`);
-                                
-                                // Agregar título de la sección con total combinado
-                                datosConciliacion.push(['(+) DEPOSITOS EN LIBROS NO REGISTRADOS EN BANCOS', '', '', '', totalCombinado]);
-                                
-                                // 1. Agregar depósitos de SALDOS individuales
-                                todosPendientesSaldos.forEach((item) => {
-                                    const filaDetalle = [
-                                        item.glosa || `Item ${item.ref}`, // GLOSA → CONCEPTO (Col A)
-                                        item.fecha,                        // FDOC → FECHA (Col B)
-                                        item.ref,                         // NUMDOC → REF (Col C)
-                                        item.importe >= 0 ? item.importe : 0, // DEBE → IMPORTE (Col D)
-                                        '' // Sin total individual (Col E)
-                                    ];
-                                    datosConciliacion.push(filaDetalle);
-                                });
-                                
-                                // 2. Agregar omitidos del paso 2 agrupados
-                                Object.entries(omitidosPaso2).forEach(([termino, total]) => {
-                                    const filaTermino = [
-                                        termino,           // TÉRMINO → CONCEPTO (Col A)
-                                        '',                // FECHA vacía (Col B)
-                                        '',                // REF vacía (Col C)
-                                        total,             // TOTAL DEL TÉRMINO → IMPORTE (Col D)
-                                        '' // Sin total individual (Col E)
-                                    ];
-                                    datosConciliacion.push(filaTermino);
-                                });
-                                
-                                totalAjustes += totalCombinado;
-                                
-                                // AGREGAR PENDIENTES DE MAYOR.PEN CON DEBE > 0 Y ESTADO PENDIENTE 
-                                const pendientesMayorDebe = this.obtenerPendientesMayorDebe(datosCompletos);
-                                console.log(`🔍 Pendientes MAYOR.PEN encontrados: ${pendientesMayorDebe.length}`);
-                                
-                                if (pendientesMayorDebe.length > 0) {
-                                    // Agregar cada pendiente directamente sin título de sección
-                                    pendientesMayorDebe.forEach((item) => {
-                                        const filaPendiente = [
-                                            item.glosa || `Pendiente ${item.ref}`, // GLOSA → CONCEPTO (Col A)
-                                            item.fecha,                             // FDOC → FECHA (Col B)
-                                            item.ref,                              // NUMDOC → REF (Col C)
-                                            item.importe >= 0 ? item.importe : 0,  // DEBE → IMPORTE (Col D)
-                                            '' // Sin total individual (Col E)
-                                        ];
-                                        datosConciliacion.push(filaPendiente);
-                                    });
-                                    
-                                    // Sumar al total de ajustes
-                                    let totalPendientesDebe = 0;
-                                    pendientesMayorDebe.forEach(item => {
-                                        if (item.importe >= 0) {
-                                            totalPendientesDebe += item.importe;
-                                        }
-                                    });
-                                    totalAjustes += totalPendientesDebe;
-                                }
-                            } else {
-                                console.log('💰 ⚠️ No hay pendientes de SALDOS ni omitidos para BCP.01');
-                                datosConciliacion.push(['(+) DEPOSITOS EN LIBROS NO REGISTRADOS EN BANCOS', '', '', '', 0]);
+                            let omitidosPaso2 = {};
+                            try {
+                                omitidosPaso2 = this.obtenerOmitidosPaso2(datosCompletos, 'BCP.01');
+                                console.log(`📋 Términos omitidos Paso 2: ${Object.keys(omitidosPaso2).length}`);
+                            } catch (error) {
+                                console.error(`❌ Error obteniendo omitidos Paso 2 para BCP.01:`, error);
+                                omitidosPaso2 = {};
                             }
+                            
+                            // Agregar depósitos de SALDOS a la lista
+                            todosPendientesSaldos.forEach((item) => {
+                                const filaDetalle = [
+                                    item.glosa || `Item ${item.ref}`, // GLOSA → CONCEPTO (Col A)
+                                    item.fecha,                        // FDOC → FECHA (Col B)
+                                    item.ref,                         // NUMDOC → REF (Col C)
+                                    item.importe >= 0 ? item.importe : 0, // DEBE → IMPORTE (Col D)
+                                    '' // Sin total individual (Col E)
+                                ];
+                                itemsParaAgregar.push(filaDetalle);
+                                totalSeccion += item.importe >= 0 ? item.importe : 0;
+                            });
+                            
+                            // Agregar omitidos del paso 2 agrupados a la lista
+                            Object.entries(omitidosPaso2).forEach(([termino, total]) => {
+                                const filaTermino = [
+                                    termino,           // TÉRMINO → CONCEPTO (Col A)
+                                    '',                // FECHA vacía (Col B)
+                                    '',                // REF vacía (Col C)
+                                    total,             // TOTAL DEL TÉRMINO → IMPORTE (Col D)
+                                    '' // Sin total individual (Col E)
+                                ];
+                                itemsParaAgregar.push(filaTermino);
+                                totalSeccion += total;
+                            });
+                        }
+                        
+                        // PARA TODOS LOS BANCOS: Agregar pendientes MAYOR.PEN con DEBE > 0
+                        console.log(`🔍 Buscando pendientes MAYOR.PEN para ${nombrePestaña} (${codigoCuenta})...`);
+                        let pendientesMayorDebe = [];
+                        try {
+                            pendientesMayorDebe = this.obtenerPendientesMayorDebe(datosCompletos, codigoCuenta);
+                            console.log(`📊 Pendientes MAYOR.PEN encontrados: ${pendientesMayorDebe.length}`);
+                        } catch (error) {
+                            console.error(`❌ Error obteniendo pendientes MAYOR.PEN para ${nombrePestaña}:`, error);
+                            pendientesMayorDebe = [];
+                        }
+                        
+                        if (pendientesMayorDebe.length > 0) {
+                            // Agregar cada pendiente a la lista
+                            pendientesMayorDebe.forEach((item) => {
+                                const filaPendiente = [
+                                    item.glosa || `Pendiente ${item.ref}`, // GLOSA → CONCEPTO (Col A)
+                                    item.fecha,                             // FDOC → FECHA (Col B)
+                                    item.ref,                              // NUMDOC → REF (Col C)
+                                    item.importe >= 0 ? item.importe : 0,  // DEBE → IMPORTE (Col D)
+                                    '' // Sin total individual (Col E)
+                                ];
+                                itemsParaAgregar.push(filaPendiente);
+                                totalSeccion += item.importe >= 0 ? item.importe : 0;
+                            });
+                        }
+                        
+                        // Agregar encabezado de la sección y todos los items
+                        if (itemsParaAgregar.length > 0) {
+                            console.log(`💰 ✅ Agregando a ${nombrePestaña}: ${itemsParaAgregar.length} items, Total: ${totalSeccion}`);
+                            datosConciliacion.push(['(+) DEPOSITOS EN LIBROS NO REGISTRADOS EN BANCOS', '', '', '', totalSeccion]);
+                            
+                            // Agregar todos los items acumulados
+                            itemsParaAgregar.forEach(item => {
+                                datosConciliacion.push(item);
+                            });
+                            
+                            totalAjustes += totalSeccion;
                         } else {
-                            // Para otras cuentas, mantener valor 0
+                            console.log(`💰 ⚠️ No hay pendientes para ${nombrePestaña} (${codigoCuenta})`);
                             datosConciliacion.push(['(+) DEPOSITOS EN LIBROS NO REGISTRADOS EN BANCOS', '', '', '', 0]);
                         }
                         
+                        // PARA TODOS LOS BANCOS: Agregar pendientes de extractos (cargos en bancos no registrados en libros)
+                        console.log(`🔍 Buscando pendientes de extractos para ${nombrePestaña} (${codigoCuenta})...`);
+                        let pendientesExtractos = [];
+                        try {
+                            pendientesExtractos = this.obtenerPendientesExtractos(datosCompletos, nombrePestaña, codigoCuenta);
+                            console.log(`📊 Pendientes de extractos encontrados: ${pendientesExtractos.length}`);
+                        } catch (error) {
+                            console.error(`❌ Error obteniendo pendientes de extractos para ${nombrePestaña}:`, error);
+                            pendientesExtractos = [];
+                        }
+                        
+                        let totalPendientesExtractos = 0;
+                        if (pendientesExtractos.length > 0) {
+                            // Calcular total de pendientes de extractos
+                            pendientesExtractos.forEach(pendiente => {
+                                if (pendiente.importe > 0) {
+                                    totalPendientesExtractos += pendiente.importe;
+                                }
+                            });
+                            
+                            console.log(`💰 ✅ Agregando pendientes de extractos a ${nombrePestaña}: ${pendientesExtractos.length} items, Total: ${totalPendientesExtractos}`);
+                            
+                            // Agregar encabezado de la sección
+                            datosConciliacion.push(['(-) CARGO EN BANCOS NO REGISTRADO EN LIBROS', '', '', '', totalPendientesExtractos]);
+                            
+                            // Agregar cada pendiente de extracto
+                            pendientesExtractos.forEach((pendiente) => {
+                                const filaPendiente = [
+                                    pendiente.descripcion || `Pendiente ${pendiente.referencia}`, // DESCRIPCIÓN → CONCEPTO (Col A)
+                                    pendiente.fecha,                                            // FECHA → FECHA (Col B)
+                                    pendiente.referencia,                                       // REFERENCIA → REF (Col C)
+                                    pendiente.importe > 0 ? pendiente.importe : 0,            // IMPORTE → IMPORTE (Col D)
+                                    '' // Sin total individual (Col E)
+                                ];
+                                datosConciliacion.push(filaPendiente);
+                            });
+                            
+                            totalAjustes -= totalPendientesExtractos; // Restar porque es un cargo
+                        } else {
+                            console.log(`💰 ⚠️ No hay pendientes de extractos para ${nombrePestaña} (${codigoCuenta})`);
+                            datosConciliacion.push(['(-) CARGO EN BANCOS NO REGISTRADO EN LIBROS', '', '', '', 0]);
+                        }
+                        
                         datosConciliacion.push(
-                            ['(-) CARGO EN BANCOS NO REGISTRADO EN LIBROS', '', '', '', 0],
                             ['(-) CARGO EN LIBROS NO REGISTRADO EN BANCOS', '', '', '', 0],
                             [''],
                             ['SALDO EN LIBROS', '', '', '', saldoLibros],
@@ -12632,21 +12568,33 @@
                         
                         const wsConciliacion = XLSX.utils.aoa_to_sheet(datosConciliacion);
                         XLSX.utils.book_append_sheet(wb, wsConciliacion, nombrePestaña);
-                    });
+                        
+                        } catch (error) {
+                            console.error(`❌ Error procesando pestaña ${nombrePestaña}:`, error);
+                            // Agregar pestaña básica en caso de error
+                            const datosBasicos = [
+                                [`ERROR EN CONCILIACIÓN - ${nombrePestaña}`],
+                                ['Error:', error.message || 'Error desconocido'],
+                                [''],
+                                ['SALDO EN BANCOS', '', '', '', 0],
+                                ['SALDO EN LIBROS', '', '', '', 0]
+                            ];
+                            const wsBasico = XLSX.utils.aoa_to_sheet(datosBasicos);
+                            XLSX.utils.book_append_sheet(wb, wsBasico, nombrePestaña);
+                        }
+                    }
                     
                     return this.createDownloadableFile(wb, fileName);
                 } catch (error) {
-                    console.error("❌ Error generando archivo de datos originales:", error);
                     throw error;
                 }
             },
 
-            generateConciliacionFile(datosCompletos, fileName) {
+            async generateConciliacionFile(datosCompletos, fileName) {
                 try {
                     // Crear workbook para resultados de conciliación
                     const wb = XLSX.utils.book_new();
                     
-                    // HOJA DE RESUMEN ELIMINADA - Solo hojas de trabajo
                      
                      // HOJA 2: MAYOR.PEN PROCESADO (con estados de conciliación + pendientes LIBRO 02)
                      if (datosCompletos.datosMayor && datosCompletos.datosMayor.length > 0) {
@@ -12657,7 +12605,6 @@
                          const datosMayorCompletos = [...datosCompletos.datosMayor];
                          
                          if (pendientesLibro02.length > 0) {
-                             console.log(`📚 Agregando ${pendientesLibro02.length} pendientes LIBRO 02 al MAYOR.PEN`);
                              
                              // Agregar separador
                              datosMayorCompletos.push([]);
@@ -12704,7 +12651,6 @@
                      
                      return this.createDownloadableFile(wb, fileName);
                  } catch (error) {
-                     console.error("❌ Error generando archivo de conciliación:", error);
                      throw error;
                  }
              },
@@ -12717,7 +12663,6 @@
                      const url = window.URL.createObjectURL(blob);
                      return url;
                  } catch (error) {
-                     console.error("❌ Error creando archivo descargable:", error);
                      throw error;
                  }
              },
@@ -12731,7 +12676,6 @@
                      a.click();
                      document.body.removeChild(a);
                  } catch (error) {
-                     console.error("❌ Error descargando archivo:", error);
                  }
              },
 
@@ -12753,7 +12697,6 @@
                          this.showStatus('Descargando ambos archivos...', 'success');
                      }
                  } catch (error) {
-                     console.error("❌ Error descargando ambos archivos:", error);
                      this.showStatus('Error al descargar los archivos', 'error');
                  }
              },
@@ -12841,7 +12784,6 @@
             
             return url;
         } catch (error) {
-            console.error("❌ Error generando Excel:", error);
             throw error;
         }
     },
@@ -13023,7 +12965,6 @@
             const fdoc = (filaMayor[idxM.fdoc] || '').toString().trim();
             const haber = this.normalizarMonto(filaMayor[idxM.haber] || '0');
             
-            // Debug: mostrar los primeros registros
             if (i < 10) {
             }
             
@@ -13071,7 +13012,6 @@
             const fecha = (filaExtracto[idxE.fecha] || '').toString().trim();
             const importe = this.normalizarMonto(filaExtracto[idxE.monto] || '0');
             
-            // Debug: mostrar los primeros registros
             if (j < 10) {
             }
             
@@ -13421,7 +13361,6 @@
         totalesPorFecha.forEach((grupoExtracto, fechaExtracto) => {
         });
         
-        // Mostrar candidatos mayor encontrados
         candidatosMayorBNA.forEach((candidato, idx) => {
             if (idx < 10) { // Solo mostrar primeros 10
             }
@@ -13533,7 +13472,6 @@
         - Referencias cruzadas Mayor ↔ Extracto
         */
         
-        console.log(`🔥🔥🔥 PASO 12 DET INICIADO 🔥🔥🔥`);
         
         // DET no tiene extracto - buscar en filasFiltradasMayor (archivo conciliación DET)
         let candidatosDETConciliacion = 0;
@@ -13543,8 +13481,6 @@
         const registrosPendientesDET = [];
         
         // Buscar en filasFiltradasMayor los registros DET pendientes (columna ESTADO = "Pendiente")
-        console.log(`🔥 DEBUG: filasFiltradasMayor.length = ${filasFiltradasMayor.length}`);
-        console.log(`🔥 DEBUG: datosMayorCompletos.length = ${datosMayorCompletos.length}`);
         
         for (let i = 0; i < filasFiltradasMayor.length; i++) {
             const estadoInfo = estadosFilas.get(i);
@@ -13588,10 +13524,7 @@
                     }
                 }
                 
-                console.log(`🔥 DEBUG: Registro DET ${i} en filasFiltradasMayor → índice ${indiceEnMayorCompleto} en datosMayorCompletos`);
                 if (indiceEnMayorCompleto === -1) {
-                    console.log(`🔥 ❌ ERROR: No se encontró correspondencia para registro DET ${i}`);
-                    console.log(`🔥    Buscando: cuenta=${cuenta} | fecha=${fecha} | debe=${debe} | haber=${haber}`);
                 }
                 
                 registrosPendientesDET.push({
@@ -13605,16 +13538,12 @@
             }
         }
         
-        console.log(`🔥 DET pendientes (conciliación): ${candidatosDETConciliacion}`);
         
-        // Mostrar TODOS los registros DET encontrados
-        console.log(`🔥 === TODOS LOS REGISTROS DET PENDIENTES ===`);
         registrosPendientesDET.forEach((registro, idx) => {
             const fila = registro.fila;
             const glosa = fila[11] || ''; // GLOSA
             const debe = this.normalizarMonto(fila[12] || '0');
             const haber = this.normalizarMonto(fila[13] || '0');
-            console.log(`🔥   DET ${idx + 1}: FECHA=${registro.fecha} | DEBE=${debe} | HABER=${haber} | TOTAL=${registro.importe} | GLOSA="${glosa}"`);
         });
         
         if (candidatosDETConciliacion === 0) {
@@ -13640,23 +13569,15 @@
             grupo.totalImporte += registro.importe;
         });
         
-        console.log(`🔥 Grupos formados: ${gruposPorFechaDET.size}`);
         
         // Mostrar detalles COMPLETOS de cada grupo DET
-        console.log(`🔥 === DETALLE COMPLETO DE GRUPOS DET ===`);
         gruposPorFechaDET.forEach((grupo, fecha) => {
-            console.log(`🔥 GRUPO ${fecha}:`);
-            console.log(`🔥   - Registros: ${grupo.registros.length}`);
-            console.log(`🔥   - Total importe: ${grupo.totalImporte}`);
-            console.log(`🔥   - Registros individuales:`);
             grupo.registros.forEach((registro, idx) => {
                 const fila = registro.fila;
                 const glosa = fila[11] || ''; // GLOSA
                 const debe = this.normalizarMonto(fila[12] || '0');
                 const haber = this.normalizarMonto(fila[13] || '0');
-                console.log(`🔥     ${idx + 1}. GLOSA: "${glosa}" | DEBE: ${debe} | HABER: ${haber} | INDIVIDUAL: ${registro.importe}`);
             });
-            console.log(`🔥   - Suma verificación: ${grupo.registros.reduce((sum, r) => sum + r.importe, 0)}`);
         });
         
         // === FASE 3: BUSCAR REGISTROS DET EN EL MAYOR.PEN ===
@@ -13665,7 +13586,6 @@
         // Buscar SOLO registros DET (cuenta 1042101) en el Mayor.PEN con HABER > 0
         // Estos son los registros DET del Mayor que deben coincidir con los grupos DET
         const datosParaBuscar = datosMayorCompletos;
-        console.log(`🔥 DEBUG: Buscando registros DET en ${datosParaBuscar.length} registros del Mayor.PEN COMPLETO`);
         
         for (let i = 1; i < datosParaBuscar.length; i++) { // Empezar en 1 para saltar header
             const filaMayor = datosParaBuscar[i];
@@ -13693,19 +13613,14 @@
         
         const totalCandidatosMayor = candidatosMayorDET.length;
         
-        console.log(`🔥 Registros DET en Mayor.PEN: ${totalCandidatosMayor}`);
         
         // Mostrar TODOS los registros DET del Mayor.PEN
-        console.log(`🔥 === TODOS LOS REGISTROS DET EN MAYOR.PEN ===`);
         candidatosMayorDET.forEach((candidato, idx) => {
-            console.log(`🔥   MAYOR-DET ${idx + 1}: FDOC=${candidato.fdoc} | DEBE=${candidato.debe} | HABER=${candidato.haber} | GLOSA="${candidato.glosa}"`);
         });
         
         // Buscar específicamente los montos que necesitamos (4253 y 10457)
-        console.log(`🔥 === COMPARACIÓN: GRUPOS DET (DEBE) vs REGISTROS DET MAYOR (DEBE) ===`);
         
         gruposPorFechaDET.forEach((grupoDET, fechaDET) => {
-            console.log(`🔥 GRUPO ${fechaDET} DEBE=${Math.abs(grupoDET.totalImporte)}`);
             
             // Buscar registros DET del Mayor con el mismo DEBE
             const coincidencias = candidatosMayorDET.filter(c => {
@@ -13713,9 +13628,7 @@
                 return diferencia < 0.01;
             });
             
-            console.log(`🔥   Coincidencias DEBE encontradas: ${coincidencias.length}`);
             coincidencias.forEach((c, i) => {
-                console.log(`🔥     ${i + 1}. FDOC=${c.fdoc} | DEBE=${c.debe} | GLOSA="${c.glosa}"`);
             });
         });
         
@@ -13723,44 +13636,34 @@
         let numeroGrupo = 1;
         
         gruposPorFechaDET.forEach((grupoDET, fechaDET) => {
-            console.log(`🔥 === PROCESANDO GRUPO ${fechaDET} ===`);
-            console.log(`🔥   Buscando DEBE = ${Math.abs(grupoDET.totalImporte)} en registros DET del Mayor`);
             
             // Buscar registros DET del Mayor con el mismo DEBE
             const candidatosCoincidentes = candidatosMayorDET.filter(candidato => {
                 const diferencia = Math.abs(candidato.debe - Math.abs(grupoDET.totalImporte));
                 const coincide = diferencia < 0.01;
                 
-                console.log(`🔥     Candidato DEBE=${candidato.debe} vs Grupo=${Math.abs(grupoDET.totalImporte)} | Diff=${diferencia.toFixed(2)} | Coincide=${coincide}`);
                 
                 return coincide;
             });
             
-            console.log(`🔥   Candidatos coincidentes: ${candidatosCoincidentes.length}`);
             
             if (candidatosCoincidentes.length > 0) {
                 const candidatoElegido = candidatosCoincidentes[0];
                 const referenciaGenerada = `DET-GRUPO-${numeroGrupo}`;
                 
-                console.log(`🔥 ✅ MAPEANDO: Grupo DET (${Math.abs(grupoDET.totalImporte)}) ↔ Mayor DEBE=${candidatoElegido.debe} | REF: ${referenciaGenerada}`);
                 
                 // Marcar registros del grupo DET como conciliados
-                console.log(`🔥   Marcando ${grupoDET.registros.length} registros DET del grupo como conciliados:`);
                 grupoDET.registros.forEach((registro, idx) => {
                     const indiceEnFilasFiltradasMayor = registro.indice; // Índice en filasFiltradasMayor
                     const indiceEnMayorCompleto = registro.indiceCompleto; // Índice en datosMayorCompletos
-                    console.log(`🔥     Registro ${idx + 1}: indiceLocal=${indiceEnFilasFiltradasMayor} | indiceCompleto=${indiceEnMayorCompleto} | importe=${registro.importe}`);
                     
                     // MARCAR EN MAYOR (estadosFilas) - COPIANDO LÓGICA DEL PASO 6 DET
-                    console.log(`🔥       Marcando MAYOR índice ${indiceEnFilasFiltradasMayor}`);
                     estadosFilas.set(indiceEnFilasFiltradasMayor, {
                         estado: 'P12 - Conciliada',
                         ref: referenciaGenerada
                     });
-                    console.log(`🔥     ✅ DET MAYOR Conciliado: Índice ${indiceEnFilasFiltradasMayor} | DEBE=${registro.importe} | REF: ${referenciaGenerada}`);
                     
                     // MARCAR EN EXTRACTO DET (estadosExtracto) - COPIANDO LÓGICA DEL PASO 6 DET
-                    console.log(`🔥       Buscando registro correspondiente en extractoProcesable...`);
                     let indiceExtractoEncontrado = -1;
                     
                     for (let e = 0; e < extractoProcesable.length; e++) {
@@ -13781,7 +13684,6 @@
                             
                             if (fechaExtracto === fechaDET && Math.abs(importeExtracto - importeDET) < 0.01) {
                                 indiceExtractoEncontrado = e;
-                                console.log(`🔥       ✅ Encontrado en extracto índice ${e}: fecha=${fechaExtracto} | importe=${importeExtracto}`);
                                 break;
                             }
                         }
@@ -13793,33 +13695,26 @@
                             estado: 'P12 - Conciliada',
                             ref: referenciaGenerada
                         });
-                        console.log(`🔥     ✅ DET EXTRACTO Conciliado: Índice ${indiceExtractoEncontrado} | REF: ${referenciaGenerada}`);
                     } else {
-                        console.log(`🔥     ❌ No se encontró registro correspondiente en extractoProcesable para DET`);
                     }
                     
                     conciliados++;
                 });
                 
                 // Marcar registro del Mayor que coincide - COPIANDO LÓGICA DEL PASO 6 DET
-                console.log(`🔥   Marcando registro Mayor coincidente como conciliado:`);
-                console.log(`🔥     Mayor indice=${candidatoElegido.indice} | DEBE=${candidatoElegido.debe}`);
                 
                 // MARCAR DIRECTAMENTE COMO EN PASO 6 DET
                 estadosFilas.set(candidatoElegido.indice, {
                     estado: 'P12 - Conciliada',
                     ref: referenciaGenerada
                 });
-                console.log(`🔥     ✅ Mayor Coincidente Conciliado: Índice ${candidatoElegido.indice} | DEBE=${candidatoElegido.debe} | REF: ${referenciaGenerada}`);
                 conciliados++;
                 
                 numeroGrupo++;
             } else {
-                console.log(`🔥 ❌ NO MAPEADO: Grupo ${fechaDET} (${Math.abs(grupoDET.totalImporte)}) - Sin coincidencias DEBE`);
             }
         });
         
-        console.log(`🔥 RESULTADO: ${conciliados} conciliados`);
         
         return {
             candidatos: candidatosDETConciliacion + totalCandidatosMayor,
@@ -14070,7 +13965,6 @@
             }
         });
 
-        // === RESUMEN FINAL ===
 
         // === ANÁLISIS DETALLADO ===
         
@@ -14121,7 +14015,6 @@
         gruposExtracto.forEach((grupoExtracto, criterioExtracto) => {
         });
 
-        // Mostrar candidatos mayor encontrados
         candidatosMayorSBPList.forEach((candidato, idx) => {
             if (idx < 10) {
             }
@@ -14277,7 +14170,6 @@
                     this.showStatus('Estados de conciliación exportados exitosamente', 'success');
 
                 } catch (error) {
-                    console.error("❌ Error exportando estados:", error);
                     this.showStatus(`Error al exportar estados: ${error.message}`, 'error');
                 } finally {
                     this.isLoading = false;
@@ -14339,7 +14231,6 @@
 
                     datosExcel.push([]); // Fila vacía
 
-                    // Resumen
                     datosExcel.push(['RESUMEN']);
                     datosExcel.push(['Total cuentas PEN:', cuentasPEN.length]);
                     datosExcel.push(['Total cuentas USD:', cuentasUSD.length]);
@@ -14369,7 +14260,6 @@
                     this.showStatus('Relación de cuentas exportada exitosamente', 'success');
 
                 } catch (error) {
-                    console.error("❌ Error exportando relación de cuentas:", error);
                     this.showStatus(`Error al exportar relación de cuentas: ${error.message}`, 'error');
                 } finally {
                     this.isLoading = false;
@@ -14405,34 +14295,27 @@
                     this.showStatus('Archivos limpiados exitosamente', 'success');
                     
                 } catch (error) {
-                    console.error("❌ Error limpiando archivos:", error);
                     this.showStatus('Error al limpiar archivos', 'error');
                 }
             },
 
-            // === FUNCIÓN PARA PROCESAR ARCHIVO DE LIBROS (RESUMEN.MMAAAA) ===
             async procesarArchivoLibros(file) {
-                console.log(`📚 Iniciando procesamiento de archivo RESUMEN: "${file.name}"`);
                 return new Promise((resolve, reject) => {
                     const reader = new FileReader();
                     reader.onload = function(e) {
                         try {
-                            console.log(`📚 Archivo RESUMEN leído, procesando Excel...`);
                             const data = new Uint8Array(e.target.result);
                             const workbook = XLSX.read(data, { type: 'array' });
                             
-                            console.log(`📚 Pestañas disponibles: ${workbook.SheetNames.join(', ')}`);
                             
                             // Buscar la pestaña "104 - Mayor General SOLES" o usar la primera
                             let sheetName = workbook.SheetNames.find(name => 
                                 name.includes('104') && name.includes('Mayor') && name.includes('SOLES')
                             ) || workbook.SheetNames[0];
                             
-                            console.log(`📚 Usando hoja de Excel: "${sheetName}"`);
                             const worksheet = workbook.Sheets[sheetName];
                             
                             // Leer específicamente el rango A8:F20
-                            console.log(`📚 Leyendo rango A8:F20...`);
                             const range = XLSX.utils.decode_range('A8:F20');
                             const jsonData = [];
                             
@@ -14446,20 +14329,17 @@
                                 jsonData.push(row);
                             }
                             
-                            console.log(`📚 Filas encontradas en rango A8:F20: ${jsonData.length}`);
                             
                             const saldosLibros = new Map();
                             
                             // Procesar cada fila del rango A8:F20
                             // Columna A (índice 0) = Cuenta, Columna F (índice 5) = Saldo
-                            console.log(`📚 Procesando rango A8:F20...`);
                             
                             let cuentasProcesadas = 0;
                             for (let i = 0; i < jsonData.length; i++) {
                                 const fila = jsonData[i];
                                 const filaExcel = i + 8; // Fila real en Excel (A8 = fila 8)
                                 
-                                console.log(`📚 Fila A${filaExcel}: ${JSON.stringify(fila)}`);
                                 
                                 if (fila && fila.length >= 6) {
                                     const cuenta = fila[0]; // Columna A
@@ -14470,7 +14350,6 @@
                                         const cuentaStr = String(cuenta).trim();
                                         const esNumCuenta = /^104\d+$/.test(cuentaStr);
                                         
-                                        console.log(`📚 A${filaExcel}: Cuenta="${cuentaStr}", Saldo="${saldo}", EsCuenta=${esNumCuenta}`);
                                         
                                         if (esNumCuenta && saldo !== undefined && saldo !== null && saldo !== '') {
                                             // Convertir saldo a número
@@ -14486,24 +14365,19 @@
                                             saldosLibros.set(cuentaStr, saldoNum);
                                             cuentasProcesadas++;
                                             
-                                            console.log(`✅ Cuenta procesada A${filaExcel}: "${cuentaStr}" = ${saldoNum}`);
                                         }
                                     }
                                 }
                             }
-                            console.log(`📚 Total cuentas procesadas: ${cuentasProcesadas}`);
                             
-                            console.log(`📚 Archivo RESUMEN procesado: ${saldosLibros.size} cuentas encontradas`);
                             resolve(saldosLibros);
                             
                         } catch (error) {
-                            console.error('❌ Error procesando archivo RESUMEN:', error);
                             reject(error);
                         }
                     };
                     
                     reader.onerror = function(error) {
-                        console.error('❌ Error leyendo archivo RESUMEN:', error);
                         reject(error);
                     };
                     
@@ -14514,18 +14388,12 @@
                         // === FUNCIÓN PARA LEER SALDO DE EXTRACTOS BANCARIOS ===
             async leerSaldoExtracto(file, cuentaCodigo) {
                 return new Promise((resolve, reject) => {
-                    console.log(`💰 ========== INICIO LECTURA SALDO ==========`);
-                    console.log(`💰 Archivo: "${file.name}"`);
-                    console.log(`💰 Cuenta: ${cuentaCodigo}`);
-                    console.log(`💰 Tamaño archivo: ${file.size} bytes`);
-                    console.log(`💰 Tipo archivo: ${file.type}`);
                     const reader = new FileReader();
                     reader.onload = function(e) {
                         try {
                             const data = new Uint8Array(e.target.result);
                             const workbook = XLSX.read(data, { type: 'array' });
                             const sheetName = workbook.SheetNames[0]; // Primera hoja
-                            console.log(`💰 Leyendo hoja: "${sheetName}"`);
                             const worksheet = workbook.Sheets[sheetName];
                             
                             let saldo = null;
@@ -14533,150 +14401,97 @@
                             // Determinar celda según el banco
                             if (cuentaCodigo.startsWith('1041501') || cuentaCodigo.startsWith('1041505') || cuentaCodigo.startsWith('1041502')) {
                                 // BCP: Celda E6
-                                console.log(`💰 BCP: Leyendo celda E6`);
                                 const cellE6 = worksheet['E6'];
                                 if (cellE6 && cellE6.v !== undefined) {
                                     saldo = cellE6.v;
-                                    console.log(`💰 BCP E6: ${saldo}`);
                                 }
                             } else if (cuentaCodigo.startsWith('1041401') || cuentaCodigo.startsWith('1041402')) {
                                 // SANTANDER: Celda B5
-                                console.log(`💰 SANTANDER: Leyendo celda B5`);
                                 const cellB5 = worksheet['B5'];
                                 if (cellB5 && cellB5.v !== undefined) {
                                     saldo = cellB5.v;
-                                    console.log(`💰 SANTANDER B5: ${saldo}`);
                                 }
                             } else if (cuentaCodigo.startsWith('1041201') || cuentaCodigo.startsWith('1041202')) {
                                 // BBVA: Última fila con datos en columna F
-                                console.log(`💰 BBVA: Buscando última fila con datos en columna F para cuenta ${cuentaCodigo}`);
-                                console.log(`💰 BBVA: Es PEN (1041201)? ${cuentaCodigo.startsWith('1041201')}`);
-                                console.log(`💰 BBVA: Es USD (1041202)? ${cuentaCodigo.startsWith('1041202')}`);
                                 
                                 const range = XLSX.utils.decode_range(worksheet['!ref']);
-                                console.log(`💰 BBVA: Rango de hoja: ${worksheet['!ref']}, filas desde ${range.s.r} hasta ${range.e.r}`);
                                 
                                 let filasRevisadas = 0;
                                 for (let row = range.e.r; row >= range.s.r; row--) {
                                     filasRevisadas++;
                                     const cellAddress = XLSX.utils.encode_cell({c: 5, r: row}); // Columna F (índice 5)
                                     const cell = worksheet[cellAddress];
-                                    console.log(`💰 BBVA: Revisando fila ${row + 1}, celda ${cellAddress}, valor: ${cell ? cell.v : 'undefined'}, tipo: ${cell ? typeof cell.v : 'N/A'}`);
                                     
                                     if (cell && cell.v !== undefined && cell.v !== null && cell.v !== '') {
                                         saldo = cell.v;
-                                        console.log(`💰 BBVA: ✅ ENCONTRADO en fila F${row + 1}: ${saldo} (tipo: ${typeof saldo})`);
                                         break;
                                     }
                                     
-                                    // Limitar búsqueda para evitar logs excesivos
                                     if (filasRevisadas > 20) {
-                                        console.log(`💰 BBVA: ⚠️ Deteniendo búsqueda después de revisar 20 filas`);
                                         break;
                                     }
                                 }
                                 
                                 if (saldo === null) {
-                                    console.log(`💰 BBVA: ❌ NO se encontró saldo en columna F para cuenta ${cuentaCodigo}`);
                                 }
                             } else if (cuentaCodigo.startsWith('1041301') || cuentaCodigo.startsWith('1041302')) {
                                 // SCOTIABANK: Celda A5 - extraer saldo contable
-                                console.log(`💰 SCOTIABANK: Leyendo celda A5 para cuenta ${cuentaCodigo}`);
-                                console.log(`💰 SCOTIABANK: Es PEN (1041301)? ${cuentaCodigo.startsWith('1041301')}`);
-                                console.log(`💰 SCOTIABANK: Es USD (1041302)? ${cuentaCodigo.startsWith('1041302')}`);
                                 
                                 const cellA5 = worksheet['A5'];
-                                console.log(`💰 SCOTIABANK: Celda A5 existe? ${!!cellA5}`);
-                                console.log(`💰 SCOTIABANK: Celda A5 valor crudo: ${cellA5 ? cellA5.v : 'undefined'}`);
-                                console.log(`💰 SCOTIABANK: Celda A5 tipo: ${cellA5 ? typeof cellA5.v : 'N/A'}`);
                                 
                                 if (cellA5 && cellA5.v !== undefined) {
                                     const texto = String(cellA5.v);
-                                    console.log(`💰 SCOTIABANK A5 texto convertido: "${texto}"`);
-                                    console.log(`💰 SCOTIABANK A5 longitud texto: ${texto.length}`);
                                     
                                     // Buscar patrón "Saldo Contable: S/ xxx,xxx.xx" o "Saldo Contable: $ xxx,xxx.xx"
-                                    console.log(`💰 SCOTIABANK: Aplicando regex principal`);
                                     const match = texto.match(/Saldo Contable:\s*[S\/\$]\s*([\d,]+\.?\d*)/);
-                                    console.log(`💰 SCOTIABANK: Match encontrado? ${!!match}`);
                                     
                                     if (match) {
-                                        console.log(`💰 SCOTIABANK: Match completo: ${JSON.stringify(match)}`);
-                                        console.log(`💰 SCOTIABANK: Grupo capturado [1]: "${match[1]}"`);
                                         
                                         const saldoTexto = match[1].replace(/,/g, '');
-                                        console.log(`💰 SCOTIABANK: Texto sin comas: "${saldoTexto}"`);
                                         
                                         saldo = parseFloat(saldoTexto) || 0;
-                                        console.log(`💰 SCOTIABANK: ✅ Saldo contable extraído: ${saldo} (tipo: ${typeof saldo})`);
                                     } else {
-                                        console.log(`💰 SCOTIABANK: ❌ Regex principal falló, usando patrón alternativo`);
                                         
                                         // Usar el patrón alternativo que SÍ funciona
                                         const altMatch1 = texto.match(/Saldo.*?[S\/\$]\s*([\d,]+\.?\d*)/i);
-                                        console.log(`💰 SCOTIABANK: Patrón alternativo: ${!!altMatch1}`);
                                         
                                         if (altMatch1) {
-                                            console.log(`💰 SCOTIABANK: Alt match: ${JSON.stringify(altMatch1)}`);
                                             const saldoTexto = altMatch1[1].replace(/,/g, '');
-                                            console.log(`💰 SCOTIABANK: Alt texto sin comas: "${saldoTexto}"`);
                                             saldo = parseFloat(saldoTexto) || 0;
-                                            console.log(`💰 SCOTIABANK: ✅ Saldo alternativo extraído: ${saldo} (tipo: ${typeof saldo})`);
                                         }
                                     }
                                 } else {
-                                    console.log(`💰 SCOTIABANK: ❌ Celda A5 no existe o está vacía`);
                                 }
                             } else if (cuentaCodigo.startsWith('1041101') || cuentaCodigo.startsWith('1041102')) {
                                 // INTERBANK: Celda J10
-                                console.log(`💰 INTERBANK: Leyendo celda J10 para cuenta ${cuentaCodigo}`);
-                                console.log(`💰 INTERBANK: Es PEN (1041101)? ${cuentaCodigo.startsWith('1041101')}`);
-                                console.log(`💰 INTERBANK: Es USD (1041102)? ${cuentaCodigo.startsWith('1041102')}`);
                                 
                                 const cellJ10 = worksheet['J10'];
-                                console.log(`💰 INTERBANK: Celda J10 existe? ${!!cellJ10}`);
-                                console.log(`💰 INTERBANK: Celda J10 valor crudo: ${cellJ10 ? cellJ10.v : 'undefined'}`);
-                                console.log(`💰 INTERBANK: Celda J10 tipo: ${cellJ10 ? typeof cellJ10.v : 'N/A'}`);
                                 
                                 if (cellJ10 && cellJ10.v !== undefined) {
                                     saldo = cellJ10.v;
-                                    console.log(`💰 INTERBANK: ✅ J10 valor encontrado: ${saldo} (tipo: ${typeof saldo})`);
                                 } else {
-                                    console.log(`💰 INTERBANK: ❌ Celda J10 no existe o está vacía`);
                                     
                                     // Verificar celdas cercanas por si acaso
-                                    console.log(`💰 INTERBANK: Verificando celdas cercanas...`);
                                     const cellsToCheck = ['I10', 'K10', 'J9', 'J11', 'J8', 'J12'];
                                     cellsToCheck.forEach(cellAddr => {
                                         const cell = worksheet[cellAddr];
-                                        console.log(`💰 INTERBANK: Celda ${cellAddr}: ${cell ? cell.v : 'undefined'} (tipo: ${cell ? typeof cell.v : 'N/A'})`);
                                     });
                                 }
                             }
                             
                             // Convertir a número si es necesario
                             if (saldo !== null && typeof saldo === 'string') {
-                                console.log(`💰 Convirtiendo string a número: "${saldo}"`);
                                 saldo = parseFloat(saldo.replace(/,/g, '')) || 0;
-                                console.log(`💰 Después de conversión: ${saldo}`);
                             }
                             
-                            console.log(`💰 ========== RESULTADO FINAL ==========`);
-                            console.log(`💰 Archivo: "${file.name}"`);
-                            console.log(`💰 Cuenta: ${cuentaCodigo}`);
-                            console.log(`💰 Saldo extraído: ${saldo}`);
-                            console.log(`💰 Tipo final: ${typeof saldo}`);
-                            console.log(`💰 ========================================`);
                             resolve(saldo);
                             
                         } catch (error) {
-                            console.error('❌ Error leyendo saldo de extracto:', error);
                             resolve(null);
                         }
                     };
                     
                     reader.onerror = function(error) {
-                        console.error('❌ Error leyendo archivo de extracto:', error);
                         resolve(null);
                     };
                     
@@ -14688,12 +14503,10 @@
             getSaldoLibros(cuenta) {
                 // Consultando saldo
                 if (!this.conciliationResult || !this.conciliationResult.saldosLibros) {
-                    // No hay datos de saldos de libros
                     return '—';
                 }
                 
                 const saldo = this.conciliationResult.saldosLibros.get(cuenta);
-                // Saldo encontrado
                 if (saldo !== undefined && saldo !== null) {
                     const formatted = new Intl.NumberFormat('es-PE', {
                         style: 'currency',
@@ -14711,12 +14524,10 @@
             getSaldoExtracto(cuenta) {
                 // Consultando saldo extracto
                 if (!this.conciliationResult || !this.conciliationResult.saldosExtractos) {
-                    // No hay datos de saldos de extractos
                     return '—';
                 }
                 
                 const saldo = this.conciliationResult.saldosExtractos.get(cuenta);
-                // Saldo extracto encontrado
                 if (saldo !== undefined && saldo !== null) {
                     // Determinar si es cuenta USD o PEN
                     const cuentasUSD = ['1041502', '1041402', '1041202', '1041302', '1041102'];
@@ -14739,12 +14550,10 @@
                 // Calculando equivalente PEN
                 
                 if (!this.conciliationResult || !this.conciliationResult.saldosExtractos) {
-                    // No hay datos de saldos de extractos
                     return '—';
                 }
                 
                 const saldoUSD = this.conciliationResult.saldosExtractos.get(cuenta);
-                // Saldo USD encontrado
                 
                 if (saldoUSD === undefined || saldoUSD === null || this.tipoCambio <= 0) {
                     // Saldo USD no disponible
@@ -14760,7 +14569,6 @@
                     minimumFractionDigits: 2
                 }).format(equivalentePEN);
                 
-                console.log(`💱 Equivalente PEN formateado: ${formatted}`);
                 return formatted;
     }
         }; // cierre del objeto return
