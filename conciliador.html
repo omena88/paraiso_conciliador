@@ -8,8 +8,8 @@
     
     ████████████████████████████████████████████████████████████████
     █                                                              █
-    █     🏦 CONCILIADOR BANCARIO PARAÍSO v2.2.0                  █
-    █     📅 Actualizado: 02/01/2025 - 15:30 UTC                  █
+    █     🏦 CONCILIADOR BANCARIO PARAÍSO v2.3.0 - Final Release                  █
+    █     📅 Actualizado: 29/09/2025 - 15:30 UTC                  █
     █     🚀 VERSIÓN FINAL CON FUNCIONALIDADES COMPLETAS          █
     █                                                              █
     █     ✅ (+) DEPOSITOS EN LIBROS NO REGISTRADOS EN BANCOS     █
@@ -151,13 +151,7 @@
         <!-- Version Badge -->
         <div class="flex items-center gap-3 mb-6">
             <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                🏦 v2.2.0 - Final Release
-            </span>
-            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-mono bg-blue-50 text-blue-700 border border-blue-200">
-                📅 02/01/2025 15:30 UTC
-            </span>
-            <span class="inline-flex items-center px-2 py-1 rounded text-xs bg-purple-50 text-purple-700 border border-purple-200">
-                🚀 Funcionalidades Completas
+                🏦 v2.3.0 - Final Release
             </span>
         </div>
 
@@ -2444,50 +2438,76 @@
         // --- FILTROS APLICADOS ---
         let dataRowsMayor = datosMayor.slice(2);
         
-        // === PASO 1: Filtro por Cuenta Específica (si se proporciona) ===
+        // === PASO 1: Filtro por Cuentas Bancarias Predefinidas (PEN/USD) ===
         let filasFiltradasMayor = dataRowsMayor;
         
         if (indicesMayor.cuenta !== -1) {
             const countInicial = filasFiltradasMayor.length;
             
-            if (cuentaConfig && cuentaConfig.codigo) {
-                const codigoCuentaEspecifica = cuentaConfig.codigo;
-                
-                if (codigoCuentaEspecifica === '1041401') {
-
-
-
-                    
-                    // Mostrar ejemplos de cuentas en las primeras 10 filas
-
-                    for (let i = 0; i < Math.min(10, filasFiltradasMayor.length); i++) {
-                        const cuentaEjemplo = (filasFiltradasMayor[i][indicesMayor.cuenta] || '').toString();
-                        const coincide = cuentaEjemplo === codigoCuentaEspecifica;
-
-                    }
-                }
-                
+            // 🏦 CÓDIGOS DE CUENTA PREDEFINIDOS POR MONEDA
+            const codigosPEN = [
+                '1041501', // BCP.01.PEN
+                '1041505', // BCP.02.PEN  
+                '1041401', // SANT.PEN
+                '1041201', // BBVA.PEN
+                '1041301', // SBP.PEN
+                '1041101', // IBK.PEN
+                '1042101', // DET.PEN
+                '1041601'  // BN.PEN
+            ];
+            
+            const codigosUSD = [
+                '1041502', // BCP.USD
+                '1041402', // SANT.USD
+                '1041202', // BBVA.USD
+                '1041302', // SBP.USD
+                '1041102'  // IBK.USD
+            ];
+            
+            // 🎯 COMBINAR TODOS LOS CÓDIGOS VÁLIDOS
+            const codigosValidos = [...codigosPEN, ...codigosUSD];
+            
+            console.log(`🔍 PASO 1 - Filtro Simplificado:`);
+            console.log(`📊 Registros iniciales: ${countInicial}`);
+            console.log(`🏦 Códigos PEN: ${codigosPEN.join(', ')}`);
+            console.log(`💵 Códigos USD: ${codigosUSD.join(', ')}`);
+            
+            // 🚀 FILTRO DIRECTO POR CÓDIGOS PREDEFINIDOS
             filasFiltradasMayor = filasFiltradasMayor.filter(fila => {
                 const cuenta = (fila[indicesMayor.cuenta] || '').toString();
-                    return cuenta === codigoCuentaEspecifica;
-                });
-                
-                if (codigoCuentaEspecifica === '1041401') {
-
-
-                }
-                
-        } else {
-                // Fallback: Filtrar por todas las cuentas activas (para compatibilidad)
-                const cuentasActivas = this.getCuentasFiltro();
-                
-                filasFiltradasMayor = filasFiltradasMayor.filter(fila => {
-                    const cuenta = (fila[indicesMayor.cuenta] || '').toString();
-                    return cuentasActivas.includes(cuenta);
-                });
-                
+                return codigosValidos.includes(cuenta);
+            });
+            
+            const countFinal = filasFiltradasMayor.length;
+            console.log(`✅ Registros después del filtro: ${countFinal} (${countInicial - countFinal} excluidos)`);
+            
+            // 📈 ESTADÍSTICAS POR MONEDA
+            const registrosPEN = filasFiltradasMayor.filter(fila => {
+                const cuenta = (fila[indicesMayor.cuenta] || '').toString();
+                return codigosPEN.includes(cuenta);
+            }).length;
+            
+            const registrosUSD = filasFiltradasMayor.filter(fila => {
+                const cuenta = (fila[indicesMayor.cuenta] || '').toString();
+                return codigosUSD.includes(cuenta);
+            }).length;
+            
+            console.log(`🏦 Registros PEN: ${registrosPEN}`);
+            console.log(`💵 Registros USD: ${registrosUSD}`);
+            
+            // 🎯 DETECCIÓN AUTOMÁTICA DE MONEDA
+            let monedaDetectada = 'MIXTA';
+            if (registrosPEN > 0 && registrosUSD === 0) {
+                monedaDetectada = 'PEN';
+            } else if (registrosUSD > 0 && registrosPEN === 0) {
+                monedaDetectada = 'USD';
             }
+            
+            console.log(`💰 Moneda detectada: ${monedaDetectada}`);
+            console.log(`📊 Distribución: PEN=${registrosPEN}, USD=${registrosUSD}, Total=${registrosPEN + registrosUSD}`);
+            
         } else {
+            console.log(`⚠️ PASO 1 - Columna 'cuenta' no encontrada, procesando todos los registros`);
         }
         
         // PASO 2: Omisiones Globales - Excluir términos específicos en GLOSA
