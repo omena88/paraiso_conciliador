@@ -8,9 +8,9 @@
     
     ████████████████████████████████████████████████████████████████
     █                                                              █
-    █     🏦 CONCILIADOR BANCARIO PARAÍSO v2.3.0                  █
+    █     🏦 CONCILIADOR BANCARIO PARAÍSO v2.2.0                  █
     █     📅 Actualizado: 02/01/2025 - 15:30 UTC                  █
-    █     🚀 VERSIÓN ESTABLE CON ESTADOS LISTOS                   █
+    █     🚀 VERSIÓN FINAL CON FUNCIONALIDADES COMPLETAS          █
     █                                                              █
     █     ✅ (+) DEPOSITOS EN LIBROS NO REGISTRADOS EN BANCOS     █
     █     ✅ (-) CARGO EN BANCOS NO REGISTRADO EN LIBROS          █
@@ -151,13 +151,13 @@
         <!-- Version Badge -->
         <div class="flex items-center gap-3 mb-6">
             <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                🏦 v2.3.0 - Estable
+                🏦 v2.2.0 - Final Release
             </span>
             <span class="inline-flex items-center px-2 py-1 rounded text-xs font-mono bg-blue-50 text-blue-700 border border-blue-200">
                 📅 02/01/2025 15:30 UTC
             </span>
             <span class="inline-flex items-center px-2 py-1 rounded text-xs bg-purple-50 text-purple-700 border border-purple-200">
-                🚀 Estados Listos
+                🚀 Funcionalidades Completas
             </span>
         </div>
 
@@ -226,11 +226,17 @@
                                                    placeholder="3.7500"
                                                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                         </div>
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-700 mb-1">Mes/Año para TARJETAS</label>
+                                            <input type="month" 
+                                                   x-model="mesAnoTarjetas" 
+                                                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                        </div>
                                     </div>
                                     
                                     <!-- Botón para limpiar solo cache de datos manuales -->
                                     <div class="flex justify-end mt-2">
-                                        <button @click="limpiarCacheDatosManuales(); saldoDET = 0; saldoBN = 0; tipoCambio = 3.75;"
+                                        <button @click="limpiarCacheDatosManuales(); saldoDET = 0; saldoBN = 0; tipoCambio = 3.75; mesAnoTarjetas = '';"
                                                 class="text-xs text-gray-500 hover:text-gray-700 underline"
                                                 title="Limpiar valores guardados y resetear a defaults">
                                             Resetear valores
@@ -241,7 +247,7 @@
                                 <!-- Botones de Conciliación debajo del drag and drop -->
                                 <div class="mt-4 space-y-3">
                                     <button x-show="canProcessConciliation()"
-                                            @click="realizarConciliacion()"
+                                            @click="console.log('🔘 Botón Iniciar clickeado'); realizarConciliacion()"
                                             :disabled="!validarDatosRequeridos()"
                                             class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 shadow-sm disabled:bg-gray-400 disabled:cursor-not-allowed">
                                         <i class="fas fa-balance-scale mr-2"></i>
@@ -580,6 +586,7 @@
             saldoDET: 0,
             saldoBN: 0,
             tipoCambio: 3.75,
+            mesAnoTarjetas: '',
             requiredFileTypes: ['mayor', 'extracto', 'resumen'],
 
             // === FUNCIONES DE CACHE PARA DATOS MANUALES ===
@@ -589,6 +596,7 @@
                     saldoDET: this.saldoDET,
                     saldoBN: this.saldoBN,
                     tipoCambio: this.tipoCambio,
+                    mesAnoTarjetas: this.mesAnoTarjetas,
                     fechaGuardado: new Date().toISOString()
                 };
                 
@@ -609,14 +617,16 @@
                         this.saldoDET = datos.saldoDET || 0;
                         this.saldoBN = datos.saldoBN || 0;
                         this.tipoCambio = datos.tipoCambio || 3.75;
+                        this.mesAnoTarjetas = datos.mesAnoTarjetas || '';
                         // Datos manuales cargados desde cache
                     } else {
                     }
                 } catch (error) {
                     // Usar valores por defecto si hay error
                     this.saldoDET = 0;
-                    this.saldoBN = 0;
-                    this.tipoCambio = 3.75;
+                this.saldoBN = 0;
+                this.tipoCambio = 3.75;
+                this.mesAnoTarjetas = '';
                 }
             },
 
@@ -1007,10 +1017,19 @@
                 // Cargar valores manuales guardados
                 this.cargarDatosManuales();
                 
+                // Inicializar mes/año por defecto si no hay valor guardado
+                if (!this.mesAnoTarjetas) {
+                    const ahora = new Date();
+                    const año = ahora.getFullYear();
+                    const mes = (ahora.getMonth() + 1).toString().padStart(2, '0');
+                    this.mesAnoTarjetas = `${año}-${mes}`;
+                }
+                
                 // Guardar automáticamente cuando cambien los valores
                 this.$watch('saldoDET', () => this.guardarDatosManuales());
                 this.$watch('saldoBN', () => this.guardarDatosManuales());
                 this.$watch('tipoCambio', () => this.guardarDatosManuales());
+                this.$watch('mesAnoTarjetas', () => this.guardarDatosManuales());
             },
 
             // === MÉTODOS PARA MANEJO MULTI-CUENTA ===
@@ -1308,19 +1327,35 @@
                 const saldoBNValido = this.saldoBN !== null && this.saldoBN !== undefined && this.saldoBN >= 0;
                 const tipoCambioValido = this.tipoCambio !== null && this.tipoCambio !== undefined && this.tipoCambio > 0;
                 
-                return saldoDETValido && saldoBNValido && tipoCambioValido;
+                const resultado = saldoDETValido && saldoBNValido && tipoCambioValido;
+                console.log('🔍 Validación de datos requeridos:', {
+                    saldoDET: this.saldoDET,
+                    saldoDETValido,
+                    saldoBN: this.saldoBN,
+                    saldoBNValido,
+                    tipoCambio: this.tipoCambio,
+                    tipoCambioValido,
+                    resultado
+                });
+                
+                return resultado;
             },
 
             async realizarConciliacion() {
+                console.log('🎯 INICIANDO realizarConciliacion()');
                 if (!this.canProcessConciliation()) {
+                    console.log('❌ canProcessConciliation() falló');
                     this.showStatus('Se necesitan al menos los archivos MAYOR.PEN/USD.MMAAAA y extractos bancarios (BCP.01/02, SANT, BBVA, IBK)', 'error');
                     return;
                 }
+                console.log('✅ canProcessConciliation() pasó');
 
                 this.isLoading = true;
+                console.log('🔄 Iniciando procesamiento de archivos...');
 
                 try {
                     // === SEPARAR ARCHIVOS MAYOR POR MONEDA ===
+                    console.log('📁 Separando archivos MAYOR por moneda...');
                     const mayorFiles = this.files.filter(f => f.category === 'mayor');
                     const mayorFilePEN = mayorFiles.find(f => f.name.toLowerCase().includes('mayor.pen'))?.file;
                     const mayorFileUSD = mayorFiles.find(f => f.name.toLowerCase().includes('mayor.usd'))?.file;
@@ -1405,7 +1440,9 @@
     
                     });
                     
+                    console.log('📊 Extractos procesados:', extractosPorCuenta.size, 'Mayor file:', !!mayorFile);
                     if (extractosPorCuenta.size === 0 || !mayorFile) {
+                        console.log('❌ Error: No se encontraron archivos necesarios');
                         throw new Error('No se encontraron los archivos necesarios');
                     }
                     
@@ -1524,7 +1561,9 @@
             } else {
             }
             
+                    console.log('🔄 Iniciando procesarConciliacionMultiCuenta...');
                     const resultado = this.procesarConciliacionMultiCuenta(extractosPorCuenta, mayorDataPEN, saldoData, mayorDataUSD);
+                    console.log('✅ procesarConciliacionMultiCuenta completado:', !!resultado);
             
             if (!resultado || !resultado.datosMayor || resultado.datosMayor.length === 0) {
                 throw new Error('No se generaron datos de conciliación');
@@ -1557,7 +1596,9 @@
                     };
                     
                     // Generar dos archivos Excel
+                    console.log('📄 Iniciando generateTwoExcelFiles con fileName:', fileName);
                     const archivosGenerados = await this.generateTwoExcelFiles(resultado, fileName);
+                    console.log('✅ generateTwoExcelFiles completado:', !!archivosGenerados);
                     
                     // Guardar información de archivos generados para descarga manual
                     this.conciliationResult.archivosGenerados = archivosGenerados;
@@ -1565,7 +1606,8 @@
                     this.showStatus(`Conciliación completada exitosamente. Se generaron 2 archivos para descarga.`, 'success');
             
                  } catch (error) {
-
+                    console.log('❌ ERROR en realizarConciliacion():', error);
+                    console.log('❌ Stack trace:', error.stack);
                     this.showStatus(`Error en conciliación: ${error.message}`, 'error');
                 } finally {
                     this.isLoading = false;
@@ -1917,11 +1959,18 @@
 
     // === FUNCIÓN MULTI-CUENTA NUEVA ===
             procesarConciliacionMultiCuenta(extractosPorCuenta, datosMayorPEN, datosSaldo = null, datosMayorUSD = null) {
+                console.log('🔄 INICIANDO procesarConciliacionMultiCuenta con', extractosPorCuenta.size, 'cuentas');
+                
+                // Inicializar variable global para registros omitidos del Paso 2 (TARJETAS)
+                window.registrosOmitidosPaso2 = [];
+                console.log('🔄 Inicializando registrosOmitidosPaso2 para TARJETAS (global)');
                 
                 const resultadosPorCuenta = new Map();
                 
                 // Procesar cada cuenta por separado
+                console.log('🔄 Iniciando forEach para procesar cuentas...');
                 extractosPorCuenta.forEach((extractoInfo, codigoCuenta) => {
+                    console.log('📊 Procesando cuenta:', codigoCuenta);
                     if (codigoCuenta === '1041302') {
         
                     }
@@ -1945,12 +1994,14 @@
                     }
                     
                     // Llamar a la función de conciliación pasando información de cuenta específica
+                    console.log('🔄 Llamando procesarConciliacion para cuenta:', codigoCuenta);
                     const resultadoCuenta = this.procesarConciliacion(
                         extractoInfo.datos, 
                         datosMayorParaCuenta, 
                         datosSaldo, 
                         extractoInfo.config // ← NUEVO: Pasar configuración de cuenta
                     );
+                    console.log('✅ procesarConciliacion completado para cuenta:', codigoCuenta);
                     
                     resultadosPorCuenta.set(codigoCuenta, {
                         config: extractoInfo.config,
@@ -2018,7 +2069,10 @@
                 }
                 
                 // Consolidar resultados
-                return this.consolidarResultadosMultiCuenta(resultadosPorCuenta, datosMayorPEN, datosSaldo, datosMayorUSD);
+                console.log('🔄 Llamando consolidarResultadosMultiCuenta...');
+                const resultadoFinal = this.consolidarResultadosMultiCuenta(resultadosPorCuenta, datosMayorPEN, datosSaldo, datosMayorUSD);
+                console.log('✅ procesarConciliacionMultiCuenta COMPLETADO');
+                return resultadoFinal;
             },
 
             // === FUNCIÓN PARA CONSOLIDAR MAYOR DE MÚLTIPLES CUENTAS ===
@@ -2346,7 +2400,7 @@
 
     // --- Lógica de Conciliación Principal (mantenida del código original) ---
             procesarConciliacion(datosExtracto, datosMayor, datosSaldo = null, cuentaConfig = null) {
-
+                console.log('🔄 INICIANDO procesarConciliacion para cuenta:', cuentaConfig?.codigo || 'sin especificar');
 
         if (datosExtracto && datosExtracto.length > 0) {
 
@@ -2413,6 +2467,7 @@
         }
         
         const indicesExtracto = this.buscarIndicesColumnas(headersExtracto, camposMapeados);
+        console.log('📋 Mapeo de índices completado para cuenta:', cuentaConfig?.codigo);
         
         // 🔧 DIAGNÓSTICO: Mostrar mapeo de columnas para SBP.USD
         if (cuentaConfig && (cuentaConfig.alias === 'SBP.USD')) {
@@ -2443,82 +2498,58 @@
         
         // --- FILTROS APLICADOS ---
         let dataRowsMayor = datosMayor.slice(2);
+        console.log('🔍 Iniciando filtros - filas del mayor:', dataRowsMayor.length);
         
-        // === PASO 1: Filtro por Cuentas Bancarias Predefinidas (PEN/USD) ===
+        // === PASO 1: Filtro por Cuenta Específica (si se proporciona) ===
         let filasFiltradasMayor = dataRowsMayor;
         
         if (indicesMayor.cuenta !== -1) {
             const countInicial = filasFiltradasMayor.length;
             
-            // 🏦 CÓDIGOS DE CUENTA PREDEFINIDOS POR MONEDA
-            const codigosPEN = [
-                '1041501', // BCP.01.PEN
-                '1041505', // BCP.02.PEN  
-                '1041401', // SANT.PEN
-                '1041201', // BBVA.PEN
-                '1041301', // SBP.PEN
-                '1041101', // IBK.PEN
-                '1042101', // DET.PEN
-                '1041601'  // BN.PEN
-            ];
-            
-            const codigosUSD = [
-                '1041502', // BCP.USD
-                '1041402', // SANT.USD
-                '1041202', // BBVA.USD
-                '1041302', // SBP.USD
-                '1041102'  // IBK.USD
-            ];
-            
-            // 🎯 COMBINAR TODOS LOS CÓDIGOS VÁLIDOS
-            const codigosValidos = [...codigosPEN, ...codigosUSD];
-            
-            console.log(`🔍 PASO 1 - Filtro Simplificado:`);
-            console.log(`📊 Registros iniciales: ${countInicial}`);
-            console.log(`🏦 Códigos PEN: ${codigosPEN.join(', ')}`);
-            console.log(`💵 Códigos USD: ${codigosUSD.join(', ')}`);
-            
-            // 🚀 FILTRO DIRECTO POR CÓDIGOS PREDEFINIDOS
+            if (cuentaConfig && cuentaConfig.codigo) {
+                const codigoCuentaEspecifica = cuentaConfig.codigo;
+                
+                if (codigoCuentaEspecifica === '1041401') {
+
+
+
+                    
+                    // Mostrar ejemplos de cuentas en las primeras 10 filas
+
+                    for (let i = 0; i < Math.min(10, filasFiltradasMayor.length); i++) {
+                        const cuentaEjemplo = (filasFiltradasMayor[i][indicesMayor.cuenta] || '').toString();
+                        const coincide = cuentaEjemplo === codigoCuentaEspecifica;
+
+                    }
+                }
+                
             filasFiltradasMayor = filasFiltradasMayor.filter(fila => {
                 const cuenta = (fila[indicesMayor.cuenta] || '').toString();
-                return codigosValidos.includes(cuenta);
-            });
-            
-            const countFinal = filasFiltradasMayor.length;
-            console.log(`✅ Registros después del filtro: ${countFinal} (${countInicial - countFinal} excluidos)`);
-            
-            // 📈 ESTADÍSTICAS POR MONEDA
-            const registrosPEN = filasFiltradasMayor.filter(fila => {
-                const cuenta = (fila[indicesMayor.cuenta] || '').toString();
-                return codigosPEN.includes(cuenta);
-            }).length;
-            
-            const registrosUSD = filasFiltradasMayor.filter(fila => {
-                const cuenta = (fila[indicesMayor.cuenta] || '').toString();
-                return codigosUSD.includes(cuenta);
-            }).length;
-            
-            console.log(`🏦 Registros PEN: ${registrosPEN}`);
-            console.log(`💵 Registros USD: ${registrosUSD}`);
-            
-            // 🎯 DETECCIÓN AUTOMÁTICA DE MONEDA
-            let monedaDetectada = 'MIXTA';
-            if (registrosPEN > 0 && registrosUSD === 0) {
-                monedaDetectada = 'PEN';
-            } else if (registrosUSD > 0 && registrosPEN === 0) {
-                monedaDetectada = 'USD';
-            }
-            
-            console.log(`💰 Moneda detectada: ${monedaDetectada}`);
-            console.log(`📊 Distribución: PEN=${registrosPEN}, USD=${registrosUSD}, Total=${registrosPEN + registrosUSD}`);
-            
+                    return cuenta === codigoCuentaEspecifica;
+                });
+                
+                if (codigoCuentaEspecifica === '1041401') {
+
+
+                }
+                
         } else {
-            console.log(`⚠️ PASO 1 - Columna 'cuenta' no encontrada, procesando todos los registros`);
+                // Fallback: Filtrar por todas las cuentas activas (para compatibilidad)
+                const cuentasActivas = this.getCuentasFiltro();
+                
+                filasFiltradasMayor = filasFiltradasMayor.filter(fila => {
+                    const cuenta = (fila[indicesMayor.cuenta] || '').toString();
+                    return cuentasActivas.includes(cuenta);
+                });
+                
+            }
+        } else {
         }
         
-        // PASO 2: Omisiones Globales - Excluir términos específicos en GLOSA
-        const terminosExclusion = ["AMERICAN EXP", "CALIDDA", "DINERS", "MASTER CARD", "MERCADOPAGO", "VISANET"];
+        // PASO 2: Omisiones Globales - Excluir términos específicos en GLOSA y capturar para TARJETAS
+        const terminosExclusion = ["AMERICAN EXP", "CALIDDA", "DINERS", "MASTER CARD", "MERCADOPAGO", "VISANET", "POWERPAY"];
         
+        console.log('🔄 Procesando PASO 2 para TARJETAS en cuenta:', cuentaConfig?.codigo || 'sin especificar');
         
         if (indicesMayor.glosa !== -1) {
             const countAntesFiltro = filasFiltradasMayor.length;
@@ -2528,30 +2559,68 @@
             });
             
             let filasExcluidas = 0;
-            filasFiltradasMayor = filasFiltradasMayor.filter(fila => {
+            const filasRestantes = [];
+            
+            filasFiltradasMayor.forEach(fila => {
                 const glosa = (fila[indicesMayor.glosa] || '').toString().toUpperCase();
                 const excluir = terminosExclusion.some(termino => glosa.startsWith(termino.toUpperCase()));
+                
                 if (excluir) {
                     filasExcluidas++;
-                    if (filasExcluidas <= 3) {
-                    }
+                    console.log('🚫 Registro excluido en Paso 2:', glosa);
+                    // Capturar registro omitido para la pestaña TARJETAS
+                    const cuenta = fila[indicesMayor.cuenta] || '';
+                    const descrip = fila[indicesMayor.descrip] || '';
+                    const fdoc = fila[indicesMayor.fdoc] || '';
+                    const glosaCelda = fila[indicesMayor.glosa] || '';
+                    const debe = parseFloat(fila[indicesMayor.debe]) || 0;
+                    const haber = parseFloat(fila[indicesMayor.haber]) || 0;
+                    
+                    // Determinar qué término coincidió
+                    const terminoCoincidente = terminosExclusion.find(termino => 
+                        glosa.startsWith(termino.toUpperCase())
+                    );
+                    
+                    window.registrosOmitidosPaso2.push({
+                        cuenta,
+                        descrip,
+                        fdoc,
+                        glosa: glosaCelda,
+                        debe,
+                        haber,
+                        termino: terminoCoincidente
+                    });
+                    console.log('📝 Registro agregado a TARJETAS:', terminoCoincidente, debe, haber);
+                } else {
+                    filasRestantes.push(fila);
                 }
-                return !excluir;
             });
             
+            filasFiltradasMayor = filasRestantes;
+            console.log(`📊 PASO 2 completado: ${filasExcluidas} registros excluidos, ${window.registrosOmitidosPaso2.length} registros capturados para TARJETAS`);
+            
         } else {
+            console.log('⚠️ PASO 2: No se encontró columna GLOSA, no se pueden excluir registros');
         }
+        
+        console.log('🔍 DEBUG: Punto A');
+        console.log('✅ Filtrado completado - filas restantes:', filasFiltradasMayor.length);
+        console.log('🔍 DEBUG: Punto B');
         
 
         // Preparar extracto para conciliación (datos empiezan dinámicamente según cuenta)
+        console.log('🔄 Preparando extracto para conciliación...');
         let extractoProcesable = datosExtracto.slice(filaDataInicio).map(fila => ({ fila, conciliado: false }));
+        console.log('✅ Extracto preparado - filas:', extractoProcesable.length);
         
 
         // VERIFICAR CUÁNTAS ANULACIONES HAY EN TOTAL
+        console.log('🔄 Verificando anulaciones...');
         const anulacionesEncontradas = filasFiltradasMayor.filter(fila => {
             const glosa = fila[indicesMayor.glosa] || '';
             return glosa.toUpperCase().includes('ANULADO');
         });
+        console.log('✅ Anulaciones encontradas:', anulacionesEncontradas.length);
         
         
         // Mostrar primeras 3 anulaciones como muestra
@@ -2585,8 +2654,12 @@
         
         // NUEVO ENFOQUE: Mapear estados para todas las filas primero
         const estadosFilas = new Map(); // índice → {estado, ref}
+        console.log('🔄 Iniciando bucle principal - filas a procesar:', filasFiltradasMayor.length);
         
         for (let i = 0; i < filasFiltradasMayor.length; i++) {
+            if (i % 100 === 0) { // Log cada 100 iteraciones para no saturar
+                console.log(`🔄 Procesando fila ${i}/${filasFiltradasMayor.length}`);
+            }
             const filaMayor = filasFiltradasMayor[i];
             const glosa = filaMayor[indicesMayor.glosa] || '';
             const numdoc = filaMayor[indicesMayor.numdoc] || '';
@@ -2650,18 +2723,23 @@
                 }
             }
         }
+        console.log('✅ Bucle principal completado');
         
         // PASO 4: Operaciones BNA (Banco de la Nación)
+        console.log('🔄 Iniciando PASO 4');
         const estadosExtracto = new Map(); // Para rastrear estados del extracto
         
         const resultadosPaso4 = this.procesarPaso4(filasFiltradasMayor, extractoProcesable, indicesMayor, indicesExtracto, estadosFilas, estadosExtracto, cuentaConfig);
+        console.log('✅ PASO 4 completado');
         
         // PASO 5: Operaciones PROT y DEV (Agrupación por totales diarios)
-        
+        console.log('🔄 Iniciando PASO 5');
         const resultadosPaso5 = this.procesarPaso5(filasFiltradasMayor, extractoProcesable, indicesMayor, indicesExtracto, estadosFilas, estadosExtracto, cuentaConfig);
+        console.log('✅ PASO 5 completado');
         
-        
+        console.log('🔄 Iniciando PASO 6');
         const resultadosPaso6 = this.procesarPaso6(filasFiltradasMayor, extractoProcesable, indicesMayor, indicesExtracto, estadosFilas, estadosExtracto, cuentaConfig);
+        console.log('✅ PASO 6 completado');
         
         
         const resultadosPaso7 = this.procesarPaso7(filasFiltradasMayor, extractoProcesable, indicesMayor, indicesExtracto, estadosFilas, estadosExtracto, cuentaConfig);
@@ -3086,6 +3164,7 @@
 
 
 
+        console.log('✅ FINALIZANDO procesarConciliacion para cuenta:', cuentaConfig?.codigo || 'sin especificar');
         return {
             datosMayor: datosMayorHoja,
             datosExtracto: datosExtractoHoja, // ✅ INCLUYE HEADERS
@@ -11369,6 +11448,8 @@
      
             async generateTwoExcelFiles(datosCompletos, baseFileName) {
                 try {
+                    console.log('🚀 INICIANDO generateTwoExcelFiles');
+                    console.log('📊 Estado de registrosOmitidosPaso2 al generar archivos:', window.registrosOmitidosPaso2);
                     const timestamp = new Date().toISOString().slice(0,19).replace(/:/g,'-');
                     
                     const datosOriginalesFileName = `resumen_${timestamp}.xlsx`;
@@ -12838,6 +12919,9 @@
 
             async generateConciliacionFile(datosCompletos, fileName) {
                 try {
+                    console.log('📁 Generando archivo de conciliación:', fileName);
+                    console.log('🔍 Estado de registrosOmitidosPaso2 al generar Excel:', window.registrosOmitidosPaso2);
+                    
                     // Crear workbook para resultados de conciliación
                     const wb = XLSX.utils.book_new();
                     
@@ -12895,9 +12979,112 @@
                          XLSX.utils.book_append_sheet(wb, wsSaldo, "SALDO");
                      }
                      
+                     // HOJA: TARJETAS (Resumen de registros omitidos en Paso 2)
+                     console.log('🔍 Verificando registros omitidos para TARJETAS:', window.registrosOmitidosPaso2);
+                     const datosTarjetas = this.generarDatosTarjetas();
+                     console.log('📊 Datos generados para TARJETAS:', datosTarjetas);
+                     if (datosTarjetas && datosTarjetas.length > 0) {
+                         const wsTarjetas = XLSX.utils.aoa_to_sheet(datosTarjetas);
+                         XLSX.utils.book_append_sheet(wb, wsTarjetas, "TARJETAS");
+                         console.log('✅ Pestaña TARJETAS agregada al archivo de conciliación');
+                     } else {
+                         console.log('⚠️ No se generó la pestaña TARJETAS - sin datos');
+                     }
+                     
                      return this.createDownloadableFile(wb, fileName);
                  } catch (error) {
                      throw error;
+                 }
+             },
+
+             generarDatosTarjetas() {
+                 try {
+                     console.log('🔧 Ejecutando generarDatosTarjetas()');
+                     console.log('📋 Registros disponibles:', window.registrosOmitidosPaso2);
+                     
+                     // Verificar que tenemos registros omitidos del Paso 2
+                     if (!window.registrosOmitidosPaso2 || window.registrosOmitidosPaso2.length === 0) {
+                         console.log('❌ No hay registros omitidos para TARJETAS');
+                         return null;
+                     }
+                     
+                     // Obtener el último día del mes seleccionado
+                     const fdocCalculado = this.calcularFdocUltimoDiaMes();
+                     
+                     // Agrupar por término de exclusión Y cuenta
+                     const resumenPorTerminoCuenta = {};
+                     
+                     window.registrosOmitidosPaso2.forEach(registro => {
+                         const termino = registro.termino;
+                         const cuenta = registro.cuenta;
+                         const clave = `${termino}_${cuenta}`; // Clave única por término y cuenta
+                         
+                         if (!resumenPorTerminoCuenta[clave]) {
+                             resumenPorTerminoCuenta[clave] = {
+                                 cuenta: registro.cuenta,
+                                 descrip: registro.descrip,
+                                 fdoc: fdocCalculado,
+                                 glosa: `RESUMEN ${termino}`,
+                                 debe: 0,
+                                 haber: 0,
+                                 cantidad: 0
+                             };
+                         }
+                         
+                         resumenPorTerminoCuenta[clave].debe += parseFloat(registro.debe || 0);
+                         resumenPorTerminoCuenta[clave].haber += parseFloat(registro.haber || 0);
+                         resumenPorTerminoCuenta[clave].cantidad += 1;
+                     });
+                     
+                     // Crear datos para la hoja
+                     const datos = [];
+                     
+                     // Header
+                     datos.push(['CUENTA', 'DESCRIP', 'FDOC', 'GLOSA', 'DEBE', 'HABER']);
+                     
+                     // Agregar resúmenes
+                     Object.values(resumenPorTerminoCuenta).forEach(resumen => {
+                         datos.push([
+                             resumen.cuenta,
+                             resumen.descrip,
+                             resumen.fdoc,
+                             `${resumen.glosa} (${resumen.cantidad} registros)`,
+                             Math.round(resumen.debe * 100) / 100, // Mantener como número con 2 decimales
+                             Math.round(resumen.haber * 100) / 100  // Mantener como número con 2 decimales
+                         ]);
+                     });
+                     
+                     console.log('✅ Datos generados para TARJETAS:', datos);
+                     console.log(`📊 Total de filas: ${datos.length} (incluyendo header)`);
+                     return datos;
+                     
+                 } catch (error) {
+                     console.error('Error generando datos de tarjetas:', error);
+                     return null;
+                 }
+             },
+
+             calcularFdocUltimoDiaMes() {
+                 try {
+                     if (!this.mesAnoTarjetas) {
+                         // Si no hay mes/año seleccionado, usar el mes actual
+                         const ahora = new Date();
+                         const año = ahora.getFullYear();
+                         const mes = ahora.getMonth() + 1; // getMonth() devuelve 0-11
+                         return new Date(año, mes, 0).getDate().toString().padStart(2, '0');
+                     }
+                     
+                     // Parsear el valor del input type="month" (formato: YYYY-MM)
+                     const [año, mes] = this.mesAnoTarjetas.split('-').map(Number);
+                     
+                     // Obtener el último día del mes
+                     const ultimoDia = new Date(año, mes, 0).getDate();
+                     
+                     return ultimoDia.toString().padStart(2, '0');
+                     
+                 } catch (error) {
+                     console.error('Error calculando FDOC:', error);
+                     return '31'; // Valor por defecto
                  }
              },
 

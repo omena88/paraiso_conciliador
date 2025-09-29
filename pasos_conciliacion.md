@@ -2,13 +2,10 @@
 
 ## Descripción de Pasos
 
-### PASO 1: Filtro por Cuentas Bancarias Predefinidas (PEN/USD)
-- **Objetivo**: Filtrar Mayor para incluir únicamente cuentas bancarias válidas con separación automática por moneda
-- **Acción**: En Mayor, mantener únicamente registros donde CUENTA esté en los códigos predefinidos
-- **Códigos PEN**: 1041501 (BCP.01), 1041505 (BCP.02), 1041401 (SANT), 1041201 (BBVA), 1041301 (SBP), 1041101 (IBK), 1042101 (DET), 1041601 (BN)
-- **Códigos USD**: 1041502 (BCP), 1041402 (SANT), 1041202 (BBVA), 1041302 (SBP), 1041102 (IBK)
-- **Detección automática**: Identifica si el archivo es PEN, USD o MIXTA basado en los códigos encontrados
-- **Mejoras**: Lógica simplificada, más eficiente, separación clara de monedas, estadísticas detalladas
+### PASO 1: Filtro por Cuenta Específica
+- **Objetivo**: Filtrar Mayor para incluir cuentas activas configuradas
+- **Acción**: En Mayor, mantener únicamente registros donde CUENTA = cuenta configurada como activa
+- **Cuentas activas**: 1041501 (BCP.01), 1041505 (BCP.02), 1041401 (SANT), 1041201 (BBVA), 1041301 (SBP)
 
 ### PASO 2: Omisiones Globales
 - **Objetivo**: Excluir operaciones de tarjetas de crédito y servicios específicos
