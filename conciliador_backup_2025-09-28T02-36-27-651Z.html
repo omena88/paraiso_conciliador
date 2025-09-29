@@ -3,26 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conciliador Bancario</title>
-    <!-- 
-    ======================================================
-    CONCILIADOR BANCARIO - VERSIÓN WORDPRESS
-    ======================================================
+    <title>Conciliador Bancario v2.1.0</title>
+    <!--
     
-    Esta versión está optimizada para integrarse en WordPress:
+    ████████████████████████████████████████████████████████████████
+    █                                                              █
+    █     🏦 CONCILIADOR BANCARIO PARAÍSO v2.1.0                  █
+    █     📅 Actualizado: 02/01/2025 - 15:30 UTC                  █
+    █     🚀 VERSIÓN FINAL CON FUNCIONALIDADES COMPLETAS          █
+    █                                                              █
+    █     ✅ (+) DEPOSITOS EN LIBROS NO REGISTRADOS EN BANCOS     █
+    █     ✅ (-) CARGO EN BANCOS NO REGISTRADO EN LIBROS          █
+    █     ✅ Filtros: Estado Pendiente + Criterios de Importe     █
+    █     ✅ Soporte para todos los bancos                        █
+    █                                                              █
+    ████████████████████████████████████████████████████████████████
     
-    ✅ Todos los estilos están encapsulados con la clase .conciliador-bancario-app
-    ✅ Se usa !important para prevenir conflictos con temas de WordPress
-    ✅ Tailwind CSS configurado con selector important
-    ✅ Reset de estilos para elementos críticos
-    ✅ Isolation CSS para crear contexto de stacking independiente
-    
-    INTEGRACIÓN EN WORDPRESS:
-    - Insertar el contenido del <body> en una página/post
-    - Asegurar que las librerías CDN están cargadas
-    - El contenedor .conciliador-bancario-app aísla los estilos
-    
-    ====================================================== 
     -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
@@ -150,7 +146,20 @@
 <div class="conciliador-bancario-app bg-gray-50" x-data="bancarioConciliador()">
     <!-- Header -->
     <div class="max-w-none mx-auto px-4 py-8" style="max-width: 1200px;">
-        <h1 class="text-3xl font-bold text-gray-900 mb-8">Conciliador Bancario</h1>
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Conciliador Bancario</h1>
+        
+        <!-- Version Badge -->
+        <div class="flex items-center gap-3 mb-6">
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                🏦 v2.1.0 - Final Release
+            </span>
+            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-mono bg-blue-50 text-blue-700 border border-blue-200">
+                📅 02/01/2025 15:30 UTC
+            </span>
+            <span class="inline-flex items-center px-2 py-1 rounded text-xs bg-purple-50 text-purple-700 border border-purple-200">
+                🚀 Funcionalidades Completas
+            </span>
+        </div>
 
         <!-- Upload Area - Layout Compacto -->
         <div class="mb-8">
@@ -1320,7 +1329,6 @@
                     const mayorFile = mayorFilePEN || mayorFileGenerico;
                     
                     const librosFiles = this.files.filter(f => f.category === 'libros');
-                    librosFiles.forEach((f, i) => console.log(`📚 Archivo libros ${i+1}: "${f.name}" (categoría: ${f.category})`));
                     
                     let saldosLibros = new Map();
                     
@@ -2629,6 +2637,11 @@
         const resultadosPaso9 = this.procesarPaso9(filasFiltradasMayor, extractoProcesable, indicesMayor, indicesExtracto, estadosFilas, estadosExtracto, cuentaConfig);
         // Paso 9 completado
         
+        // Mostrar estadísticas de P9B si existen
+        if (resultadosPaso9.conciliadosP9B !== undefined) {
+            // Log removido para limpieza
+        }
+        
         
         const resultadosPaso10 = this.procesarPaso10(filasFiltradasMayor, extractoProcesable, indicesMayor, indicesExtracto, estadosFilas, estadosExtracto, datosSaldo, estadosSaldo);
         
@@ -3084,7 +3097,7 @@
                 const esBCPUSD = cuentaConfig && cuentaConfig.codigo === '1041502';
                 
                 if (esBBVA) {
-                    return this.procesarPaso4BBVA(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto);
+                    return this.procesarPaso4BBVA(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto, cuentaConfig);
                 } else if (esSBP) {
                     return this.procesarPaso4SBP(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto);
                 } else if (esIBK) {
@@ -3254,7 +3267,7 @@
                 };
             },
 
-            procesarPaso4BBVA(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto) {
+            procesarPaso4BBVA(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto, cuentaConfig) {
                 /*
                 PASO 4 BBVA - DOS ETAPAS (ABONO/CARGO CART):
                 
@@ -3316,26 +3329,12 @@
                         grupo.totalDebe += debe;
                         grupo.filas.push(i);
                         
-                        if (candidatosMayor <= 10) {
-                        }
+
                     }
                 }
                 
                 
-                // === DETALLE DE GRUPOS MAYOR ===
-                let grupoNumero = 1;
-                for (const [fechaNormalizada, grupo] of gruposPorFechaMayor) {
-                    
-                    // Mostrar primeros 3 registros del grupo
-                    grupo.filas.slice(0, 3).forEach((filaIdx, idx) => {
-                        const fila = filasFiltradasMayor[filaIdx];
-                        const debe = this.normalizarMonto(fila[idxM.debe] || '0');
-                    });
-                    
-                    if (grupo.filas.length > 3) {
-                    }
-                    grupoNumero++;
-                }
+
                 
                 // === 2. IDENTIFICAR EXTRACTO BBVA ABONO/CARGO CART ===  
                 const registrosAbonoCargoCart = [];
@@ -3370,8 +3369,7 @@
                             tipo: esAbonoCart ? 'ABONO CART' : 'CARGO CART'
                         });
                         
-                        if (candidatosExtracto <= 10) {
-                        }
+
                     }
                 }
                 
@@ -3396,19 +3394,7 @@
                 });
                 
                 
-                // === DETALLE DE GRUPOS EXTRACTO BBVA ===
-                let grupoExtractoNum = 1;
-                for (const [fechaNormalizada, grupo] of gruposPorFOperacion) {
-                    
-                    // Mostrar primeros 3 registros del grupo
-                    grupo.registros.slice(0, 3).forEach((registro, idx) => {
-                        const signoStr = registro.importe >= 0 ? '+' : '';
-                    });
-                    
-                    if (grupo.registros.length > 3) {
-                    }
-                    grupoExtractoNum++;
-                }
+
                 
                 // === 4. COMPARACIÓN DE GRUPOS: MAYOR vs EXTRACTO ===
                 
@@ -3460,17 +3446,13 @@
                         } else {
                             status = `DIFF ${diff.toFixed(2)} ❌`;
                             grupoId = '-';
-                            
                         }
                     } else if (tieneGrupoMayor) {
                         status = 'MAYOR SOLO';
                         grupoId = '-';
-                        
-                        
                     } else {
                         status = 'BBVA SOLO';
                         grupoId = '-';
-                        
                     }
                     
                     // Formatear datos para tabla
@@ -3520,12 +3502,7 @@
                 }
                 
                 
-                // === DETALLE DE CANDIDATOS BNA ===
-                candidatosBna.slice(0, 10).forEach((candidato, idx) => {
-                });
-                
-                if (candidatosBna.length > 10) {
-                }
+
                 
                 // === MAPEO Y CONCILIACIÓN INTERNA ===
                 
@@ -3554,7 +3531,6 @@
                         if (candidatoBna.fechaNormalizada === fechaDestinoNormalizada && diff < 0.01 && haberDestino > 0) {
                             candidatosHaberEncontrados++;
                             
-                            
                             // Conciliar ambos registros
                             estadosFilas.set(candidatoBna.indice, {
                                 estado: 'P4 - Conciliada',
@@ -3577,13 +3553,216 @@
                 }
                 
                 
+                // === ETAPA 3: MAPEO DIRECTO LIBROS 4 Y 9 CON EXTRACTO ===
+                
+                let candidatosLibro4y9 = 0;
+                let candidatosExtractoEtapa3 = 0;
+                let conciliadosEtapa3 = 0;
+                
+                // Determinar moneda
+                const esBBVAPEN = cuentaConfig && cuentaConfig.codigo === '1041201';
+                const esBBVAUSD = cuentaConfig && cuentaConfig.codigo === '1041202';
+                const moneda = esBBVAPEN ? 'PEN' : (esBBVAUSD ? 'USD' : 'DESCONOCIDA');
+                
+                console.log(`\n🏦 === PASO 4 ETAPA 3: MAPEO DIRECTO LIBROS 4 Y 9 CON EXTRACTO BBVA.${moneda} ===`);
+                console.log(`💰 Moneda: ${moneda} | Cuenta: ${cuentaConfig ? cuentaConfig.codigo : 'N/A'} | Alias: ${cuentaConfig ? cuentaConfig.alias : 'N/A'}`);
+                
+                // === 1. RECOPILAR REGISTROS MAYOR (LIBROS 4 Y 9) ===
+                const registrosMayorL4L9 = [];
+                
+                for (let i = 0; i < filasFiltradasMayor.length; i++) {
+                    // Solo procesar filas pendientes (no conciliadas en etapas anteriores)
+                    if (estadosFilas.has(i)) continue;
+                    
+                    const filaMayor = filasFiltradasMayor[i];
+                    const libro = filaMayor[idxM.libro] || '';
+                    const fdoc = filaMayor[idxM.fdoc] || '';
+                    const debe = this.normalizarMonto(filaMayor[idxM.debe] || '0');
+                    const haber = this.normalizarMonto(filaMayor[idxM.haber] || '0');
+                    const comprob = filaMayor[idxM.comprob] || '';
+                    const numdoc = filaMayor[idxM.numdoc] || '';
+                    
+                    // Filtrar solo LIBRO = "04" o LIBRO = "09" con HABER > 0
+                    if ((libro === '04' || libro === '09') && haber > 0) {
+                        candidatosLibro4y9++;
+                        
+                        registrosMayorL4L9.push({
+                            indice: i,
+                            libro: libro,
+                            fdoc: fdoc,
+                            fdocNormalizado: this.normalizarFecha(fdoc),
+                            debe: debe,
+                            haber: haber,
+                            comprob: comprob,
+                            numdoc: numdoc
+                        });
+                    }
+                }
+                
+                console.log(`📊 ETAPA 3 BBVA.${moneda} - Candidatos Mayor (Libros 4 y 9 con HABER): ${candidatosLibro4y9}`);
+                
+                // Agrupar por libro para análisis detallado
+                const gruposPorLibro = registrosMayorL4L9.reduce((acc, registro) => {
+                    if (!acc[registro.libro]) acc[registro.libro] = [];
+                    acc[registro.libro].push(registro);
+                    return acc;
+                }, {});
+                
+                console.log(`\n📋 DETALLE GRUPOS MAYOR BBVA.${moneda} POR LIBRO:`);
+                Object.keys(gruposPorLibro).forEach(libro => {
+                    const registros = gruposPorLibro[libro];
+                    const totalHaber = registros.reduce((sum, r) => sum + r.haber, 0);
+                    console.log(`   📚 LIBRO ${libro}: ${registros.length} registros | Total HABER: ${totalHaber.toFixed(2)} ${moneda}`);
+                    
+                    // Mostrar primeros 5 registros de cada libro
+                    registros.slice(0, 5).forEach((registro, idx) => {
+                        console.log(`      ${idx + 1}. FDOC: ${registro.fdoc} | HABER: ${registro.haber.toFixed(2)} | COMPROB: ${registro.comprob} | NUMDOC: ${registro.numdoc}`);
+                    });
+                    if (registros.length > 5) {
+                        console.log(`      ... y ${registros.length - 5} registros más en LIBRO ${libro}`);
+                    }
+                });
+                
+                // === 2. RECOPILAR REGISTROS EXTRACTO ===
+                const registrosExtractoEtapa3 = [];
+                
+                for (let i = 0; i < extractoProcesable.length; i++) {
+                    // Solo revisar filas no procesadas del extracto
+                    if (estadosExtracto.has(i)) continue;
+                    
+                    const itemExtracto = extractoProcesable[i];
+                    const filaExtracto = itemExtracto.fila;
+                    
+                    if (!filaExtracto || !Array.isArray(filaExtracto)) continue;
+                    
+                    // Headers BBVA: F. Operación, F. Valor, Código, Nº. Doc., Concepto, Importe, Oficina
+                    const fOperacion = filaExtracto[0] || '';     // F. Operación
+                    const importe = this.normalizarMonto(filaExtracto[5] || '0'); // Importe
+                    const concepto = filaExtracto[4] || '';       // Concepto
+                    
+                    if (Math.abs(importe) > 0) {
+                        candidatosExtractoEtapa3++;
+                        
+                        registrosExtractoEtapa3.push({
+                            indice: i,
+                            fOperacion: fOperacion,
+                            fOperacionNormalizada: this.normalizarFecha(fOperacion),
+                            importe: importe,
+                            importeAbsoluto: Math.abs(importe),
+                            concepto: concepto
+                        });
+                    }
+                }
+                
+                console.log(`📊 ETAPA 3 BBVA.${moneda} - Candidatos Extracto: ${candidatosExtractoEtapa3}`);
+                
+                // Agrupar extracto por signo (positivos/negativos) para análisis
+                const extractoPositivos = registrosExtractoEtapa3.filter(r => r.importe >= 0);
+                const extractoNegativos = registrosExtractoEtapa3.filter(r => r.importe < 0);
+                const totalPositivos = extractoPositivos.reduce((sum, r) => sum + r.importeAbsoluto, 0);
+                const totalNegativos = extractoNegativos.reduce((sum, r) => sum + r.importeAbsoluto, 0);
+                
+                console.log(`\n📋 DETALLE GRUPOS EXTRACTO BBVA.${moneda}:`);
+                console.log(`   💚 INGRESOS (+): ${extractoPositivos.length} registros | Total: ${totalPositivos.toFixed(2)} ${moneda}`);
+                console.log(`   🔴 EGRESOS (-): ${extractoNegativos.length} registros | Total: ${totalNegativos.toFixed(2)} ${moneda}`);
+                console.log(`   📊 BALANCE NETO: ${(totalPositivos - totalNegativos).toFixed(2)} ${moneda}`);
+                
+                // Mostrar detalles de los primeros registros de cada tipo
+                if (extractoPositivos.length > 0) {
+                    console.log(`\n   💚 PRIMEROS INGRESOS BBVA.${moneda}:`);
+                    extractoPositivos.slice(0, 5).forEach((registro, idx) => {
+                        console.log(`      ${idx + 1}. F.Op: ${registro.fOperacion} | +${registro.importeAbsoluto.toFixed(2)} | ${registro.concepto.substring(0, 40)}...`);
+                    });
+                    if (extractoPositivos.length > 5) {
+                        console.log(`      ... y ${extractoPositivos.length - 5} ingresos más`);
+                    }
+                }
+                
+                if (extractoNegativos.length > 0) {
+                    console.log(`\n   🔴 PRIMEROS EGRESOS BBVA.${moneda}:`);
+                    extractoNegativos.slice(0, 5).forEach((registro, idx) => {
+                        console.log(`      ${idx + 1}. F.Op: ${registro.fOperacion} | -${registro.importeAbsoluto.toFixed(2)} | ${registro.concepto.substring(0, 40)}...`);
+                    });
+                    if (extractoNegativos.length > 5) {
+                        console.log(`      ... y ${extractoNegativos.length - 5} egresos más`);
+                    }
+                }
+                
+                // === 3. MAPEO DIRECTO: FDOC + HABER vs F. OPERACIÓN + IMPORTE ===
+                
+                console.log(`\n🔄 ETAPA 3 BBVA.${moneda} - INICIANDO MAPEO DIRECTO:`);
+                console.log(`   📊 Registros Mayor (L4+L9): ${registrosMayorL4L9.length}`);
+                console.log(`   📊 Registros Extracto: ${registrosExtractoEtapa3.length}`);
+                console.log(`   🎯 Estrategia: FDOC + HABER ↔ F.Operación + |Importe|`);
+                
+                for (const registroMayor of registrosMayorL4L9) {
+                    // Buscar en extracto: misma fecha (FDOC = F. Operación) y mismo importe (HABER = |Importe|)
+                    for (const registroExtracto of registrosExtractoEtapa3) {
+                        // Verificar si ya fue procesado
+                        if (estadosExtracto.has(registroExtracto.indice)) continue;
+                        
+                        // Comparar fecha normalizada
+                        const mismafecha = registroMayor.fdocNormalizado === registroExtracto.fOperacionNormalizada;
+                        
+                        // Comparar importe (HABER del Mayor vs valor absoluto del Extracto)
+                        const diffImporte = Math.abs(registroMayor.haber - registroExtracto.importeAbsoluto);
+                        const mismoImporte = diffImporte < 0.01;
+                        
+                        if (mismafecha && mismoImporte) {
+                            // ¡MATCH ENCONTRADO!
+                            console.log(`✅ ETAPA 3 BBVA.${moneda} - MATCH #${conciliadosEtapa3 + 1}:`);
+                            console.log(`   📅 FECHA: ${registroMayor.fdoc} ↔ ${registroExtracto.fOperacion}`);
+                            console.log(`   💰 IMPORTE: L${registroMayor.libro} HABER ${registroMayor.haber.toFixed(2)} ${moneda} ↔ BBVA ${registroExtracto.importeAbsoluto.toFixed(2)} ${moneda}`);
+                            console.log(`   📄 MAYOR: COMPROB ${registroMayor.comprob} | NUMDOC ${registroMayor.numdoc}`);
+                            console.log(`   🏦 EXTRACTO: ${registroExtracto.concepto.substring(0, 50)}...`);
+                            console.log(`   🔗 REF: BBVA-L4L9-${numeroGrupo}`);
+                            
+                            const refDirectoEtapa3 = `BBVA-L4L9-${numeroGrupo}`;
+                            
+                            // Marcar registro Mayor como conciliado
+                            estadosFilas.set(registroMayor.indice, {
+                                estado: 'P4 - Conciliada',
+                                ref: refDirectoEtapa3
+                            });
+                            
+                            // Marcar registro Extracto como conciliado
+                            estadosExtracto.set(registroExtracto.indice, {
+                                estado: 'P4 - Conciliada',
+                                ref: refDirectoEtapa3
+                            });
+                            
+                            conciliadosEtapa3++;
+                            numeroGrupo++;
+                            
+                            // Salir del bucle interno para evitar múltiples matches del mismo registro Mayor
+                            break;
+                        }
+                    }
+                }
+                
+                console.log(`\n📈 ETAPA 3 BBVA.${moneda} - RESUMEN FINAL:`);
+                console.log(`   💰 Moneda procesada: ${moneda}`);
+                console.log(`   📊 Candidatos Mayor (L4+L9): ${candidatosLibro4y9}`);
+                console.log(`   📊 Candidatos Extracto: ${candidatosExtractoEtapa3}`);
+                console.log(`   ✅ Conciliados exitosamente: ${conciliadosEtapa3}`);
+                console.log(`   📉 Pendientes Mayor: ${candidatosLibro4y9 - conciliadosEtapa3}`);
+                console.log(`   📉 Pendientes Extracto: ${candidatosExtractoEtapa3 - conciliadosEtapa3}`);
+                console.log(`   📊 Tasa de conciliación: ${candidatosLibro4y9 > 0 ? ((conciliadosEtapa3 / candidatosLibro4y9) * 100).toFixed(1) : 0}%`);
+                
+                if (conciliadosEtapa3 > 0) {
+                    const totalConciliado = registrosMayorL4L9
+                        .filter((_, idx) => estadosFilas.has(registrosMayorL4L9[idx].indice))
+                        .reduce((sum, r) => sum + r.haber, 0);
+                    console.log(`   💵 Total conciliado: ${totalConciliado.toFixed(2)} ${moneda}`);
+                }
                 
                 
                 return {
-                    candidatos: candidatosMayor + candidatosExtracto + candidatosBnaDebe + candidatosHaberEncontrados,
-                    conciliados: conciliados + conciliadosInternos,
-                    etapa4a: conciliados, // Conciliados con extracto
-                    etapa4b: conciliadosInternos // Conciliados internos (BNA DEBE vs CUALQUIER HABER)
+                    candidatos: candidatosMayor + candidatosExtracto + candidatosBnaDebe + candidatosHaberEncontrados + candidatosLibro4y9 + candidatosExtractoEtapa3,
+                    conciliados: conciliados + conciliadosInternos + conciliadosEtapa3,
+                    etapa4a: conciliados, // Conciliados con extracto (ABONO/CARGO CART)
+                    etapa4b: conciliadosInternos, // Conciliados internos (BNA DEBE vs CUALQUIER HABER)
+                    etapa4c: conciliadosEtapa3 // Conciliados ETAPA 3 (Libros 4 y 9 vs Extracto)
                 };
             },
 
@@ -5710,10 +5889,195 @@
                 }
                 
                 
+                // ===== ETAPA B DEL PASO 9 (P9B) - AGRUPACIÓN POR FDOC + HABER =====
+                /*
+                PASO 9B - OPERACIONES AGRUPADAS POR FECHA + MONTO:
+                
+                ESTRATEGIA:
+                1. Agrupar en Mayor por FDOC + HABER (registros pendientes de libros 02, 03, 09, 14, 15)
+                2. Agrupar en Extracto por FECHA + |MONTO| (valor absoluto)
+                3. Mapear grupos que coincidan en fecha y monto
+                
+                ESTADOS RESULTANTES:
+                - "P9B - Conciliada"
+                - Mayor: #REF = "GRUPO-P9B-[N]"
+                - Extracto: #REF = "GRUPO-P9B-[N]"
+                */
+                
+                let conciliadosP9B = 0;
+                let gruposP9BMayor = 0;
+                let gruposP9BExtracto = 0;
+                
+                // === 1. AGRUPAR EN MAYOR POR FDOC + HABER ===
+                const gruposMayorP9B = new Map();
+                
+                for (let i = 0; i < filasFiltradasMayor.length; i++) {
+                    // Solo procesar filas pendientes (no procesadas en Etapa A ni otros pasos)
+                    if (estadosFilas.has(i)) continue;
+                    
+                    const filaMayor = filasFiltradasMayor[i];
+                    const libro = filaMayor[idxM.libro] || '';
+                    const fdoc = filaMayor[idxM.fdoc] || '';
+                    const haber = this.normalizarMonto(filaMayor[idxM.haber] || '0');
+                    const comprob = filaMayor[idxM.comprob] || '';
+                    
+                    // Verificar criterios del PASO 9B (mismos libros que P9A)
+                    const esLibroObjetivo = librosObjetivo.includes(String(libro || '').trim());
+                    
+                    if (esLibroObjetivo && haber > 0) {
+                        // ⭐ AGRUPAR SOLO POR FDOC (sumar HABER)
+                        const fdocLimpio = String(fdoc || '').trim();
+                        const haberRedondeado = Math.round(haber * 100) / 100; // Redondear a 2 decimales
+                        const claveGrupo = fdocLimpio; // Solo FDOC como clave
+                        
+                        if (!gruposMayorP9B.has(claveGrupo)) {
+                            gruposMayorP9B.set(claveGrupo, {
+                                fdoc: fdocLimpio,
+                                fdocOriginal: fdoc,
+                                haber: 0, // Inicializar en 0 para sumar
+                                filas: []
+                            });
+                        }
+                        
+                        const grupo = gruposMayorP9B.get(claveGrupo);
+                        grupo.haber += haberRedondeado; // Sumar HABER al grupo
+                        grupo.haber = Math.round(grupo.haber * 100) / 100; // Redondear resultado
+                        grupo.filas.push({
+                            indice: i,
+                            fila: filaMayor,
+                            libro: libro,
+                            comprob: comprob
+                        });
+                    }
+                }
+                
+                gruposP9BMayor = gruposMayorP9B.size;
+                
+                // === LOG ESPECÍFICO PARA BCP CUENTA 1041505 ===
+                if (cuentaConfig && cuentaConfig.codigo === '1041505') {
+                    console.log(`🔍 PASO 9B - GRUPOS MAYOR BCP.02 (${cuentaConfig.codigo}):`);
+                    console.log(`   📊 Total grupos formados: ${gruposP9BMayor}`);
+                    
+                    let contadorGrupo = 1;
+                    for (const [clave, grupo] of gruposMayorP9B.entries()) {
+                        console.log(`   📋 Grupo ${contadorGrupo}: FDOC=${grupo.fdoc}, Haber=${grupo.haber.toFixed(2)}, Filas=${grupo.filas.length}`);
+                        grupo.filas.forEach((item, idx) => {
+                            console.log(`      - Fila ${idx + 1}: LIBRO=${item.libro}, COMPROB=${item.comprob}, Índice=${item.indice}`);
+                        });
+                        contadorGrupo++;
+                        if (contadorGrupo > 10) break; // Limitar a 10 grupos para no saturar
+                    }
+                }
+                
+                // === 2. AGRUPAR EN EXTRACTO POR FECHA + |MONTO| ===
+                const gruposExtractoP9B = new Map();
+                
+                for (let i = 0; i < extractoProcesable.length; i++) {
+                    // Solo revisar filas no procesadas del extracto
+                    if (estadosExtracto.has(i)) continue;
+                    
+                    const itemExtracto = extractoProcesable[i];
+                    const filaExtracto = itemExtracto.fila;
+                    
+                    if (!filaExtracto || !Array.isArray(filaExtracto)) continue;
+                    
+                    const fechaExtractoRaw = filaExtracto[idxE.fecha] || '';
+                    const montoExtractoRaw = filaExtracto[idxE.monto] || '0';
+                    
+                    // Normalizar fecha y monto del extracto
+                    const fechaExtractoNormalizada = this.normalizarFecha(fechaExtractoRaw);
+                    const montoExtractoRaw_parsed = this.normalizarMonto(montoExtractoRaw);
+                    const montoExtracto = Math.abs(montoExtractoRaw_parsed); // VALOR ABSOLUTO
+                    const montoRedondeado = Math.round(montoExtracto * 100) / 100; // Redondear a 2 decimales
+                    
+                    if (fechaExtractoNormalizada && montoRedondeado > 0) {
+                        // ⭐ AGRUPAR POR FECHA + |MONTO|
+                        const claveGrupo = `${fechaExtractoNormalizada}_${montoRedondeado}`;
+                        
+                        if (!gruposExtractoP9B.has(claveGrupo)) {
+                            gruposExtractoP9B.set(claveGrupo, {
+                                fecha: fechaExtractoNormalizada,
+                                fechaOriginal: fechaExtractoRaw,
+                                monto: montoRedondeado,
+                                filas: []
+                            });
+                        }
+                        
+                        const grupo = gruposExtractoP9B.get(claveGrupo);
+                        grupo.filas.push({
+                            indice: i,
+                            fila: filaExtracto,
+                            operacionNumero: filaExtracto[6] || '' // Columna G - Operación Número
+                        });
+                    }
+                }
+                
+                gruposP9BExtracto = gruposExtractoP9B.size;
+                
+                // === LOG ESPECÍFICO PARA BCP CUENTA 1041505 - EXTRACTO ===
+                if (cuentaConfig && cuentaConfig.codigo === '1041505') {
+                    console.log(`🔍 PASO 9B - GRUPOS EXTRACTO BCP.02 (${cuentaConfig.codigo}):`);
+                    console.log(`   📊 Total grupos formados: ${gruposP9BExtracto}`);
+                    
+                    let contadorGrupoExt = 1;
+                    for (const [clave, grupo] of gruposExtractoP9B.entries()) {
+                        console.log(`   📋 Grupo ${contadorGrupoExt}: Fecha=${grupo.fecha}, Monto=${grupo.monto.toFixed(2)}, Filas=${grupo.filas.length}`);
+                        grupo.filas.forEach((item, idx) => {
+                            console.log(`      - Fila ${idx + 1}: OpNum=${item.operacionNumero}, Índice=${item.indice}`);
+                        });
+                        contadorGrupoExt++;
+                        if (contadorGrupoExt > 10) break; // Limitar a 10 grupos para no saturar
+                    }
+                }
+                
+                // === 3. MAPEAR GRUPOS MAYOR VS EXTRACTO ===
+                let numeroGrupoP9B = 1;
+                
+                for (const [claveMayor, grupoMayor] of gruposMayorP9B.entries()) {
+                    // Convertir FDOC del Mayor a fecha normalizada para comparar con Extracto
+                    const fechaNormalizadaMayor = this.normalizarFecha(grupoMayor.fdoc);
+                    const claveExtractoBuscada = `${fechaNormalizadaMayor}_${grupoMayor.haber}`;
+                    
+                    // Buscar grupo correspondiente en extracto con fecha y monto coincidentes
+                    if (gruposExtractoP9B.has(claveExtractoBuscada)) {
+                        const grupoExtracto = gruposExtractoP9B.get(claveExtractoBuscada);
+                        
+                        // ⭐ CONCILIAR GRUPOS
+                        const refGrupoP9B = `GRUPO-P9B-${numeroGrupoP9B}`;
+                        
+                        // Marcar todas las filas del grupo Mayor como conciliadas
+                        for (const item of grupoMayor.filas) {
+                            estadosFilas.set(item.indice, {
+                                estado: 'P9B - Conciliada',
+                                ref: refGrupoP9B
+                            });
+                        }
+                        
+                        // Marcar todas las filas del grupo Extracto como conciliadas
+                        for (const item of grupoExtracto.filas) {
+                            estadosExtracto.set(item.indice, {
+                                estado: 'P9B - Conciliada',
+                                ref: refGrupoP9B
+                            });
+                        }
+                        
+                        conciliadosP9B++;
+                        numeroGrupoP9B++;
+                        
+                        // Eliminar grupo del extracto para evitar reutilización
+                        gruposExtractoP9B.delete(claveExtractoBuscada);
+                    }
+                }
+                
+                
                 return {
                     candidatos: totalCandidatos,
                     grupos: gruposFormados,
                     conciliados: conciliados,
+                    // Nuevas estadísticas para P9B
+                    conciliadosP9B: conciliadosP9B,
+                    gruposP9BMayor: gruposP9BMayor,
+                    gruposP9BExtracto: gruposP9BExtracto,
                     libro03: candidatosLibro03,
                     libro09: candidatosLibro09,
                     libro14: candidatosLibro14,
@@ -8849,74 +9213,83 @@
 
             procesarPaso12BBVA(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto, cuentaConfig = null) {
                 /*
-                PASO 12 BBVA USD - MAPEO DIRECTO POR MONTOS:
+                PASO 12 BBVA (PEN/USD) - AGRUPACIÓN POR FDOC + TOTAL HABER:
                 
-                ESTRATEGIA SIMPLIFICADA:
-                1. Tomar todos los pendientes del Mayor (cualquier DEBE o HABER no cero)
-                2. Tomar todos los pendientes del Extracto BBVA
-                3. Mapear: MONTO Mayor (DEBE o HABER) ↔ |Monto| Extracto BBVA
+                NUEVA ESTRATEGIA:
+                1. Mayor: Agrupar por FDOC + sumar TOTAL HABER de todos los libros pendientes
+                2. Extracto: Agrupar por F. Operación (columna A) + |Importe| (columna F)
+                3. Mapear: FDOC+TOTAL_HABER ↔ F.Operación+|Importe|
                 
                 CRITERIO:
-                - Coincidencia exacta de montos (con tolerancia mínima)
+                - Coincidencia exacta de montos agrupados (tolerancia 0.01)
+                - Procesa TODOS los pendientes de TODOS los libros
                 
                 ESTADOS RESULTANTES:
-                - "P12 - Conciliada" para ambos registros
-                - Mayor: #REF = Número del Extracto
-                - Extracto: #REF = "LIBRO-COMPROB" del Mayor
+                - "P12 - Conciliada" para todos los registros del grupo
+                - Mayor: #REF = F. Operación del Extracto
+                - Extracto: #REF = "FDOC-GRUPO" del Mayor
                 */
                 
-                const esBBVAUSD = cuentaConfig && cuentaConfig.codigo === '1041202';
-                if (esBBVAUSD) {
-                }
+                console.log(`\n🏦 PASO 12 BBVA (${cuentaConfig?.codigo || 'BBVA'}) - AGRUPACIÓN POR FDOC + TOTAL HABER`);
                 
-                let candidatosMayor = 0;
-                let candidatosExtracto = 0;
+                let gruposMayor = 0;
+                let gruposExtracto = 0;
                 let conciliados = 0;
                 
-                // === 1. RECOPILAR PENDIENTES DEL MAYOR ===
-                const pendientesMayor = [];
+                // === 1. AGRUPAR PENDIENTES DEL MAYOR POR FDOC ===
+                const gruposPorFDOC = new Map();
                 
                 for (let i = 0; i < filasFiltradasMayor.length; i++) {
                     // Solo procesar filas pendientes
                     if (estadosFilas.has(i)) continue;
                     
                     const filaMayor = filasFiltradasMayor[i];
-                    const debe = this.normalizarMonto(filaMayor[idxM.debe] || '0');
+                    const fdoc = this.normalizarFecha(filaMayor[idxM.fdoc] || '');
                     const haber = this.normalizarMonto(filaMayor[idxM.haber] || '0');
-                    const comprob = filaMayor[idxM.comprob] || '';
                     const libro = filaMayor[idxM.libro] || '';
+                    const comprob = filaMayor[idxM.comprob] || '';
                     
-                    // Tomar el monto no cero (DEBE o HABER)
-                    let montoMayor = 0;
-                    if (debe !== 0) montoMayor = debe;
-                    else if (haber !== 0) montoMayor = haber;
-                    
-                    if (montoMayor !== 0) {
-                        candidatosMayor++;
+                    // Solo considerar registros con HABER > 0
+                    if (haber > 0 && fdoc) {
+                        const claveGrupo = fdoc; // Agrupar por FDOC
                         
-                        pendientesMayor.push({
+                        if (!gruposPorFDOC.has(claveGrupo)) {
+                            gruposPorFDOC.set(claveGrupo, {
+                                fdoc: fdoc,
+                                totalHaber: 0,
+                                registros: [],
+                                libros: new Set()
+                            });
+                        }
+                        
+                        const grupo = gruposPorFDOC.get(claveGrupo);
+                        grupo.totalHaber += haber;
+                        grupo.registros.push({
                             indice: i,
                             fila: filaMayor,
-                            monto: montoMayor,
-                            comprob: comprob,
+                            haber: haber,
                             libro: libro,
-                            tipo: debe !== 0 ? 'DEBE' : 'HABER'
+                            comprob: comprob
                         });
-                        
-                        if (esBBVAUSD && candidatosMayor <= 5) {
-                        }
+                        grupo.libros.add(libro);
                     }
                 }
                 
-                if (esBBVAUSD) {
+                gruposMayor = gruposPorFDOC.size;
+                console.log(`📊 Mayor: ${gruposMayor} grupos por FDOC encontrados`);
+                
+                // Mostrar grupos del Mayor
+                for (const [fdoc, grupo] of gruposPorFDOC) {
+                    console.log(`   📅 FDOC: ${fdoc} | Total HABER: ${grupo.totalHaber.toFixed(2)} | Registros: ${grupo.registros.length} | Libros: [${Array.from(grupo.libros).join(', ')}]`);
                 }
                 
-                if (candidatosMayor === 0) {
+                if (gruposMayor === 0) {
+                    console.log(`⚠️ No se encontraron grupos en Mayor con HABER > 0`);
                     return { candidatos: 0, grupos: 0, conciliados: 0 };
                 }
                 
-                // === 2. RECOPILAR PENDIENTES DEL EXTRACTO ===
-                const pendientesExtracto = [];
+                // === 2. AGRUPAR PENDIENTES DEL EXTRACTO POR F. OPERACIÓN ===
+                const gruposPorOperacion = new Map();
                 
                 for (let i = 0; i < extractoProcesable.length; i++) {
                     // Solo revisar filas no procesadas del extracto
@@ -8927,85 +9300,99 @@
                     
                     if (!filaExtracto || !Array.isArray(filaExtracto)) continue;
                     
+                    // Columna A (índice 0): F. Operación
                     // Columna F (índice 5): Importe
-                    // Columna D (índice 3): Nº. Doc.
+                    const fOperacion = (filaExtracto[0] || '').toString().trim();
                     const importe = filaExtracto[5] || '0';
-                    const operacionNumero = filaExtracto[3] || '';
                     
                     const montoOriginal = this.normalizarMonto(importe);
                     const montoAbsoluto = Math.abs(montoOriginal);
                     
-                    if (montoAbsoluto !== 0) {
-                        candidatosExtracto++;
+                    if (montoAbsoluto > 0 && fOperacion) {
+                        const claveGrupo = fOperacion; // Agrupar por F. Operación
                         
-                        pendientesExtracto.push({
+                        if (!gruposPorOperacion.has(claveGrupo)) {
+                            gruposPorOperacion.set(claveGrupo, {
+                                fOperacion: fOperacion,
+                                totalImporte: 0,
+                                registros: []
+                            });
+                        }
+                        
+                        const grupo = gruposPorOperacion.get(claveGrupo);
+                        grupo.totalImporte += montoAbsoluto;
+                        grupo.registros.push({
                             indice: i,
                             fila: filaExtracto,
-                            montoOriginal: montoOriginal,
-                            montoAbsoluto: montoAbsoluto,
-                            operacionNumero: operacionNumero
+                            importe: montoAbsoluto,
+                            importeOriginal: montoOriginal
                         });
-                        
-                        if (esBBVAUSD && candidatosExtracto <= 5) {
-                        }
                     }
                 }
                 
-                if (esBBVAUSD) {
+                gruposExtracto = gruposPorOperacion.size;
+                console.log(`📊 Extracto: ${gruposExtracto} grupos por F. Operación encontrados`);
+                
+                // Mostrar grupos del Extracto
+                for (const [fOperacion, grupo] of gruposPorOperacion) {
+                    console.log(`   🏦 F. Operación: ${fOperacion} | Total |Importe|: ${grupo.totalImporte.toFixed(2)} | Registros: ${grupo.registros.length}`);
                 }
                 
-                if (candidatosExtracto === 0) {
-                    return { candidatos: candidatosMayor, grupos: 0, conciliados: 0 };
+                if (gruposExtracto === 0) {
+                    console.log(`⚠️ No se encontraron grupos en Extracto con F. Operación válida`);
+                    return { candidatos: gruposMayor, grupos: gruposMayor + gruposExtracto, conciliados: 0 };
                 }
                 
-                // === 3. MAPEO DIRECTO POR MONTOS ===
-                if (esBBVAUSD) {
-                }
+                // === 3. MAPEO DE GRUPOS: FDOC+TOTAL_HABER ↔ F.OPERACIÓN+|IMPORTE| ===
+                console.log(`\n🔍 MAPEO DE GRUPOS:`);
+                const gruposUsadosExtracto = new Set();
                 
-                const usadosExtracto = new Set();
-                
-                for (const pendienteMayor of pendientesMayor) {
-                    const montoMayor = pendienteMayor.monto;
+                for (const [fdocMayor, grupoMayor] of gruposPorFDOC) {
+                    const totalHaberMayor = grupoMayor.totalHaber;
                     
                     // Buscar coincidencia en extracto
-                    for (const pendienteExtracto of pendientesExtracto) {
-                        if (usadosExtracto.has(pendienteExtracto.indice)) continue;
+                    for (const [fOperacionExtracto, grupoExtracto] of gruposPorOperacion) {
+                        if (gruposUsadosExtracto.has(fOperacionExtracto)) continue;
                         
-                        const montoExtracto = pendienteExtracto.montoAbsoluto;
-                        const diferencia = Math.abs(montoMayor - montoExtracto);
+                        const totalImporteExtracto = grupoExtracto.totalImporte;
+                        const diferencia = Math.abs(totalHaberMayor - totalImporteExtracto);
                         
                         if (diferencia < 0.01) { // Tolerancia de 1 centavo
-                            // CONCILIACIÓN DIRECTA EXITOSA
-                            const refMayor = pendienteExtracto.operacionNumero || 'BBVA-DIRECTO';
-                            const refExtracto = `${pendienteMayor.libro}-${pendienteMayor.comprob}` || 'MAYOR-DIRECTO';
+                            // CONCILIACIÓN DE GRUPOS EXITOSA
+                            console.log(`✅ CONCILIACIÓN: FDOC ${fdocMayor} (${totalHaberMayor.toFixed(2)}) ↔ F.Op ${fOperacionExtracto} (${totalImporteExtracto.toFixed(2)})`);
                             
-                            // Asignar estados
-                            estadosFilas.set(pendienteMayor.indice, {
-                                estado: 'P12 - Conciliada',
-                                ref: refMayor
-                            });
-                            
-                            estadosExtracto.set(pendienteExtracto.indice, {
-                                estado: 'P12 - Conciliada',
-                                ref: refExtracto
-                            });
-                            
-                            usadosExtracto.add(pendienteExtracto.indice);
-                            conciliados += 2;
-                            
-                            if (esBBVAUSD) {
+                            // Asignar estados a todos los registros del grupo Mayor
+                            for (const registroMayor of grupoMayor.registros) {
+                                estadosFilas.set(registroMayor.indice, {
+                                    estado: 'P12 - Conciliada',
+                                    ref: fOperacionExtracto
+                                });
+                                conciliados++;
                             }
+                            
+                            // Asignar estados a todos los registros del grupo Extracto
+                            for (const registroExtracto of grupoExtracto.registros) {
+                                estadosExtracto.set(registroExtracto.indice, {
+                                    estado: 'P12 - Conciliada',
+                                    ref: `FDOC-${fdocMayor}`
+                                });
+                                conciliados++;
+                            }
+                            
+                            gruposUsadosExtracto.add(fOperacionExtracto);
                             break;
                         }
                     }
                 }
                 
-                if (esBBVAUSD) {
-                }
+                console.log(`\n📈 RESUMEN PASO 12 BBVA:`);
+                console.log(`   📊 Grupos Mayor: ${gruposMayor}`);
+                console.log(`   📊 Grupos Extracto: ${gruposExtracto}`);
+                console.log(`   ✅ Registros Conciliados: ${conciliados}`);
                 
                 return {
-                    candidatos: candidatosMayor + candidatosExtracto,
-                    grupos: 0, // No usamos grupos en la versión simplificada
+                    candidatos: gruposMayor + gruposExtracto,
+                    grupos: gruposMayor + gruposExtracto,
                     conciliados: conciliados
                 };
             },
@@ -11227,14 +11614,11 @@
 
             // === FUNCIÓN PARA OBTENER OMITIDOS DEL PASO 2 AGRUPADOS POR TÉRMINO ===
             obtenerOmitidosPaso2(datosCompletos, cuenta) {
-                console.log(`🔍 DEBUG PASO 2 OMISIONES - Iniciando para cuenta: ${cuenta}`);
                 
                 // USAR DATOS DEL MAYOR DISPONIBLES EN DATOSCOMPLETOS
                 let datosOriginalesMayor = datosCompletos.datosMayor;
-                console.log(`📊 Usando datos del Mayor disponibles`);
                 
                 if (!datosOriginalesMayor || !Array.isArray(datosOriginalesMayor)) {
-                    console.log('❌ No hay datos del Mayor disponibles (ni originales ni procesados)');
                     return {};
                 }
                 
@@ -11243,7 +11627,6 @@
                 
                 // Términos de exclusión del paso 2 (EXACTOS DEL PASO 2)
                 const terminosExclusion = ["AMERICAN EXP", "CALIDDA", "DINERS", "MASTER CARD", "MERCADOPAGO", "VISANET"];
-                console.log(`🎯 Términos de exclusión del PASO 2: ${terminosExclusion.join(', ')}`);
                 
                 // Inicializar totales por término
                 terminosExclusion.forEach(termino => {
@@ -11264,7 +11647,6 @@
                 }
 
                 if (headerIndex === -1) {
-                    console.log('❌ No se encontró header con GLOSA en datosMayor');
                     return {};
                 }
                 
@@ -11275,17 +11657,13 @@
                 const debeCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('DEBE'));
                 const cuentaCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('CUENTA'));
                 
-                console.log(`📊 Headers encontrados - CUENTA: ${cuentaCol}, GLOSA: ${glosaCol}, DEBE: ${debeCol}`);
-                console.log(`📊 Headers: ${headers.map((h, i) => `${i}:${h}`).slice(0, 10).join(' | ')}`);
 
                 if (glosaCol === -1 || debeCol === -1 || cuentaCol === -1) {
-                    console.log('❌ No se encontraron columnas CUENTA, GLOSA o DEBE');
                     return {};
                 }
 
                 // OBTENER FILAS DE DATOS (igual que el PASO 2: después del header)
                 const dataRowsMayor = datosMayor.slice(headerIndex + 1);
-                console.log(`📊 Total de filas de datos en Mayor: ${dataRowsMayor.length}`);
 
                 // PASO 1: FILTRAR POR CUENTA BCP.01 (1041501) - igual que el paso 2 original
                 const codigoCuentaEspecifica = '1041501'; // BCP.01
@@ -11295,7 +11673,6 @@
                     return cuentaFila === codigoCuentaEspecifica;
                 });
                 
-                console.log(`📊 Filas filtradas por cuenta BCP.01 (${codigoCuentaEspecifica}): ${filasFiltradasPorCuenta.length}`);
 
                 // PASO 2: IDENTIFICAR FILAS QUE SERÍAN OMITIDAS (REPLICAR LÓGICA EXACTA DEL PASO 2)
                 let filasOmitidasPorPaso2 = 0;
@@ -11316,22 +11693,12 @@
                                 const importe = parseFloat(fila[debeCol]) || 0;
                                 matchesEncontrados++;
                                 
-                                console.log(`✅ OMITIDA PASO 2 fila ${idx}: "${termino}" en "${glosa.substring(0, 50)}..." - DEBE: ${importe}`);
                                 agrupados[termino] += importe;
                             }
                         });
                     }
                 });
                 
-                console.log(`📊 ESTADÍSTICAS PASO 2 OMISIONES:`);
-                console.log(`   - Filas filtradas por cuenta: ${filasFiltradasPorCuenta.length}`);
-                console.log(`   - Filas omitidas por PASO 2: ${filasOmitidasPorPaso2}`);
-                console.log(`   - Matches con términos específicos: ${matchesEncontrados}`);
-                
-                console.log(`💰 AGRUPACIÓN POR TÉRMINO DE EXCLUSIÓN:`);
-                Object.entries(agrupados).forEach(([termino, total]) => {
-                    console.log(`   ${termino}: ${total}`);
-                });
                 
                 // Filtrar solo los términos que tienen monto > 0
                 const resultadoFiltrado = {};
@@ -11341,20 +11708,14 @@
                     }
                 });
                 
-                console.log(`🎯 RESULTADO FINAL (omisiones con total > 0):`);
-                Object.entries(resultadoFiltrado).forEach(([termino, total]) => {
-                    console.log(`   ${termino}: ${total}`);
-                });
                 
                 return resultadoFiltrado;
             },
 
             // === FUNCIÓN PARA OBTENER PENDIENTES MAYOR DEBE > 0 PARA CUALQUIER CUENTA ===
             obtenerPendientesMayorDebe(datosCompletos, codigoCuenta = '1041501') {
-                console.log(`🔍 DEBUG MAYOR.PEN - Iniciando búsqueda de pendientes DEBE > 0 para cuenta: ${codigoCuenta}`);
                 
                 if (!datosCompletos.datosMayor || !Array.isArray(datosCompletos.datosMayor)) {
-                    console.log('❌ No hay datos del Mayor disponibles');
                     return [];
                 }
                 
@@ -11376,7 +11737,6 @@
                 }
 
                 if (headerIndex === -1) {
-                    console.log('❌ No se encontró header con ESTADO en datosMayor');
                     return [];
                 }
                 
@@ -11390,11 +11750,8 @@
                 const numdocCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('NUMDOC'));
                 const debeCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('DEBE'));
 
-                console.log(`📊 Headers MAYOR.PEN - CUENTA: ${cuentaCol}, ESTADO: ${estadoCol}, DEBE: ${debeCol}`);
-                console.log(`📊 Headers: ${headers.map((h, i) => `${i}:${h}`).slice(0, 10).join(' | ')}`);
 
                 if (cuentaCol === -1 || estadoCol === -1 || debeCol === -1) {
-                    console.log('❌ No se encontraron columnas CUENTA, ESTADO o DEBE');
                     return [];
                 }
 
@@ -11426,7 +11783,6 @@
                     
                     if (estaPendiente) {
                         pendientesEncontradas++;
-                        console.log(`📝 Pendiente BCP.01 fila ${i}: Estado="${estado}", DEBE=${debe}`);
                     }
                     
                     // FILTRO 3: DEBE > 0
@@ -11439,7 +11795,6 @@
                             importe: debe,
                             cuenta: cuenta.toString().trim()
                         };
-                        console.log(`✅ CANDIDATO ${candidatos}: "${pendiente.glosa.substring(0, 40)}..." - Importe: ${debe}`);
                         pendientes.push(pendiente);
                     }
                     
@@ -11448,12 +11803,6 @@
                     }
                 }
                 
-                console.log(`📊 ESTADÍSTICAS MAYOR.PEN ${codigoCuenta}:`);
-                console.log(`   - Filas revisadas: ${filasRevisadas}`);
-                console.log(`   - Filtradas por cuenta ${codigoCuenta}: ${filtradasPorCuenta}`);
-                console.log(`   - Con estado PENDIENTE: ${pendientesEncontradas}`);
-                console.log(`   - CANDIDATOS finales (PENDIENTE + DEBE > 0): ${candidatos}`);
-                console.log(`🎯 Total de pendientes encontrados: ${pendientes.length}`);
                 
                 return pendientes;
             },
@@ -11577,7 +11926,6 @@
 
             // === FUNCIÓN PARA OBTENER PENDIENTES DE EXTRACTOS (CARGOS EN BANCOS NO REGISTRADOS EN LIBROS) ===
             obtenerPendientesExtractos(datosCompletos, nombrePestaña, codigoCuenta) {
-                console.log(`🔍 CARGOS EN BANCOS - Iniciando para ${nombrePestaña} (${codigoCuenta})`);
                 
                 // DET y BN son saldos manuales, no tienen extractos para procesar
                 if (nombrePestaña === 'DET' || nombrePestaña === 'BN') {
@@ -11688,13 +12036,9 @@
                             importe: Math.abs(importe) // Convertir a positivo para mostrar
                         });
                         
-                        if (filasCargos <= 5) {
-                            console.log(`✅ Cargo ${filasCargos}: "${descripcion.substring(0, 40)}..." - Importe: ${Math.abs(importe)} (original: ${importe})`);
-                        }
+                        // Log removido para limpieza
                     }
                 }
-                
-                console.log(`📊 RESUMEN ${nombrePestaña}: ${filasRevisadas} revisadas, ${filasPendientes} pendientes, ${filasCargos} cargos (< 0)`);
                 
                 return cargos;
             },
@@ -12416,7 +12760,6 @@
                         }
                         
                         // PARA TODOS LOS BANCOS: Agregar pendientes DEBE > 0 del MAYOR.PEN
-                        console.log(`🚀 INICIANDO PROCESAMIENTO ${nombrePestaña} (${codigoCuenta}) - DEPOSITOS EN LIBROS NO REGISTRADOS`);
                         
                         let totalSeccion = 0;
                         let itemsParaAgregar = [];
@@ -12425,12 +12768,10 @@
                         if (nombrePestaña === 'BCP.01') {
                             // COMBINAR: depósitos de SALDOS + omitidos del paso 2
                             const todosPendientesSaldos = [...depositosLibrosNoRegistrados];
-                            console.log(`📋 Depósitos de SALDOS encontrados: ${todosPendientesSaldos.length}`);
                             
                             let omitidosPaso2 = {};
                             try {
                                 omitidosPaso2 = this.obtenerOmitidosPaso2(datosCompletos, 'BCP.01');
-                                console.log(`📋 Términos omitidos Paso 2: ${Object.keys(omitidosPaso2).length}`);
                             } catch (error) {
                                 console.error(`❌ Error obteniendo omitidos Paso 2 para BCP.01:`, error);
                                 omitidosPaso2 = {};
@@ -12464,11 +12805,9 @@
                         }
                         
                         // PARA TODOS LOS BANCOS: Agregar pendientes MAYOR.PEN con DEBE > 0
-                        console.log(`🔍 Buscando pendientes MAYOR.PEN para ${nombrePestaña} (${codigoCuenta})...`);
                         let pendientesMayorDebe = [];
                         try {
                             pendientesMayorDebe = this.obtenerPendientesMayorDebe(datosCompletos, codigoCuenta);
-                            console.log(`📊 Pendientes MAYOR.PEN encontrados: ${pendientesMayorDebe.length}`);
                         } catch (error) {
                             console.error(`❌ Error obteniendo pendientes MAYOR.PEN para ${nombrePestaña}:`, error);
                             pendientesMayorDebe = [];
@@ -12491,7 +12830,6 @@
                         
                         // Agregar encabezado de la sección y todos los items
                         if (itemsParaAgregar.length > 0) {
-                            console.log(`💰 ✅ Agregando a ${nombrePestaña}: ${itemsParaAgregar.length} items, Total: ${totalSeccion}`);
                             datosConciliacion.push(['(+) DEPOSITOS EN LIBROS NO REGISTRADOS EN BANCOS', '', '', '', totalSeccion]);
                             
                             // Agregar todos los items acumulados
@@ -12501,16 +12839,13 @@
                             
                             totalAjustes += totalSeccion;
                         } else {
-                            console.log(`💰 ⚠️ No hay pendientes para ${nombrePestaña} (${codigoCuenta})`);
                             datosConciliacion.push(['(+) DEPOSITOS EN LIBROS NO REGISTRADOS EN BANCOS', '', '', '', 0]);
                         }
                         
                         // PARA TODOS LOS BANCOS: Agregar pendientes de extractos (cargos en bancos no registrados en libros)
-                        console.log(`🔍 Buscando pendientes de extractos para ${nombrePestaña} (${codigoCuenta})...`);
                         let pendientesExtractos = [];
                         try {
                             pendientesExtractos = this.obtenerPendientesExtractos(datosCompletos, nombrePestaña, codigoCuenta);
-                            console.log(`📊 Pendientes de extractos encontrados: ${pendientesExtractos.length}`);
                         } catch (error) {
                             console.error(`❌ Error obteniendo pendientes de extractos para ${nombrePestaña}:`, error);
                             pendientesExtractos = [];
@@ -12525,7 +12860,7 @@
                                 }
                             });
                             
-                            console.log(`💰 ✅ Agregando pendientes de extractos a ${nombrePestaña}: ${pendientesExtractos.length} items, Total: ${totalPendientesExtractos}`);
+                            // Agregando pendientes de extractos
                             
                             // Agregar encabezado de la sección
                             datosConciliacion.push(['(-) CARGO EN BANCOS NO REGISTRADO EN LIBROS', '', '', '', totalPendientesExtractos]);
@@ -12544,7 +12879,6 @@
                             
                             totalAjustes -= totalPendientesExtractos; // Restar porque es un cargo
                         } else {
-                            console.log(`💰 ⚠️ No hay pendientes de extractos para ${nombrePestaña} (${codigoCuenta})`);
                             datosConciliacion.push(['(-) CARGO EN BANCOS NO REGISTRADO EN LIBROS', '', '', '', 0]);
                         }
                         
