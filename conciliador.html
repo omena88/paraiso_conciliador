@@ -247,7 +247,7 @@
                                 <!-- Botones de Conciliación debajo del drag and drop -->
                                 <div class="mt-4 space-y-3">
                                     <button x-show="canProcessConciliation()"
-                                            @click="console.log('🔘 Botón Iniciar clickeado'); realizarConciliacion()"
+                                            @click="realizarConciliacion()"
                                             :disabled="!validarDatosRequeridos()"
                                             class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 shadow-sm disabled:bg-gray-400 disabled:cursor-not-allowed">
                                         <i class="fas fa-balance-scale mr-2"></i>
@@ -1328,34 +1328,17 @@
                 const tipoCambioValido = this.tipoCambio !== null && this.tipoCambio !== undefined && this.tipoCambio > 0;
                 
                 const resultado = saldoDETValido && saldoBNValido && tipoCambioValido;
-                console.log('🔍 Validación de datos requeridos:', {
-                    saldoDET: this.saldoDET,
-                    saldoDETValido,
-                    saldoBN: this.saldoBN,
-                    saldoBNValido,
-                    tipoCambio: this.tipoCambio,
-                    tipoCambioValido,
-                    resultado
-                });
-                
                 return resultado;
             },
 
             async realizarConciliacion() {
-                console.log('🎯 INICIANDO realizarConciliacion()');
                 if (!this.canProcessConciliation()) {
-                    console.log('❌ canProcessConciliation() falló');
                     this.showStatus('Se necesitan al menos los archivos MAYOR.PEN/USD.MMAAAA y extractos bancarios (BCP.01/02, SANT, BBVA, IBK)', 'error');
                     return;
                 }
-                console.log('✅ canProcessConciliation() pasó');
-
                 this.isLoading = true;
-                console.log('🔄 Iniciando procesamiento de archivos...');
-
                 try {
                     // === SEPARAR ARCHIVOS MAYOR POR MONEDA ===
-                    console.log('📁 Separando archivos MAYOR por moneda...');
                     const mayorFiles = this.files.filter(f => f.category === 'mayor');
                     const mayorFilePEN = mayorFiles.find(f => f.name.toLowerCase().includes('mayor.pen'))?.file;
                     const mayorFileUSD = mayorFiles.find(f => f.name.toLowerCase().includes('mayor.usd'))?.file;
@@ -1439,15 +1422,15 @@
                     extractosPorCuenta.forEach((info, codigo) => {
     
                     });
-                    
-                    console.log('📊 Extractos procesados:', extractosPorCuenta.size, 'Mayor file:', !!mayorFile);
                     if (extractosPorCuenta.size === 0 || !mayorFile) {
-                        console.log('❌ Error: No se encontraron archivos necesarios');
                         throw new Error('No se encontraron los archivos necesarios');
                     }
                     
+                    // Debug: mostrar todos los archivos y sus categorías
+                    this.files.forEach(f => {
+                    });
+                    
                     const saldoFile = this.files.find(f => f.category === 'resumen')?.file; // Archivo de saldo opcional
-
                     const mayorDataPEN = await this.readExcelFile(mayorFile);
                     
                     // Cargar MAYOR.USD si existe
@@ -1529,6 +1512,9 @@
                     let saldoData = null;
                     if (saldoFile) {
                         saldoData = await this.readExcelFile(saldoFile);
+                        if (saldoData && saldoData.length > 0) {
+                        }
+                    } else {
                     }
             
             if (!mayorDataPEN || extractosPorCuenta.size === 0) {
@@ -1560,11 +1546,7 @@
                 // Test adicional del mapeo exacto
             } else {
             }
-            
-                    console.log('🔄 Iniciando procesarConciliacionMultiCuenta...');
                     const resultado = this.procesarConciliacionMultiCuenta(extractosPorCuenta, mayorDataPEN, saldoData, mayorDataUSD);
-                    console.log('✅ procesarConciliacionMultiCuenta completado:', !!resultado);
-            
             if (!resultado || !resultado.datosMayor || resultado.datosMayor.length === 0) {
                 throw new Error('No se generaron datos de conciliación');
             }
@@ -1588,6 +1570,7 @@
                         saldosLibros: saldosLibros, // Agregar saldos de libros
                         saldosExtractos: saldosExtractos, // Agregar saldos de extractos (E6)
                         tipoCambio: this.tipoCambio, // Agregar tipo de cambio
+                        resultado: resultado, // Agregar el resultado completo para acceso a datosSaldo
                         detalles: {
                             fecha: new Date().toISOString(),
                             archivo_generado: fileName,
@@ -1595,19 +1578,15 @@
                         }
                     };
                     
+                    // Log para verificar asignación
                     // Generar dos archivos Excel
-                    console.log('📄 Iniciando generateTwoExcelFiles con fileName:', fileName);
                     const archivosGenerados = await this.generateTwoExcelFiles(resultado, fileName);
-                    console.log('✅ generateTwoExcelFiles completado:', !!archivosGenerados);
-                    
                     // Guardar información de archivos generados para descarga manual
                     this.conciliationResult.archivosGenerados = archivosGenerados;
                     
                     this.showStatus(`Conciliación completada exitosamente. Se generaron 2 archivos para descarga.`, 'success');
             
                  } catch (error) {
-                    console.log('❌ ERROR en realizarConciliacion():', error);
-                    console.log('❌ Stack trace:', error.stack);
                     this.showStatus(`Error en conciliación: ${error.message}`, 'error');
                 } finally {
                     this.isLoading = false;
@@ -1959,18 +1938,12 @@
 
     // === FUNCIÓN MULTI-CUENTA NUEVA ===
             procesarConciliacionMultiCuenta(extractosPorCuenta, datosMayorPEN, datosSaldo = null, datosMayorUSD = null) {
-                console.log('🔄 INICIANDO procesarConciliacionMultiCuenta con', extractosPorCuenta.size, 'cuentas');
-                
                 // Inicializar variable global para registros omitidos del Paso 2 (TARJETAS)
                 window.registrosOmitidosPaso2 = [];
-                console.log('🔄 Inicializando registrosOmitidosPaso2 para TARJETAS (global)');
-                
                 const resultadosPorCuenta = new Map();
                 
                 // Procesar cada cuenta por separado
-                console.log('🔄 Iniciando forEach para procesar cuentas...');
                 extractosPorCuenta.forEach((extractoInfo, codigoCuenta) => {
-                    console.log('📊 Procesando cuenta:', codigoCuenta);
                     if (codigoCuenta === '1041302') {
         
                     }
@@ -1994,15 +1967,12 @@
                     }
                     
                     // Llamar a la función de conciliación pasando información de cuenta específica
-                    console.log('🔄 Llamando procesarConciliacion para cuenta:', codigoCuenta);
                     const resultadoCuenta = this.procesarConciliacion(
                         extractoInfo.datos, 
                         datosMayorParaCuenta, 
                         datosSaldo, 
                         extractoInfo.config // ← NUEVO: Pasar configuración de cuenta
                     );
-                    console.log('✅ procesarConciliacion completado para cuenta:', codigoCuenta);
-                    
                     resultadosPorCuenta.set(codigoCuenta, {
                         config: extractoInfo.config,
                         resultado: resultadoCuenta,
@@ -2069,9 +2039,7 @@
                 }
                 
                 // Consolidar resultados
-                console.log('🔄 Llamando consolidarResultadosMultiCuenta...');
                 const resultadoFinal = this.consolidarResultadosMultiCuenta(resultadosPorCuenta, datosMayorPEN, datosSaldo, datosMayorUSD);
-                console.log('✅ procesarConciliacionMultiCuenta COMPLETADO');
                 return resultadoFinal;
             },
 
@@ -2388,7 +2356,6 @@
                 // Usar saldo del primer resultado (todos los saldos deberían ser iguales)
                 const primerResultado = Array.from(resultadosPorCuenta.values())[0];
                 const datosSaldoConsolidado = primerResultado ? primerResultado.resultado.datosSaldo : [];
-                
                 return {
                     datosMayor: datosMayorConsolidadoPEN, // MAYOR.PEN (solo cuentas PEN procesadas)
                     datosMayorUSD: datosMayorUSDFinal, // MAYOR.USD (cuenta 1041502 desde archivo propio)
@@ -2400,7 +2367,8 @@
 
     // --- Lógica de Conciliación Principal (mantenida del código original) ---
             procesarConciliacion(datosExtracto, datosMayor, datosSaldo = null, cuentaConfig = null) {
-                console.log('🔄 INICIANDO procesarConciliacion para cuenta:', cuentaConfig?.codigo || 'sin especificar');
+                if (datosSaldo && datosSaldo.length > 0) {
+                }
 
         if (datosExtracto && datosExtracto.length > 0) {
 
@@ -2467,8 +2435,6 @@
         }
         
         const indicesExtracto = this.buscarIndicesColumnas(headersExtracto, camposMapeados);
-        console.log('📋 Mapeo de índices completado para cuenta:', cuentaConfig?.codigo);
-        
         // 🔧 DIAGNÓSTICO: Mostrar mapeo de columnas para SBP.USD
         if (cuentaConfig && (cuentaConfig.alias === 'SBP.USD')) {
         }
@@ -2498,8 +2464,6 @@
         
         // --- FILTROS APLICADOS ---
         let dataRowsMayor = datosMayor.slice(2);
-        console.log('🔍 Iniciando filtros - filas del mayor:', dataRowsMayor.length);
-        
         // === PASO 1: Filtro por Cuenta Específica (si se proporciona) ===
         let filasFiltradasMayor = dataRowsMayor;
         
@@ -2548,9 +2512,6 @@
         
         // PASO 2: Omisiones Globales - Excluir términos específicos en GLOSA y capturar para TARJETAS
         const terminosExclusion = ["AMERICAN EXP", "CALIDDA", "DINERS", "MASTER CARD", "MERCADOPAGO", "VISANET", "POWERPAY"];
-        
-        console.log('🔄 Procesando PASO 2 para TARJETAS en cuenta:', cuentaConfig?.codigo || 'sin especificar');
-        
         if (indicesMayor.glosa !== -1) {
             const countAntesFiltro = filasFiltradasMayor.length;
             
@@ -2567,7 +2528,6 @@
                 
                 if (excluir) {
                     filasExcluidas++;
-                    console.log('🚫 Registro excluido en Paso 2:', glosa);
                     // Capturar registro omitido para la pestaña TARJETAS
                     const cuenta = fila[indicesMayor.cuenta] || '';
                     const descrip = fila[indicesMayor.descrip] || '';
@@ -2590,39 +2550,21 @@
                         haber,
                         termino: terminoCoincidente
                     });
-                    console.log('📝 Registro agregado a TARJETAS:', terminoCoincidente, debe, haber);
                 } else {
                     filasRestantes.push(fila);
                 }
             });
             
             filasFiltradasMayor = filasRestantes;
-            console.log(`📊 PASO 2 completado: ${filasExcluidas} registros excluidos, ${window.registrosOmitidosPaso2.length} registros capturados para TARJETAS`);
-            
         } else {
-            console.log('⚠️ PASO 2: No se encontró columna GLOSA, no se pueden excluir registros');
         }
-        
-        console.log('🔍 DEBUG: Punto A');
-        console.log('✅ Filtrado completado - filas restantes:', filasFiltradasMayor.length);
-        console.log('🔍 DEBUG: Punto B');
-        
-
         // Preparar extracto para conciliación (datos empiezan dinámicamente según cuenta)
-        console.log('🔄 Preparando extracto para conciliación...');
         let extractoProcesable = datosExtracto.slice(filaDataInicio).map(fila => ({ fila, conciliado: false }));
-        console.log('✅ Extracto preparado - filas:', extractoProcesable.length);
-        
-
         // VERIFICAR CUÁNTAS ANULACIONES HAY EN TOTAL
-        console.log('🔄 Verificando anulaciones...');
         const anulacionesEncontradas = filasFiltradasMayor.filter(fila => {
             const glosa = fila[indicesMayor.glosa] || '';
             return glosa.toUpperCase().includes('ANULADO');
         });
-        console.log('✅ Anulaciones encontradas:', anulacionesEncontradas.length);
-        
-        
         // Mostrar primeras 3 anulaciones como muestra
         anulacionesEncontradas.slice(0, 3).forEach((fila, idx) => {
             const numdoc = fila[indicesMayor.numdoc] || '';
@@ -2654,11 +2596,8 @@
         
         // NUEVO ENFOQUE: Mapear estados para todas las filas primero
         const estadosFilas = new Map(); // índice → {estado, ref}
-        console.log('🔄 Iniciando bucle principal - filas a procesar:', filasFiltradasMayor.length);
-        
         for (let i = 0; i < filasFiltradasMayor.length; i++) {
             if (i % 100 === 0) { // Log cada 100 iteraciones para no saturar
-                console.log(`🔄 Procesando fila ${i}/${filasFiltradasMayor.length}`);
             }
             const filaMayor = filasFiltradasMayor[i];
             const glosa = filaMayor[indicesMayor.glosa] || '';
@@ -2723,25 +2662,13 @@
                 }
             }
         }
-        console.log('✅ Bucle principal completado');
-        
         // PASO 4: Operaciones BNA (Banco de la Nación)
-        console.log('🔄 Iniciando PASO 4');
         const estadosExtracto = new Map(); // Para rastrear estados del extracto
         
         const resultadosPaso4 = this.procesarPaso4(filasFiltradasMayor, extractoProcesable, indicesMayor, indicesExtracto, estadosFilas, estadosExtracto, cuentaConfig);
-        console.log('✅ PASO 4 completado');
-        
         // PASO 5: Operaciones PROT y DEV (Agrupación por totales diarios)
-        console.log('🔄 Iniciando PASO 5');
         const resultadosPaso5 = this.procesarPaso5(filasFiltradasMayor, extractoProcesable, indicesMayor, indicesExtracto, estadosFilas, estadosExtracto, cuentaConfig);
-        console.log('✅ PASO 5 completado');
-        
-        console.log('🔄 Iniciando PASO 6');
         const resultadosPaso6 = this.procesarPaso6(filasFiltradasMayor, extractoProcesable, indicesMayor, indicesExtracto, estadosFilas, estadosExtracto, cuentaConfig);
-        console.log('✅ PASO 6 completado');
-        
-        
         const resultadosPaso7 = this.procesarPaso7(filasFiltradasMayor, extractoProcesable, indicesMayor, indicesExtracto, estadosFilas, estadosExtracto, cuentaConfig);
         
         
@@ -3161,10 +3088,8 @@
         if (datosSaldo && datosSaldo.length > 1 && estadosSaldo.size > 0) {
             this.aplicarEstadosASaldo(datosSaldoHoja, estadosSaldo);
         }
-
-
-
-        console.log('✅ FINALIZANDO procesarConciliacion para cuenta:', cuentaConfig?.codigo || 'sin especificar');
+        if (datosSaldoHoja && datosSaldoHoja.length > 0) {
+        }
         return {
             datosMayor: datosMayorHoja,
             datosExtracto: datosExtractoHoja, // ✅ INCLUYE HEADERS
@@ -11448,8 +11373,6 @@
      
             async generateTwoExcelFiles(datosCompletos, baseFileName) {
                 try {
-                    console.log('🚀 INICIANDO generateTwoExcelFiles');
-                    console.log('📊 Estado de registrosOmitidosPaso2 al generar archivos:', window.registrosOmitidosPaso2);
                     const timestamp = new Date().toISOString().slice(0,19).replace(/:/g,'-');
                     
                     const datosOriginalesFileName = `resumen_${timestamp}.xlsx`;
@@ -11458,6 +11381,9 @@
                     // Archivo 2: Resultados de conciliación
                     const conciliacionFileName = `conciliacion_${timestamp}.xlsx`;
                     const urlConciliacion = await this.generateConciliacionFile(datosCompletos, conciliacionFileName);
+                    
+                    // ⚠️ COMENTADO: Los cheques NO van al OUTPUT CONCILIACIÓN
+                    // Van solo al OUTPUT RESUMEN
                     
                     return {
                         datosOriginales: {
@@ -11500,7 +11426,7 @@
             },
 
             obtenerSaldoBancoPorCuenta(codigoCuenta) {
-                // Para cuentas USD, usar el equivalente en PEN (USD * TC)
+                // Para cuentas USD, mostrar el valor original sin conversión
                 const cuentasUSD = ['1041502', '1041402', '1041202', '1041302', '1041102'];
                 
                 if (!this.conciliationResult || !this.conciliationResult.saldosExtractos) {
@@ -11513,12 +11439,7 @@
                     return 0;
                 }
                 
-                // Si es cuenta USD, convertir a PEN usando tipo de cambio
-                if (cuentasUSD.includes(codigoCuenta) && this.tipoCambio > 0) {
-                    return saldoExtracto * this.tipoCambio;
-                }
-                
-                // Si es cuenta PEN, usar saldo directo
+                // Para todas las cuentas (USD y PEN), mostrar el valor original sin conversión
                 return saldoExtracto;
             },
 
@@ -11529,6 +11450,76 @@
                 
                 const saldoLibros = this.conciliationResult.saldosLibros.get(codigoCuenta);
                 return (saldoLibros !== undefined && saldoLibros !== null) ? saldoLibros : 0;
+            },
+
+            formatearFecha(fecha) {
+                if (!fecha) return '';
+                
+                try {
+                    // Si ya es una fecha válida en formato dd/mm/aaaa, devolverla tal como está
+                    if (typeof fecha === 'string' && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(fecha)) {
+                        return fecha;
+                    }
+                    
+                    // Si es un objeto Date
+                    if (fecha instanceof Date) {
+                        const dia = fecha.getDate().toString().padStart(2, '0');
+                        const mes = (fecha.getMonth() + 1).toString().padStart(2, '0');
+                        const año = fecha.getFullYear();
+                        return `${dia}/${mes}/${año}`;
+                    }
+                    
+                    // Convertir a número para verificar si es un número de serie de Excel
+                    let numeroFecha = null;
+                    if (typeof fecha === 'string') {
+                        numeroFecha = parseFloat(fecha);
+                    } else if (typeof fecha === 'number') {
+                        numeroFecha = fecha;
+                    }
+                    
+                    // Si es un número de serie de Excel (entre 1 y 100000 aproximadamente)
+                    if (numeroFecha !== null && !isNaN(numeroFecha) && numeroFecha > 1 && numeroFecha < 100000) {
+                        // Convertir número de serie de Excel a fecha
+                        // Excel cuenta desde 1 de enero de 1900, pero tiene un bug que cuenta 1900 como año bisiesto
+                        // Por eso restamos 2 días: 1 por el día base y 1 por el bug del año bisiesto
+                        const fechaExcel = new Date(1900, 0, numeroFecha - 1);
+                        
+                        if (!isNaN(fechaExcel.getTime())) {
+                            const dia = fechaExcel.getDate().toString().padStart(2, '0');
+                            const mes = (fechaExcel.getMonth() + 1).toString().padStart(2, '0');
+                            const año = fechaExcel.getFullYear();
+                            return `${dia}/${mes}/${año}`;
+                        }
+                    }
+                    
+                    // Si es un string que puede ser parseado como fecha
+                    if (typeof fecha === 'string') {
+                        const fechaObj = new Date(fecha);
+                        if (!isNaN(fechaObj.getTime())) {
+                            const dia = fechaObj.getDate().toString().padStart(2, '0');
+                            const mes = (fechaObj.getMonth() + 1).toString().padStart(2, '0');
+                            const año = fechaObj.getFullYear();
+                            return `${dia}/${mes}/${año}`;
+                        }
+                    }
+                    
+                    // Si es un número (timestamp en milisegundos)
+                    if (typeof fecha === 'number' && fecha > 100000) {
+                        const fechaObj = new Date(fecha);
+                        if (!isNaN(fechaObj.getTime())) {
+                            const dia = fechaObj.getDate().toString().padStart(2, '0');
+                            const mes = (fechaObj.getMonth() + 1).toString().padStart(2, '0');
+                            const año = fechaObj.getFullYear();
+                            return `${dia}/${mes}/${año}`;
+                        }
+                    }
+                    
+                    // Si no se puede formatear, devolver string vacío
+                    return '';
+                } catch (error) {
+                    console.warn('Error al formatear fecha:', fecha, error);
+                    return '';
+                }
             },
 
             // === FUNCIÓN PARA OBTENER DEPOSITOS EN LIBROS NO REGISTRADOS EN BANCOS DE SALDOS ===
@@ -11604,7 +11595,7 @@
                         
                         if (estaPendiente) {
                             const deposito = {
-                                fecha: fila[fdocCol] || '',
+                                fecha: this.formatearFecha(fila[fdocCol] || ''),
                                 ref: fila[numdocCol] || '',
                                 glosa: fila[glosaCol] || '',
                                 importe: parseFloat(fila[debeCol]) || 0
@@ -11796,7 +11787,7 @@
                     if (estaPendiente && debe > 0) {
                         candidatos++;
                         const pendiente = {
-                            fecha: fila[fdocCol] || '',
+                            fecha: this.formatearFecha(fila[fdocCol] || ''),
                             ref: fila[numdocCol] || '',
                             glosa: fila[glosaCol] || '',
                             importe: debe,
@@ -11815,18 +11806,33 @@
             },
 
             // === FUNCIÓN PARA OBTENER CHEQUES NO COBRADOS DE SALDOS ===
-            obtenerChequesNoCobrados(datosCompletos) {
+            obtenerChequesNoCobrados(datosCompletos, codigoCuenta) {
+                console.log('🔵 [CHEQUES ETAPA 1] Iniciando obtenerChequesNoCobrados para cuenta:', codigoCuenta);
                 
-                                if (!datosCompletos.datosSaldo || !Array.isArray(datosCompletos.datosSaldo)) {
+                // Usar los datos procesados del OUTPUT SALDO en lugar del input
+                let datosSaldo = null;
+                
+                if (this.outputWorkbook && this.outputWorkbook.Sheets['SALDO']) {
+                    console.log('🔵 [CHEQUES ETAPA 1] Leyendo desde outputWorkbook.Sheets[SALDO]');
+                    const saldoSheet = this.outputWorkbook.Sheets['SALDO'];
+                    datosSaldo = XLSX.utils.sheet_to_json(saldoSheet, { header: 1, defval: '' });
+                } else {
+                    console.log('🔵 [CHEQUES ETAPA 1] Usando datosCompletos.resultado.datosSaldo (fallback)');
+                    datosSaldo = datosCompletos?.resultado?.datosSaldo;
+                }
+                
+                console.log('🔵 [CHEQUES ETAPA 1] Datos SALDO obtenidos:', {
+                    existe: !!datosSaldo,
+                    esArray: Array.isArray(datosSaldo),
+                    filas: datosSaldo ? datosSaldo.length : 0
+                });
+                
+                if (!Array.isArray(datosSaldo) || datosSaldo.length === 0) {
+                    console.log('❌ [CHEQUES ETAPA 1] No hay datos SALDO disponibles');
                     return [];
                 }
                 
-                
                 const cheques = [];
-                const datosSaldo = datosCompletos.datosSaldo;
-                
-                // for (let i = 0; i < Math.min(5, datosSaldo.length); i++) {
-                // }
                 
                 // Buscar header para identificar columnas
                 let headerIndex = -1;
@@ -11842,91 +11848,188 @@
                 }
 
                 if (headerIndex === -1) {
+                    console.log('❌ [CHEQUES ETAPA 1] No se encontró header en SALDO');
                     return [];
                 }
                 
+                console.log('🔵 [CHEQUES ETAPA 1] Header encontrado en fila:', headerIndex);
                 const headers = datosSaldo[headerIndex];
                 
-                // Buscar columnas de manera más robusta
-                const conceptoCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('CONCEPTO'));
-                const fdocCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('FDOC'));
-                const numdocCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('NUMDOC'));
-                const glosaCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('GLOSA'));
-                const importeCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('IMPORTE'));
+                // Buscar columnas según la estructura del SALDO OUTPUT PROCESADO
+                const cuentaCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('CUENTA')); // Columna A (0)
+                const conceptoCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('CONCEPTO REPORTE FINAL')); // Columna D (3) - "Concepto Reporte Final"
+                const fdocCol = headers.findIndex(h => h && h.toString().toUpperCase() === 'FDOC'); // Columna E (4)
+                const numdocCol = headers.findIndex(h => h && h.toString().toUpperCase() === 'NUMDOC'); // Columna G (6)
+                const giradoCol = headers.findIndex(h => h && h.toString().toUpperCase() === 'GIRADO'); // Columna N (13)
+                const importeCol = headers.findIndex(h => h && h.toString().toUpperCase() === 'IMPORTE'); // Columna O (14)
+                const estadoCol = headers.findIndex(h => h && h.toString().toUpperCase() === 'ESTADO'); // Columna P (15)
 
+                console.log('🔵 [CHEQUES ETAPA 1] Columnas identificadas (índices):', {
+                    cuentaCol,
+                    conceptoCol,
+                    fdocCol,
+                    numdocCol,
+                    giradoCol,
+                    importeCol,
+                    estadoCol
+                });
+                
+                console.log('🔵 [CHEQUES ETAPA 1] Headers completos:', headers);
+                console.log('🔵 [CHEQUES ETAPA 1] Buscando concepto exacto "Concepto" y estado "ESTADO"');
 
-                if (conceptoCol === -1) {
+                if (conceptoCol === -1 || cuentaCol === -1 || estadoCol === -1) {
+                    console.log('❌ [CHEQUES ETAPA 1] Columnas necesarias no encontradas');
                     return [];
                 }
-
                 // Procesar filas de datos
                 let filasRevisadas = 0;
                 let chequesEncontrados = 0;
+                let chequesPorCuenta = {};
+                
+                console.log('🔵 [CHEQUES ETAPA 1] Iniciando procesamiento de filas...');
                 
                 for (let i = headerIndex + 1; i < datosSaldo.length; i++) {
                     const fila = datosSaldo[i];
                     if (!Array.isArray(fila)) continue;
                     
                     filasRevisadas++;
+                    const cuenta = fila[cuentaCol];
                     const concepto = fila[conceptoCol];
+                    const estado = fila[estadoCol];
                     
-                    if (concepto && concepto.toString().toUpperCase().includes('CHEQUES NO COBRADOS')) {
+                    // Log de primeras 3 filas para diagnóstico
+                    if (filasRevisadas <= 3) {
+                        console.log(`🔍 [CHEQUES ETAPA 1] Fila ${filasRevisadas}:`, {
+                            cuenta: cuenta,
+                            concepto: concepto,
+                            estado: estado
+                        });
+                    }
+                    
+                    // CORREGIDO: Distribuir cheques según la cuenta que tengan
+                    // Filtrar por concepto "(-) CHEQUES" (NO "(-) CHEQUES NO COBRADOS")
+                    // SOLO para cuentas BCP.01 (1041501) y SBP (1041301)
+                    const cuentaStr = cuenta ? cuenta.toString() : '';
+                    const esCuentaValida = cuentaStr === '1041501' || cuentaStr === '1041301'; // BCP.01 o SBP
+                    
+                    const conceptoUpper = concepto ? concepto.toString().toUpperCase() : '';
+                    const estadoStr = estado ? estado.toString().trim() : '';
+                    
+                    // CORREGIDO: Buscar "(-) CHEQUES" en columna Concepto (D)
+                    const esCheque = conceptoUpper.includes('(-) CHEQUES');
+                    // CORREGIDO: Filtrar SOLO los que tienen "Pendiente" exacto (no vacíos ni otros estados)
+                    const estaPendiente = estadoStr === 'Pendiente';
+                    
+                    if (esCuentaValida && esCheque && estaPendiente) {
+                        
                         chequesEncontrados++;
                         
-                        // Verificar si está pendiente
-                        const estado = fila[fila.length - 1]; // Última columna
-                        const estadoAnterior = fila[fila.length - 2]; // Penúltima columna
-                        
-                        
-                        // Criterio más flexible para determinar si está pendiente
-                        const estaPendiente = !estado || 
-                                            estado === '' || 
-                                            estado.toString().toUpperCase().includes('PENDIENTE') ||
-                                            !estado.toString().toUpperCase().includes('CONCILIADO');
-                        
-                        
-                        if (estaPendiente) {
+                        // Solo agregar si coincide con la cuenta solicitada
+                        if (cuentaStr === codigoCuenta) {
                             const cheque = {
-                                fecha: fila[fdocCol] || '',
-                                ref: fila[numdocCol] || '',
-                                glosa: fila[glosaCol] || '',
-                                importe: parseFloat(fila[importeCol]) || 0
+                                fecha: this.formatearFecha(fila[fdocCol] || ''), // FDOC (columna E)
+                                ref: fila[numdocCol] || '', // NUMDOC (columna G)
+                                glosa: fila[giradoCol] || '', // GIRADO (columna N)
+                                importe: Math.abs(parseFloat(fila[importeCol]) || 0) // IMPORTE (columna O) - valor absoluto
                             };
                             cheques.push(cheque);
-                        } else {
+                            
+                            if (chequesEncontrados <= 5) {
+                                console.log(`✅ [CHEQUES ETAPA 1] Cheque ${chequesEncontrados} encontrado:`, {
+                                    cuenta: cuentaStr,
+                                    ref: cheque.ref,
+                                    importe: cheque.importe
+                                });
+                            }
                         }
+                        
+                        // Tracking por cuenta
+                        if (!chequesPorCuenta[cuentaStr]) chequesPorCuenta[cuentaStr] = 0;
+                        chequesPorCuenta[cuentaStr]++;
                     }
                 }
-
+                
+                console.log('🔵 [CHEQUES ETAPA 1] Resumen de procesamiento:', {
+                    filasRevisadas,
+                    totalChequesEncontrados: chequesEncontrados,
+                    chequesPorCuenta,
+                    chequesParaEstaCuenta: cheques.length,
+                    cuentaSolicitada: codigoCuenta
+                });
                 
                 return cheques;
             },
 
             // === FUNCIÓN PARA OBTENER PENDIENTES DEL LIBRO 02 ===
-            obtenerPendientesLibro02(datosCompletos) {
-                if (!this.conciliationResult || !this.conciliationResult.estadosFilas) {
-                    return [];
-                }
-
+            obtenerPendientesLibro02(datosCompletos, codigoCuenta) {
                 const pendientes = [];
-                const estadosFilas = this.conciliationResult.estadosFilas;
-                const datosMayor = datosCompletos.datosMayor;
-
-                if (!datosMayor || !Array.isArray(datosMayor)) {
-                    return [];
+                
+                if (!datosCompletos.datosMayor || !Array.isArray(datosCompletos.datosMayor)) {
+                    return pendientes;
                 }
-
-                // Recorrer estados para encontrar pendientes del LIBRO 02
-                estadosFilas.forEach((estado, index) => {
-                    if (estado && estado.estado && estado.estado.includes('LIBRO 02') && 
-                        (estado.estado.includes('PENDIENTE') || !estado.estado.includes('Conciliada'))) {
-                        
-                        // Agregar la fila correspondiente del MAYOR
-                        if (index < datosMayor.length) {
-                            pendientes.push(datosMayor[index]);
+                
+                const datosMayor = datosCompletos.datosMayor;
+                
+                // Buscar header para identificar columnas
+                let headerIndex = -1;
+                for (let i = 0; i < datosMayor.length; i++) {
+                    if (Array.isArray(datosMayor[i])) {
+                        const fila = datosMayor[i];
+                        const tieneLibro = fila.some(celda => celda && celda.toString().toUpperCase().includes('LIBRO'));
+                        const tieneEstado = fila.some(celda => celda && celda.toString().toUpperCase().includes('ESTADO'));
+                        if (tieneLibro && tieneEstado) {
+                            headerIndex = i;
+                            break;
                         }
                     }
-                });
+                }
+
+                if (headerIndex === -1) {
+                    return pendientes;
+                }
+                
+                const headers = datosMayor[headerIndex];
+                
+                // Buscar columnas - CORREGIDO según especificaciones del usuario
+                const cuentaCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('CUENTA'));
+                const libroCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('LIBRO'));
+                const estadoCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('ESTADO'));
+                const conceptoCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('RAZON SOCI')); // CORREGIDO: era GLOSA
+                const fechaCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('FDOC'));        // CORREGIDO: era FECHA
+                const refCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('NUMDOC'));       // CORREGIDO: era REF
+                const haberCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('HABER'));
+
+                if (libroCol === -1 || estadoCol === -1 || cuentaCol === -1) {
+                    return pendientes;
+                }
+                // Procesar filas de datos
+                for (let i = headerIndex + 1; i < datosMayor.length; i++) {
+                    const fila = datosMayor[i];
+                    if (!Array.isArray(fila)) continue;
+                    
+                    const cuenta = fila[cuentaCol];
+                    const libro = fila[libroCol];
+                    const estado = fila[estadoCol];
+                    
+                    // Filtrar por cuenta específica, LIBRO 02 y estado Pendiente
+                    if (cuenta && cuenta.toString() === codigoCuenta &&
+                        libro && libro.toString() === '02' &&
+                        estado && estado.toString().toUpperCase().includes('PENDIENTE')) {
+                        
+                        const importe = parseFloat(fila[haberCol]) || 0;
+                        
+                        // Solo agregar si el importe es positivo
+                        if (importe > 0) {
+                            const pendiente = {
+                                fecha: this.formatearFecha(fila[fechaCol] || ''),
+                                ref: fila[refCol] || '',
+                                glosa: fila[conceptoCol] || '', // CORREGIDO: ahora usa RAZON SOCI
+                                importe: importe
+                            };
+                            pendientes.push(pendiente);
+                        }
+                    }
+                }
 
                 return pendientes;
             },
@@ -12038,7 +12141,7 @@
                         
                         cargos.push({
                             descripcion: descripcion || `Cargo ${ref}`,
-                            fecha: fecha,
+                            fecha: this.formatearFecha(fecha),
                             referencia: ref,
                             importe: Math.abs(importe) // Convertir a positivo para mostrar
                         });
@@ -12515,6 +12618,7 @@
 
             generateDatosOriginalesFile(datosCompletos, fileName) {
                 try {
+                    
                     const wb = XLSX.utils.book_new();
                     
                     const resumenData = [];
@@ -12522,10 +12626,11 @@
                     // Header principal
                     resumenData.push(['RESUMEN DE CUENTAS BANCARIAS']);
                     resumenData.push(['Generado el:', new Date().toLocaleDateString('es-PE')]);
+                    resumenData.push(['Mes:', this.mesAnoTarjetas || '']);
                     resumenData.push([]); // Fila vacía
                     
                     // Headers de la tabla
-                    resumenData.push(['#CTA', 'Nombre', 'USD', 'PEN', 'LIBROS', 'AJUSTE TC']);
+                    resumenData.push(['#CTA', 'Nombre', 'USD', 'PEN', 'LIBROS', 'AJUSTE DIF CAMBIO']);
                     
                     // Función para obtener saldo de libros
                     const getSaldoLibrosExcel = (cuenta) => {
@@ -12579,19 +12684,6 @@
                     // Agregar datos de cuentas
                     cuentasData.forEach(cuenta => resumenData.push(cuenta));
                     
-                    resumenData.push([]); // Fila vacía
-                    
-                    const totalCuentas = cuentasData.length;
-                    const cuentasUSD = cuentasData.filter(c => c[2] === 'Sí').length;
-                    const cuentasPEN = cuentasData.filter(c => c[3] === 'Sí').length;
-                    const cuentasAjusteTC = cuentasData.filter(c => c[5] === 'Sí').length;
-                    
-                    resumenData.push(['ESTADÍSTICAS:']);
-                    resumenData.push(['Total de cuentas:', totalCuentas]);
-                    resumenData.push(['Cuentas USD:', cuentasUSD]);
-                    resumenData.push(['Cuentas PEN:', cuentasPEN]);
-                    resumenData.push(['Cuentas con Ajuste TC:', cuentasAjusteTC]);
-                    
                     const wsResumen = XLSX.utils.aoa_to_sheet(resumenData);
                     XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen");
                     
@@ -12611,9 +12703,6 @@
                         'DET',
                         'BN'
                     ];
-                    
-                    // Obtener cheques no cobrados para BCP.01
-                    const chequesNoCobrados = this.obtenerChequesNoCobrados(datosCompletos);
                     
                     // Obtener depósitos en libros no registrados en bancos para BCP.01
                     const depositosLibrosNoRegistrados = this.obtenerDepositosLibrosNoRegistrados(datosCompletos);
@@ -12638,67 +12727,25 @@
                             ['Código de cuenta:', codigoCuenta],
                             ['Tipo de cambio usado:', this.tipoCambio || 'N/A'],
                             [''],
-                            ['CONCEPTO', 'FECHA', 'REF', 'IMPORTE', 'TOTAL'],
+                            ['FECHA', 'CONCEPTO', 'REF', 'IMPORTE', 'TOTAL'],
                             [''],
                             ['SALDO EN BANCOS', '', '', '', saldoBanco]
                         ];
 
-                        // Definir pendientesLibro02 para BCP.01 (usado en múltiples secciones)
+                        // Definir pendientesLibro02 (usado en múltiples secciones)
                         let pendientesLibro02 = [];
                         
-                        // Solo para BCP.01: Agregar cheques no cobrados + pendientes LIBRO 02
-                        if (nombrePestaña === 'BCP.01') {
-                            
-                            // Obtener pendientes LIBRO 02 del MAYOR.PEN
-                            if (datosCompletos.datosMayor && Array.isArray(datosCompletos.datosMayor)) {
-                                
-                                // Buscar header
-                                let headerIndex = -1;
-                                let libroCol = -1, estadoCol = -1, glosaCol = -1, fdocCol = -1, numdocCol = -1, haberCol = -1;
-                                
-                                for (let i = 0; i < Math.min(10, datosCompletos.datosMayor.length); i++) {
-                                    const fila = datosCompletos.datosMayor[i];
-                                    if (Array.isArray(fila)) {
-                                        const filaStr = fila.map(cell => (cell || '').toString().toUpperCase());
-                                        if (filaStr.includes('LIBRO') && filaStr.includes('ESTADO')) {
-                                            headerIndex = i;
-                                            libroCol = filaStr.indexOf('LIBRO');
-                                            estadoCol = filaStr.indexOf('ESTADO');
-                                            glosaCol = filaStr.indexOf('GLOSA');
-                                            fdocCol = filaStr.indexOf('FDOC');
-                                            numdocCol = filaStr.indexOf('NUMDOC');
-                                            haberCol = filaStr.indexOf('HABER');
-                                            break;
-                                        }
-                                    }
-                                }
-                                
-                                // Buscar pendientes LIBRO 02
-                                if (headerIndex >= 0 && libroCol >= 0 && estadoCol >= 0) {
-                                    for (let i = headerIndex + 1; i < datosCompletos.datosMayor.length; i++) {
-                                        const fila = datosCompletos.datosMayor[i];
-                                        if (!Array.isArray(fila)) continue;
-                                        
-                                        const libro = fila[libroCol];
-                                        const estado = fila[estadoCol];
-                                        
-                                        if (libro && libro.toString().trim() === '02' && 
-                                            estado && estado.toString().toUpperCase().includes('PENDIENTE')) {
-                                            
-                                            const pendiente = {
-                                                glosa: glosaCol >= 0 ? (fila[glosaCol] || '').toString() : 'Pendiente LIBRO 02',
-                                                fecha: fdocCol >= 0 ? (fila[fdocCol] || '').toString() : '',
-                                                ref: numdocCol >= 0 ? (fila[numdocCol] || '').toString() : '',
-                                                importe: haberCol >= 0 ? (parseFloat(fila[haberCol]) || 0) : 0
-                                            };
-                                            
-                                            if (pendiente.importe > 0) {
-                                                pendientesLibro02.push(pendiente);
-                                            }
-                                        }
-                                    }
+                        // Para todas las cuentas en soles: Agregar cheques no cobrados + pendientes LIBRO 02
+                        const cuentasEnSoles = ['BCP.01', 'BCP.02', 'SANT', 'BBVA', 'SBP', 'IBK'];
+                        if (cuentasEnSoles.includes(nombrePestaña)) {
+                            if (this.conciliationResult?.resultado?.datosSaldo && this.conciliationResult.resultado.datosSaldo.length > 0) {
+                                if (this.conciliationResult.resultado.datosSaldo.length > 1) {
                                 }
                             }
+                            // Obtener cheques no cobrados filtrados por cuenta
+                            const chequesNoCobrados = this.obtenerChequesNoCobrados(this.conciliationResult, codigoCuenta);
+                            // Obtener pendientes LIBRO 02 filtrados por cuenta
+                            pendientesLibro02 = this.obtenerPendientesLibro02(datosCompletos, codigoCuenta);
                             
                             
                             // Combinar cheques y pendientes LIBRO 02
@@ -12717,12 +12764,12 @@
                                 // Agregar título de la sección con total en columna TOTAL
                                 datosConciliacion.push(['(-) CHEQUES NO COBRADOS', '', '', '', -totalPendientes]);
                                 
-                                // Agregar cada item como fila individual con glosa en CONCEPTO
+                                // Agregar cada item como fila individual con fecha en FECHA y glosa en CONCEPTO
                                 todosPendientes.forEach((item, index) => {
                                     
                                     const filaDetalle = [
+                                        this.formatearFecha(item.fecha), // FECHA en primera columna
                                         item.glosa || `Item ${item.ref}`, // GLOSA en CONCEPTO
-                                        item.fecha,
                                         item.ref,
                                         item.importe >= 0 ? -item.importe : 0, // Negativo porque es resta, solo si es positivo
                                         '' // Sin total individual
@@ -12731,6 +12778,9 @@
                                     datosConciliacion.push(filaDetalle);
                                     
                                 });
+                                
+                                // Agregar fila vacía al final de la sección
+                                datosConciliacion.push(['', '', '', '', '']);
                                 
                                 totalAjustes -= totalPendientes;
                             } else {
@@ -12751,8 +12801,8 @@
                             
                             depositosBancos.forEach(deposito => {
                                 const filaDeposito = [
+                                    this.formatearFecha(deposito.fecha),
                                     deposito.descripcion,
-                                    deposito.fecha,
                                     deposito.ref,
                                     deposito.importe >= 0 ? deposito.importe : 0,
                                     ''
@@ -12785,9 +12835,9 @@
                             // Agregar depósitos de SALDOS a la lista
                             todosPendientesSaldos.forEach((item) => {
                                 const filaDetalle = [
-                                    item.glosa || `Item ${item.ref}`, // GLOSA → CONCEPTO (Col A)
-                                    item.fecha,                        // FDOC → FECHA (Col B)
-                                    item.ref,                         // NUMDOC → REF (Col C)
+                                    this.formatearFecha(item.fecha),      // FDOC → FECHA (Col A)
+                                    item.glosa || `Item ${item.ref}`,     // GLOSA → CONCEPTO (Col B)
+                                    item.ref,                             // NUMDOC → REF (Col C)
                                     item.importe >= 0 ? item.importe : 0, // DEBE → IMPORTE (Col D)
                                     '' // Sin total individual (Col E)
                                 ];
@@ -12798,8 +12848,8 @@
                             // Agregar omitidos del paso 2 agrupados a la lista
                             Object.entries(omitidosPaso2).forEach(([termino, total]) => {
                                 const filaTermino = [
-                                    termino,           // TÉRMINO → CONCEPTO (Col A)
-                                    '',                // FECHA vacía (Col B)
+                                    '',                // FECHA vacía (Col A)
+                                    termino,           // TÉRMINO → CONCEPTO (Col B)
                                     '',                // REF vacía (Col C)
                                     total,             // TOTAL DEL TÉRMINO → IMPORTE (Col D)
                                     '' // Sin total individual (Col E)
@@ -12821,8 +12871,8 @@
                             // Agregar cada pendiente a la lista
                             pendientesMayorDebe.forEach((item) => {
                                 const filaPendiente = [
-                                    item.glosa || `Pendiente ${item.ref}`, // GLOSA → CONCEPTO (Col A)
-                                    item.fecha,                             // FDOC → FECHA (Col B)
+                                    this.formatearFecha(item.fecha),       // FDOC → FECHA (Col A)
+                                    item.glosa || `Pendiente ${item.ref}`, // GLOSA → CONCEPTO (Col B)
                                     item.ref,                              // NUMDOC → REF (Col C)
                                     item.importe >= 0 ? item.importe : 0,  // DEBE → IMPORTE (Col D)
                                     '' // Sin total individual (Col E)
@@ -12871,8 +12921,8 @@
                             // Agregar cada pendiente de extracto
                             pendientesExtractos.forEach((pendiente) => {
                                 const filaPendiente = [
-                                    pendiente.descripcion || `Pendiente ${pendiente.referencia}`, // DESCRIPCIÓN → CONCEPTO (Col A)
-                                    pendiente.fecha,                                            // FECHA → FECHA (Col B)
+                                    this.formatearFecha(pendiente.fecha),                      // FECHA → FECHA (Col A)
+                                    pendiente.descripcion || `Pendiente ${pendiente.referencia}`, // DESCRIPCIÓN → CONCEPTO (Col B)
                                     pendiente.referencia,                                       // REFERENCIA → REF (Col C)
                                     pendiente.importe > 0 ? pendiente.importe : 0,            // IMPORTE → IMPORTE (Col D)
                                     '' // Sin total individual (Col E)
@@ -12919,9 +12969,6 @@
 
             async generateConciliacionFile(datosCompletos, fileName) {
                 try {
-                    console.log('📁 Generando archivo de conciliación:', fileName);
-                    console.log('🔍 Estado de registrosOmitidosPaso2 al generar Excel:', window.registrosOmitidosPaso2);
-                    
                     // Crear workbook para resultados de conciliación
                     const wb = XLSX.utils.book_new();
                     
@@ -12935,21 +12982,25 @@
                          const datosMayorCompletos = [...datosCompletos.datosMayor];
                          
                          if (pendientesLibro02.length > 0) {
-                             
                              // Agregar separador
                              datosMayorCompletos.push([]);
                              datosMayorCompletos.push(['=== PENDIENTES LIBRO 02 ===']);
                              datosMayorCompletos.push(['Filas no conciliadas que requieren revisión']);
                              datosMayorCompletos.push([]);
                              
-                             // Agregar header si no existe
-                             if (datosCompletos.datosMayor.length > 0 && Array.isArray(datosCompletos.datosMayor[0])) {
-                                 datosMayorCompletos.push(datosCompletos.datosMayor[0]); // Header original
-                             }
+                             // Agregar header específico para pendientes LIBRO 02
+                             datosMayorCompletos.push(['FECHA', 'CONCEPTO', 'REF', 'IMPORTE', 'ESTADO']);
                              
-                             // Agregar filas pendientes
-                             pendientesLibro02.forEach(fila => {
-                                 datosMayorCompletos.push(fila);
+                             // CORREGIDO: Convertir objetos pendientes a arrays con el formato correcto
+                             pendientesLibro02.forEach(pendiente => {
+                                 const filaArray = [
+                                     pendiente.fecha || '',           // FECHA
+                                     pendiente.glosa || '',           // CONCEPTO (glosa)
+                                     pendiente.ref || '',             // REF
+                                     pendiente.importe || 0,          // IMPORTE
+                                     'Pendiente LIBRO 02'             // ESTADO
+                                 ];
+                                 datosMayorCompletos.push(filaArray);
                              });
                          }
                          
@@ -12979,17 +13030,18 @@
                          XLSX.utils.book_append_sheet(wb, wsSaldo, "SALDO");
                      }
                      
-                     // HOJA: TARJETAS (Resumen de registros omitidos en Paso 2)
-                     console.log('🔍 Verificando registros omitidos para TARJETAS:', window.registrosOmitidosPaso2);
-                     const datosTarjetas = this.generarDatosTarjetas();
-                     console.log('📊 Datos generados para TARJETAS:', datosTarjetas);
-                     if (datosTarjetas && datosTarjetas.length > 0) {
-                         const wsTarjetas = XLSX.utils.aoa_to_sheet(datosTarjetas);
-                         XLSX.utils.book_append_sheet(wb, wsTarjetas, "TARJETAS");
-                         console.log('✅ Pestaña TARJETAS agregada al archivo de conciliación');
-                     } else {
-                         console.log('⚠️ No se generó la pestaña TARJETAS - sin datos');
-                     }
+                    // HOJA: TARJETAS (Resumen de registros omitidos en Paso 2)
+                    window.datosCompletos = datosCompletos;
+                    
+                    const datosTarjetas = this.generarDatosTarjetas();
+                    if (datosTarjetas && datosTarjetas.length > 0) {
+                        const wsTarjetas = XLSX.utils.aoa_to_sheet(datosTarjetas);
+                        XLSX.utils.book_append_sheet(wb, wsTarjetas, "TARJETAS");
+                    } else {
+                    }
+                     
+                     // Guardar el workbook para poder acceder a la pestaña SALDO después
+                     this.outputWorkbook = wb;
                      
                      return this.createDownloadableFile(wb, fileName);
                  } catch (error) {
@@ -12997,16 +13049,238 @@
                  }
              },
 
-             generarDatosTarjetas() {
+             // === FUNCIÓN PARA PROCESAR CHEQUES NO COBRADOS DESDE OUTPUT ===
+             procesarChequesNoCobradosDesdeOutput(extractosPorCuenta) {
                  try {
-                     console.log('🔧 Ejecutando generarDatosTarjetas()');
-                     console.log('📋 Registros disponibles:', window.registrosOmitidosPaso2);
-                     
-                     // Verificar que tenemos registros omitidos del Paso 2
-                     if (!window.registrosOmitidosPaso2 || window.registrosOmitidosPaso2.length === 0) {
-                         console.log('❌ No hay registros omitidos para TARJETAS');
-                         return null;
+                     if (!this.outputWorkbook) {
+                         return;
                      }
+                     
+                     const saldoSheet = this.outputWorkbook.Sheets['SALDO'];
+                     if (!saldoSheet) {
+                         return;
+                     }
+                     
+                     // Convertir la pestaña SALDO a array
+                     const datosSaldo = XLSX.utils.sheet_to_json(saldoSheet, { header: 1, defval: '' });
+                     if (!Array.isArray(datosSaldo) || datosSaldo.length === 0) {
+                         return;
+                     }
+                     
+                     // Buscar header
+                     let headerIndex = -1;
+                     let headers = [];
+                     
+                     for (let i = 0; i < datosSaldo.length; i++) {
+                         const fila = datosSaldo[i];
+                         if (Array.isArray(fila) && fila.some(celda => 
+                             celda && celda.toString().toUpperCase().includes('CONCEPTO'))) {
+                             headerIndex = i;
+                             headers = fila;
+                             break;
+                         }
+                     }
+                     
+                     if (headerIndex === -1) {
+                         return;
+                     }
+                     // Buscar columnas
+                     const cuentaCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('CUENTA'));
+                     const conceptoCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('CONCEPTO REPORTE FINAL'));
+                     const giradoCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('GIRADO'));
+                     const fdocCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('FDOC'));
+                     const numdocCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('NUMDOC'));
+                     const importeCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('IMPORTE'));
+                     const estadoCol = headers.findIndex(h => h && h.toString().toUpperCase() === 'ESTADO');
+                     if (conceptoCol === -1 || cuentaCol === -1 || estadoCol === -1) {
+                         return;
+                     }
+                     
+                     // Procesar cada cuenta configurada
+                     extractosPorCuenta.forEach((extractoInfo, codigoCuenta) => {
+                         const chequesNoCobrados = [];
+                         
+                         for (let i = headerIndex + 1; i < datosSaldo.length; i++) {
+                             const fila = datosSaldo[i];
+                             if (!Array.isArray(fila)) continue;
+                             
+                             const cuenta = fila[cuentaCol]?.toString().trim();
+                             const concepto = fila[conceptoCol]?.toString().trim();
+                             const estado = fila[estadoCol]?.toString().trim();
+                             
+                             // Debug: mostrar algunas filas para entender el contenido
+                             if (i <= headerIndex + 5 && cuenta === codigoCuenta) {
+                             }
+                             
+                             // Filtrar por cuenta y concepto
+                             if (cuenta === codigoCuenta && 
+                                 concepto && concepto.includes('(-) CHEQUES NO COBRADOS')) {
+                                 
+                                 // Criterio más flexible para determinar si está pendiente (igual que en conciliador estados.html)
+                                 const estaPendiente = !estado || 
+                                                     estado === '' || 
+                                                     estado.toString().toUpperCase().includes('PENDIENTE') ||
+                                                     !estado.toString().toUpperCase().includes('CONCILIADO');
+                                 
+                                 if (estaPendiente) {
+                                 
+                                 const cheque = {
+                                     cuenta: cuenta,
+                                     concepto: concepto,
+                                     girado: fila[giradoCol]?.toString().trim() || '',
+                                     fdoc: fila[fdocCol]?.toString().trim() || '',
+                                     numdoc: fila[numdocCol]?.toString().trim() || '',
+                                     importe: parseFloat(fila[importeCol]) || 0,
+                                     estado: estado
+                                 };
+                                 
+                                 chequesNoCobrados.push(cheque);
+                             }
+                         }
+                         }
+                         if (chequesNoCobrados.length > 0) {
+                             // Agregar los cheques no cobrados al extracto correspondiente
+                             this.agregarChequesNoCobradosAlExtracto(extractoInfo, chequesNoCobrados);
+                         }
+                     });
+                     
+                 } catch (error) {
+                     console.error('❌ Error en procesarChequesNoCobradosDesdeOutput:', error);
+                 }
+             },
+
+            // Nueva función que usa directamente los datos conciliados
+            procesarChequesNoCobradosDesdeResultado(extractosPorCuenta) {
+                if (!this.conciliationResult || !this.conciliationResult.resultado) {
+                    return;
+                }
+                
+                // Usar datosSaldo que ya contiene los estados aplicados después de la conciliación
+                const datosSaldo = this.conciliationResult.resultado.datosSaldo;
+                
+                if (!Array.isArray(datosSaldo) || datosSaldo.length === 0) {
+                    return;
+                }
+                try {
+                    // Buscar header en datosSaldo
+                    let headerIndex = -1;
+                    let headers = [];
+                    
+                    for (let i = 0; i < datosSaldo.length; i++) {
+                        const fila = datosSaldo[i];
+                        if (Array.isArray(fila) && fila.some(celda => 
+                            celda && celda.toString().toUpperCase().includes('CONCEPTO'))) {
+                            headerIndex = i;
+                            headers = fila;
+                            break;
+                        }
+                    }
+                    
+                    if (headerIndex === -1) {
+                        return;
+                    }
+                    // Encontrar índices de columnas
+                    const cuentaCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('CUENTA'));
+                    const conceptoCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('CONCEPTO'));
+                    const giradoCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('GIRADO'));
+                    const fdocCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('FDOC'));
+                    const numdocCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('NUMDOC'));
+                    const importeCol = headers.findIndex(h => h && h.toString().toUpperCase().includes('IMPORTE'));
+                    
+                    // Buscar la ÚLTIMA columna ESTADO (la conciliada, no la original)
+                    let estadoCol = -1;
+                    for (let i = headers.length - 1; i >= 0; i--) {
+                        if (headers[i] && headers[i].toString().toUpperCase() === 'ESTADO') {
+                            estadoCol = i;
+                            break;
+                        }
+                    }
+                    
+                    const refCol = headers.findIndex(h => h && h.toString().toUpperCase() === '#REF');
+                    if (conceptoCol === -1 || cuentaCol === -1 || estadoCol === -1) {
+                        return;
+                    }
+                    
+                    // Procesar cada cuenta configurada
+                    extractosPorCuenta.forEach((extractoInfo, codigoCuenta) => {
+                        const chequesNoCobrados = [];
+                        
+                        for (let i = headerIndex + 1; i < datosSaldo.length; i++) {
+                            const fila = datosSaldo[i];
+                            if (!Array.isArray(fila)) continue;
+                            
+                            const cuenta = fila[cuentaCol]?.toString().trim();
+                            const concepto = fila[conceptoCol]?.toString().trim();
+                            const estado = fila[estadoCol]?.toString().trim();
+                            
+                            // Debug: mostrar algunas filas para entender el contenido
+                            if (i <= headerIndex + 5 && cuenta === codigoCuenta) {
+                            }
+                            
+                            // Filtrar por cuenta y concepto
+                            if (cuenta === codigoCuenta && 
+                                concepto && concepto.includes('(-) CHEQUES NO COBRADOS')) {
+                                
+                                // Criterio más flexible para determinar si está pendiente
+                                const estaPendiente = !estado || 
+                                                    estado === '' || 
+                                                    estado.toString().toUpperCase().includes('PENDIENTE') ||
+                                                    !estado.toString().toUpperCase().includes('CONCILIADO');
+                                
+                                if (estaPendiente) {
+                                    const ref = refCol !== -1 ? fila[refCol]?.toString().trim() || '' : '';
+                                    const cheque = {
+                                        cuenta: cuenta,
+                                        concepto: concepto,
+                                        girado: fila[giradoCol]?.toString().trim() || '',
+                                        fdoc: fila[fdocCol]?.toString().trim() || '',
+                                        numdoc: fila[numdocCol]?.toString().trim() || '',
+                                        importe: parseFloat(fila[importeCol]) || 0,
+                                        estado: estado,
+                                        ref: ref
+                                    };
+                                    
+                                    chequesNoCobrados.push(cheque);
+                                }
+                            }
+                        }
+                        if (chequesNoCobrados.length > 0) {
+                            // Agregar los cheques no cobrados al extracto correspondiente
+                            this.agregarChequesNoCobradosAlExtracto(extractoInfo, chequesNoCobrados);
+                        }
+                    });
+                    
+                } catch (error) {
+                    console.error('❌ Error en procesarChequesNoCobradosDesdeResultado:', error);
+                }
+            },
+
+            // ⚠️ DESHABILITADO: agregarChequesNoCobradosAlExtracto
+            // Los cheques NO van a la pestaña BCP.01 del OUTPUT CONCILIACIÓN
+            // Van al OUTPUT RESUMEN en la sección "(-) CHEQUES NO COBRADOS"
+            agregarChequesNoCobradosAlExtracto(extractoInfo, chequesNoCobrados) {
+                // Función deshabilitada - los cheques van solo al RESUMEN
+                return;
+            },
+
+             generarDatosTarjetas() {
+                try {
+                    // Mapeo de códigos de cuenta a nombres de banco desde nomenclatura_archivos.md
+                    const mapeoNomenclatura = {
+                         '1041501': 'BCO DE CREDITO M/N',
+                         '1041505': 'BCO DE CREDITO M/N', 
+                         '1041401': 'BCO. SANTANDER M/N',
+                         '1041201': 'CONTINENTAL M/N',
+                         '1041301': 'SCOTIABANK MN',
+                         '1041101': 'INTERBANK M/N',
+                         '1042101': 'BCO. DE LA NACION DET M/N',
+                         '1041601': 'BCO. DE LA NACION M/N',
+                         '1041502': 'BCO DE CREDITO M/E',
+                         '1041402': 'BCO. SANTANDER M/E',
+                         '1041202': 'CONTINENTAL M/E',
+                         '1041302': 'SCOTIABANK M/E',
+                         '1041102': 'INTERBANK M/E'
+                     };
                      
                      // Obtener el último día del mes seleccionado
                      const fdocCalculado = this.calcularFdocUltimoDiaMes();
@@ -13014,33 +13288,79 @@
                      // Agrupar por término de exclusión Y cuenta
                      const resumenPorTerminoCuenta = {};
                      
-                     window.registrosOmitidosPaso2.forEach(registro => {
-                         const termino = registro.termino;
-                         const cuenta = registro.cuenta;
-                         const clave = `${termino}_${cuenta}`; // Clave única por término y cuenta
-                         
-                         if (!resumenPorTerminoCuenta[clave]) {
-                             resumenPorTerminoCuenta[clave] = {
-                                 cuenta: registro.cuenta,
-                                 descrip: registro.descrip,
-                                 fdoc: fdocCalculado,
-                                 glosa: `RESUMEN ${termino}`,
-                                 debe: 0,
-                                 haber: 0,
-                                 cantidad: 0
-                             };
-                         }
-                         
-                         resumenPorTerminoCuenta[clave].debe += parseFloat(registro.debe || 0);
-                         resumenPorTerminoCuenta[clave].haber += parseFloat(registro.haber || 0);
-                         resumenPorTerminoCuenta[clave].cantidad += 1;
-                     });
+                    // PROCESAR REGISTROS DEL MAYOR (PASO 2)
+                    if (window.registrosOmitidosPaso2 && window.registrosOmitidosPaso2.length > 0) {
+                        window.registrosOmitidosPaso2.forEach(registro => {
+                             const termino = registro.termino;
+                             const cuenta = registro.cuenta;
+                             const clave = `${termino}_${cuenta}_MAYOR`; // Clave única por término, cuenta y fuente
+                             
+                             if (!resumenPorTerminoCuenta[clave]) {
+                                 // Usar mapeo de nomenclatura para DESCRIP
+                                 const descripCorrecta = mapeoNomenclatura[cuenta] || registro.descrip;
+                                 
+                                 resumenPorTerminoCuenta[clave] = {
+                                     cuenta: registro.cuenta,
+                                     descrip: descripCorrecta,
+                                     fdoc: fdocCalculado,
+                                     glosa: `RESUMEN ${termino}`,
+                                     debe: 0,
+                                     haber: 0,
+                                     cantidad: 0,
+                                     fuente: 'MAYOR.PEN'
+                                 };
+                             }
+                             
+                             resumenPorTerminoCuenta[clave].debe += parseFloat(registro.debe || 0);
+                             resumenPorTerminoCuenta[clave].haber += parseFloat(registro.haber || 0);
+                            resumenPorTerminoCuenta[clave].cantidad += 1;
+                        });
+                    } else {
+                    }
+                    
+                    // PROCESAR REGISTROS DE BCP.01
+                    const registrosBCP01 = this.filtrarRegistrosBCP01();
+                    if (registrosBCP01 && registrosBCP01.length > 0) {
+                         registrosBCP01.forEach(registro => {
+                             const termino = registro.termino;
+                             const clave = `${termino}_1041501_BCP01`; // Clave única para BCP.01
+                             
+                             if (!resumenPorTerminoCuenta[clave]) {
+                                 resumenPorTerminoCuenta[clave] = {
+                                     cuenta: '1041501',
+                                     descrip: 'BCO DE CREDITO M/N',
+                                     fdoc: registro.fdoc,
+                                     glosa: registro.glosa,
+                                     debe: 0,
+                                     haber: 0,
+                                     cantidad: 0,
+                                     fuente: 'BCP.01'
+                                 };
+                             }
+                             
+                             resumenPorTerminoCuenta[clave].debe += parseFloat(registro.debe || 0);
+                             resumenPorTerminoCuenta[clave].haber += parseFloat(registro.haber || 0);
+                            resumenPorTerminoCuenta[clave].cantidad += 1;
+                        });
+                    } else {
+                    }
+                    
+                    // Verificar que tenemos al menos algunos registros
+                    if (Object.keys(resumenPorTerminoCuenta).length === 0) {
+                        return null;
+                    }
+                    const resumenPorFuente = {};
+                    Object.values(resumenPorTerminoCuenta).forEach(r => {
+                        if (!resumenPorFuente[r.fuente]) resumenPorFuente[r.fuente] = 0;
+                        resumenPorFuente[r.fuente]++;
+                    });
+                    console.log(resumenPorFuente);
                      
                      // Crear datos para la hoja
                      const datos = [];
                      
-                     // Header
-                     datos.push(['CUENTA', 'DESCRIP', 'FDOC', 'GLOSA', 'DEBE', 'HABER']);
+                     // Header actualizado con columna FUENTE
+                     datos.push(['CUENTA', 'DESCRIP', 'FDOC', 'GLOSA', 'DEBE', 'HABER', 'FUENTE']);
                      
                      // Agregar resúmenes
                      Object.values(resumenPorTerminoCuenta).forEach(resumen => {
@@ -13050,17 +13370,105 @@
                              resumen.fdoc,
                              `${resumen.glosa} (${resumen.cantidad} registros)`,
                              Math.round(resumen.debe * 100) / 100, // Mantener como número con 2 decimales
-                             Math.round(resumen.haber * 100) / 100  // Mantener como número con 2 decimales
-                         ]);
-                     });
-                     
-                     console.log('✅ Datos generados para TARJETAS:', datos);
-                     console.log(`📊 Total de filas: ${datos.length} (incluyendo header)`);
-                     return datos;
+                             Math.round(resumen.haber * 100) / 100, // Mantener como número con 2 decimales
+                            resumen.fuente
+                        ]);
+                    });
+                    
+                    return datos;
                      
                  } catch (error) {
                      console.error('Error generando datos de tarjetas:', error);
                      return null;
+                 }
+             },
+
+            filtrarRegistrosBCP01() {
+                try {
+                    // Términos de exclusión específicos para BCP.01
+                    const terminosExclusion = [
+                        'COMPAN',
+                        'CIA DE SERV',
+                        'DE DINERS CLUB PERU S.',
+                        'DE GAS NATURAL DE LIMA',
+                        'DE PROCESOS DE MEDIOS',
+                        'TRANSF.BCO.CITIBANK'
+                    ];
+                     // Verificar que tenemos datos de extractos
+                     if (!window.datosCompletos || !window.datosCompletos.extractosPorCuenta) {
+                         return [];
+                     }
+                     
+                     // Obtener datos de BCP.01 (cuenta 1041501)
+                     const extractoInfo = window.datosCompletos.extractosPorCuenta.get('1041501');
+                     
+                     // extractosPorCuenta guarda objetos con {config, datos, datosExtracto, archivo}
+                     const datosBCP01 = extractoInfo?.datos || extractoInfo?.datosExtracto;
+                     
+                     if (!datosBCP01 || !Array.isArray(datosBCP01) || datosBCP01.length === 0) {
+                         return [];
+                     }
+                     // Buscar el header para identificar las columnas
+                     let headerRowIndex = -1;
+                     let colDescripcion = -1;
+                     let colImporte = -1;
+                     let colFecha = -1;
+                     
+                     for (let i = 0; i < Math.min(10, datosBCP01.length); i++) {
+                         const fila = datosBCP01[i];
+                         if (Array.isArray(fila)) {
+                             for (let j = 0; j < fila.length; j++) {
+                                 const celda = String(fila[j] || '').toLowerCase();
+                                 if (celda.includes('descripción') || celda.includes('descripcion') || celda.includes('glosa')) {
+                                     colDescripcion = j;
+                                     headerRowIndex = i;
+                                 }
+                                 if (celda.includes('importe') || celda.includes('monto') || celda.includes('debe') || celda.includes('haber')) {
+                                     colImporte = j;
+                                 }
+                                 if (celda.includes('fecha')) {
+                                     colFecha = j;
+                                 }
+                             }
+                             if (colDescripcion >= 0 && colImporte >= 0) break;
+                         }
+                     }
+                     
+                     if (headerRowIndex === -1 || colDescripcion === -1 || colImporte === -1) {
+                         return [];
+                     }
+                     // Filtrar registros que contengan los términos de exclusión
+                     const registrosFiltrados = [];
+                     
+                     for (let i = headerRowIndex + 1; i < datosBCP01.length; i++) {
+                         const fila = datosBCP01[i];
+                         if (!Array.isArray(fila) || fila.length <= Math.max(colDescripcion, colImporte)) continue;
+                         
+                         const descripcion = String(fila[colDescripcion] || '').toUpperCase();
+                         const importe = parseFloat(fila[colImporte] || 0);
+                         const fecha = fila[colFecha] || '';
+                         
+                         // Buscar si la descripción contiene algún término de exclusión
+                         for (const termino of terminosExclusion) {
+                             if (descripcion.includes(termino)) {
+                                 registrosFiltrados.push({
+                                     termino: termino,
+                                     glosa: descripcion,
+                                     debe: importe > 0 ? importe : 0,
+                                     haber: importe < 0 ? Math.abs(importe) : 0,
+                                     fdoc: fecha,
+                                     filaOriginal: i
+                                 });
+                                 break; // Solo agregar una vez por fila
+                             }
+                        }
+                    }
+                    
+                    return registrosFiltrados;
+                     
+                 } catch (error) {
+                     console.error('Error filtrando registros de BCP.01:', error);
+                     return [];
                  }
              },
 
@@ -13370,22 +13778,9 @@
         - Extracto: Agrupado por Referencia
         - Comparación: FDOC+TOTAL_HABER vs Fecha+|TOTAL_IMPORTE|
         */
-        
-        console.log(`🏦 ===== PASO 12 SBP - FUNCIÓN PRINCIPAL EJECUTÁNDOSE =====`);
-        console.log(`🏦 Cuenta recibida: ${cuentaConfig ? cuentaConfig.codigo : 'null'}`);
-        console.log(`🏦 Alias: ${cuentaConfig ? cuentaConfig.alias : 'null'}`);
-        console.log(`🏦 Moneda: ${cuentaConfig ? cuentaConfig.moneda : 'null'}`);
-        
         const esSBPUSD = cuentaConfig && cuentaConfig.codigo === '1041302';
-        
-        console.log(`🏦 ¿Es SBP USD (1041302)?: ${esSBPUSD}`);
-        console.log(`🏦 ==========================================`);
-        
-
-        
         // Para SBP.USD usar nueva lógica agrupada por fecha + monto
         if (esSBPUSD) {
-            console.log(`🏦 ➡️ RUTA: Redirigiendo a procesarPaso12SBPUSDAgrupado para SBP USD`);
             return this.procesarPaso12SBPUSDAgrupado(filasFiltradasMayor, extractoProcesable, idxM, idxE, estadosFilas, estadosExtracto, cuentaConfig);
         }
         let gruposMayorCreados = 0;
@@ -14807,13 +15202,6 @@
 
     // === PASO 12 SBP USD AGRUPADO - NUEVA LÓGICA ESPECÍFICA PARA USD ===
     procesarPaso12SBPUSDAgrupado: function(datosMayor, datosExtracto, indicesMayor, indicesExtracto, estadosFilas, estadosExtracto, cuentaConfig) {
-        console.log(`🚀 ===== EJECUTANDO procesarPaso12SBPUSDAgrupado =====`);
-        console.log(`📊 Parámetros recibidos:`, {
-            datosMayor: datosMayor?.length || 0,
-            datosExtracto: datosExtracto?.length || 0,
-            cuentaCodigo: cuentaConfig?.codigo,
-            cuentaAlias: cuentaConfig?.alias
-        });
         /*
         PASO 12 SBP USD AGRUPADO:
         
@@ -14834,36 +15222,20 @@
         */
         
         if (!datosMayor || !Array.isArray(datosMayor) || datosMayor.length === 0) {
-            console.log(`❌ ERROR: datosMayor vacío o inválido:`, datosMayor);
             return { candidatos: 0, grupos: 0, conciliados: 0 };
         }
 
         if (!datosExtracto || !Array.isArray(datosExtracto) || datosExtracto.length === 0) {
-            console.log(`❌ ERROR: datosExtracto vacío o inválido:`, datosExtracto);
             return { candidatos: 0, grupos: 0, conciliados: 0 };
         }
 
         // Verificar que sea SBP USD
         if (!cuentaConfig || cuentaConfig.codigo !== '1041302') {
-            console.log(`❌ ERROR: Cuenta no es SBP USD. Recibido:`, {
-                cuentaConfig: cuentaConfig,
-                codigo: cuentaConfig?.codigo,
-                esperado: '1041302'
-            });
             return { candidatos: 0, grupos: 0, conciliados: 0 };
         }
-
-        console.log(`✅ Verificación exitosa: Cuenta SBP USD confirmada (${cuentaConfig.codigo})`);
-        console.log(`📋 Datos válidos: Mayor=${datosMayor.length} registros, Extracto=${datosExtracto.length} registros`);
-
         let gruposMayorFormados = 0;
         let gruposExtractoFormados = 0;
         let conciliados = 0;
-
-        console.log(`\n🏦 ===== PASO 12 SBP USD AGRUPADO - DIAGNÓSTICO DETALLADO =====`);
-        console.log(`📊 Cuenta: ${cuentaConfig.codigo} (${cuentaConfig.alias})`);
-        console.log(`📋 Registros Mayor: ${datosMayor.length}, Registros Extracto: ${datosExtracto.length}`);
-
         // === FASE 1: AGRUPAR MAYOR POR FECHA + SUMAR HABER ===
         const gruposMayor = new Map();
         
@@ -14913,30 +15285,16 @@
             grupo.indices.push(i);
         }
 
-        // === LOG SECCIÓN 1: GRUPOS DEL MAYOR ===
-        console.log(`\n📊 === SECCIÓN 1: GRUPOS DEL MAYOR (${gruposMayorFormados} grupos) ===`);
+        // === SECCIÓN 1: GRUPOS DEL MAYOR ===
         gruposMayor.forEach((grupo, fecha) => {
-            console.log(`📅 ${fecha}: Total HABER = ${grupo.totalHaber.toFixed(2)} (${grupo.registros.length} registros)`);
             grupo.registros.forEach(reg => {
-                console.log(`   └─ COMPROB: ${reg.comprob}, LIBRO: ${reg.libro}, HABER: ${reg.haber.toFixed(2)}`);
             });
         });
 
         // === FASE 2: AGRUPAR EXTRACTO POR FECHA + SUMAR |IMPORTE| ===
         const gruposExtracto = new Map();
-        
-        console.log(`\n🔍 === INICIANDO PROCESAMIENTO DEL EXTRACTO ===`);
-        console.log(`📊 Total registros en extracto: ${datosExtracto.length}`);
-        console.log(`🗂️ Índices del extracto:`, {
-            fecha: indicesExtracto.fecha,
-            monto: indicesExtracto.monto,
-            operacion: indicesExtracto.operacion,
-            descripcion: indicesExtracto.descripcion
-        });
-        
         // Mostrar headers del extracto para verificar mapeo
         if (datosExtracto.length > 0) {
-            console.log(`📋 Headers del extracto:`, datosExtracto[0]);
         }
         
         let registrosPendientes = 0;
@@ -14955,7 +15313,6 @@
             
             const estadoActual = estadoInfo ? estadoInfo.estado : 'Pendiente';
             if (estadoActual !== 'Pendiente') {
-                console.log(`⏭️ Registro ${i}: SALTADO (estado: ${estadoActual})`);
                 continue;
             }
 
@@ -14965,11 +15322,7 @@
             
             // Log completo de los primeros 3 registros pendientes para diagnóstico
             if (registrosPendientes <= 3) {
-                console.log(`🔍 REGISTRO PENDIENTE ${i} COMPLETO:`, filaExtracto);
-                console.log(`🔍 ESTRUCTURA DE FILA ${i}:`, filaExtracto.fila);
-                console.log(`🔍 LONGITUD DE FILA ${i}:`, filaExtracto.fila ? filaExtracto.fila.length : 'undefined');
                 if (filaExtracto.fila) {
-                    console.log(`🔍 ACCESO DIRECTO ${i}: [0]="${filaExtracto.fila[0]}", [1]="${filaExtracto.fila[1]}", [2]="${filaExtracto.fila[2]}", [3]="${filaExtracto.fila[3]}"`);
                 }
             }
             
@@ -14979,11 +15332,7 @@
             
             const fechaNormalizada = this.normalizarFecha(fecha);
             const importeAbsoluto = Math.abs(importe);
-            
-            console.log(`🔍 Registro ${i}: fecha="${fecha}" → "${fechaNormalizada}", importe=${importe} → |${importeAbsoluto}|, ref="${referencia}"`);
-            
             if (importeAbsoluto <= 0) {
-                console.log(`⏭️ Registro ${i}: SALTADO (importe <= 0)`);
                 continue; // Solo procesar registros con importe > 0
             }
 
@@ -14997,7 +15346,6 @@
                     indices: []
                 });
                 gruposExtractoFormados++;
-                console.log(`✅ NUEVO GRUPO EXTRACTO creado para fecha: ${fechaNormalizada} (Total grupos: ${gruposExtractoFormados})`);
             }
             
             const grupo = gruposExtracto.get(fechaNormalizada);
@@ -15012,40 +15360,18 @@
         }
 
         // === RESUMEN DEL PROCESAMIENTO ===
-        console.log(`\n📊 === RESUMEN DEL PROCESAMIENTO ===`);
-        console.log(`📋 Registros pendientes encontrados: ${registrosPendientes}`);
-        console.log(`✅ Registros con datos válidos procesados: ${registrosConDatos}`);
-        
-        // === LOG SECCIÓN 2: GRUPOS DEL EXTRACTO ===
-        console.log(`\n📊 === SECCIÓN 2: GRUPOS DEL EXTRACTO (${gruposExtractoFormados} grupos) ===`);
         gruposExtracto.forEach((grupo, fecha) => {
-            console.log(`📅 ${fecha}: Total |IMPORTE| = ${grupo.totalImporte.toFixed(2)} (${grupo.registros.length} registros)`);
             grupo.registros.forEach(reg => {
-                console.log(`   └─ REF: ${reg.referencia}, IMPORTE: ${reg.importe.toFixed(2)} (|${Math.abs(reg.importe).toFixed(2)}|)`);
             });
         });
 
         // === FASE 3: MAPEAR GRUPOS MAYOR VS EXTRACTO ===
-        console.log(`\n📊 === SECCIÓN 3: CONCILIACIÓN POR FECHA ===`);
         let numeroGrupo = 1;
         
         gruposMayor.forEach((grupoMayor, fechaMayor) => {
             const grupoExtracto = gruposExtracto.get(fechaMayor);
-            
-            console.log(`\n📅 ${fechaMayor}:`);
-            console.log(`   Mayor: Total HABER = ${grupoMayor.totalHaber.toFixed(2)}`);
-            
             if (grupoExtracto) {
-                console.log(`   Extracto: Total |IMPORTE| = ${grupoExtracto.totalImporte.toFixed(2)}`);
                 const diferencia = Math.abs(grupoMayor.totalHaber - grupoExtracto.totalImporte);
-                console.log(`   Diferencia: ${diferencia.toFixed(2)}`);
-                
-                // Verificar si los montos coinciden con tolerancia de 0.01
-                if (diferencia < 0.01) {
-                    console.log(`   Estado: ✅ CONCILIADO (diferencia ${diferencia.toFixed(2)} < 0.01)`);
-                } else {
-                    console.log(`   Estado: ❌ NO CONCILIADO (diferencia ${diferencia.toFixed(2)} >= 0.01)`);
-                }
                 
                 if (diferencia < 0.01) {
                     const refGrupo = `GRUPO-USD-${fechaMayor}`;
@@ -15087,18 +15413,8 @@
                     gruposExtracto.delete(fechaMayor);
                 }
             } else {
-                console.log(`   Extracto: ❌ NO ENCONTRADO`);
-                console.log(`   Estado: ❌ NO CONCILIADO (sin correspondencia en extracto)`);
             }
         });
-
-        // === LOG RESUMEN FINAL ===
-        console.log(`\n📊 === RESUMEN FINAL PASO 12 SBP USD ===`);
-        console.log(`🔢 Grupos Mayor formados: ${gruposMayorFormados}`);
-        console.log(`🔢 Grupos Extracto formados: ${gruposExtractoFormados}`);
-        console.log(`✅ Grupos conciliados: ${conciliados}`);
-        console.log(`❌ Grupos no conciliados: ${gruposMayorFormados - conciliados}`);
-        console.log(`📈 Tasa de conciliación: ${gruposMayorFormados > 0 ? ((conciliados / gruposMayorFormados) * 100).toFixed(1) : 0}%`);
 
         return {
             candidatos: gruposMayorFormados + gruposExtractoFormados,
@@ -15322,41 +15638,77 @@
                             
                             const worksheet = workbook.Sheets[sheetName];
                             
-                            // Leer específicamente el rango A8:F20
-                            const range = XLSX.utils.decode_range('A8:F20');
+                            // EXPANDIDO: Leer todo el rango de datos disponible, no solo A8:F20
+                            const fullRange = worksheet['!ref'] ? XLSX.utils.decode_range(worksheet['!ref']) : null;
+                            
+                            if (!fullRange) {
+                                resolve(new Map());
+                                return;
+                            }
+                            // Leer todos los datos disponibles
                             const jsonData = [];
                             
-                            for (let R = range.s.r; R <= range.e.r; ++R) {
+                            for (let R = fullRange.s.r; R <= fullRange.e.r; ++R) {
                                 const row = [];
-                                for (let C = range.s.c; C <= range.e.c; ++C) {
+                                for (let C = fullRange.s.c; C <= fullRange.e.c; ++C) {
                                     const cellAddress = XLSX.utils.encode_cell({c: C, r: R});
                                     const cell = worksheet[cellAddress];
                                     row.push(cell ? cell.v : undefined);
                                 }
                                 jsonData.push(row);
                             }
-                            
-                            
                             const saldosLibros = new Map();
                             
-                            // Procesar cada fila del rango A8:F20
-                            // Columna A (índice 0) = Cuenta, Columna F (índice 5) = Saldo
+                            // MEJORADO: Buscar automáticamente las columnas de saldos
+                            // Buscar fila de headers que contenga "CUENTA" y "SALDO" o similar
+                            let headerRowIndex = -1;
+                            let cuentaColIndex = -1;
+                            let saldoColIndex = -1;
                             
-                            let cuentasProcesadas = 0;
-                            for (let i = 0; i < jsonData.length; i++) {
+                            for (let i = 0; i < Math.min(jsonData.length, 20); i++) { // Buscar en las primeras 20 filas
                                 const fila = jsonData[i];
-                                const filaExcel = i + 8; // Fila real en Excel (A8 = fila 8)
+                                if (fila && Array.isArray(fila)) {
+                                    for (let j = 0; j < fila.length; j++) {
+                                        const celda = fila[j];
+                                        if (celda && typeof celda === 'string') {
+                                            const celdaUpper = celda.toString().toUpperCase();
+                                            if (celdaUpper.includes('CUENTA') && cuentaColIndex === -1) {
+                                                headerRowIndex = i;
+                                                cuentaColIndex = j;
+                                            }
+                                            if ((celdaUpper.includes('SALDO') || celdaUpper.includes('TOTAL')) && saldoColIndex === -1) {
+                                                saldoColIndex = j;
+                                            }
+                                        }
+                                    }
+                                    if (cuentaColIndex !== -1 && saldoColIndex !== -1) {
+                                        break;
+                                    }
+                                }
+                            }
+                            // Si no encontramos headers automáticamente, usar posiciones por defecto
+                            if (headerRowIndex === -1 || cuentaColIndex === -1 || saldoColIndex === -1) {
+                                headerRowIndex = 7; // Fila 8 en Excel (índice 7)
+                                cuentaColIndex = 0; // Columna A
+                                saldoColIndex = 5;  // Columna F
+                            }
+                            
+                            // Procesar filas de datos a partir del header
+                            let cuentasProcesadas = 0;
+                            const startRow = headerRowIndex + 1;
+                            
+                            for (let i = startRow; i < jsonData.length; i++) {
+                                const fila = jsonData[i];
+                                const filaExcel = i + 1; // Fila real en Excel
                                 
-                                
-                                if (fila && fila.length >= 6) {
-                                    const cuenta = fila[0]; // Columna A
-                                    const saldo = fila[5]; // Columna F (índice 5)
+                                if (fila && fila.length > Math.max(cuentaColIndex, saldoColIndex)) {
+                                    const cuenta = fila[cuentaColIndex];
+                                    const saldo = fila[saldoColIndex];
                                     
                                     // Verificar si la cuenta es válida (no vacía y parece número de cuenta)
                                     if (cuenta !== undefined && cuenta !== null && cuenta !== '') {
                                         const cuentaStr = String(cuenta).trim();
                                         const esNumCuenta = /^104\d+$/.test(cuentaStr);
-                                        
                                         
                                         if (esNumCuenta && saldo !== undefined && saldo !== null && saldo !== '') {
                                             // Convertir saldo a número
@@ -15371,12 +15723,10 @@
                                             
                                             saldosLibros.set(cuentaStr, saldoNum);
                                             cuentasProcesadas++;
-                                            
                                         }
                                     }
                                 }
                             }
-                            
                             resolve(saldosLibros);
                             
                         } catch (error) {
